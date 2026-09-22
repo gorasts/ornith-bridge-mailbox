@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-debug-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+ROOT_CAUSE:
+Extension 2.0 used an unsupported 6-second MV3 alarm interval (`periodInMinutes:0.1`); alarms require a realistic interval. It also lacked `tabs` permission and used overly exact tab URL matching, preventing reliable targeting of the pinned ChatGPT tab.
+
+PATCHED_FILES:
+`C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension\manifest.json` version 2.1; `worker.js`.
+
+STATE_FOUND:
+Browser `chrome.storage.local` is extension-private and was not extracted. The test result filename exists in public GitHub outbox. No private conversation identifier was read or published.
+
+USER_ACTION_REQUIRED:
+At `edge://extensions`, click Reload for Ornith GitHub Wake 2.1, then return to the intended pinned ChatGPT conversation once.
+
+NEXT_TEST:
+After reload/pin, publish a new `outbox/result_*.txt` file. Do not reuse the historical `result_extension-integration-test-001.txt`, which correct activation should treat as already seen.
+
+DECISIVE_EVIDENCE:
+Manifest already included `https://api.github.com/*`; the public Contents API was reachable. Version 2.1 adds `tabs`, uses a 30-second MV3 alarm plus startup poll, and finds tabs by ChatGPT origin plus pinned pathname rather than an exact URL pattern.
