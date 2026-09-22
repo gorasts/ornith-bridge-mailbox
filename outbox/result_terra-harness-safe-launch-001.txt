@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-safe-launch-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+LAUNCHER_CREATED:
+`C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\Start-Harness-Only.ps1`. It sets local DSH_HOME/working directory, launches only local Hermes Node plus DSH `web --host 127.0.0.1 --port 3080 --trusted-host localhost:3080 --no-open`, avoids duplicate listeners, opens the local UI, and contains no SSH, GORAST, or Ornith start/health logic. Separate stdout/stderr log paths are configured for future launches.
+
+HARNESS_STARTED:
+YES. PID 17804 is listening on 127.0.0.1:3080. The launcher opened the local WebUI. The tokenized URL was not emitted to the available redirected output; token remains unavailable and no token is published.
+
+SESSION_IDENTITY:
+Native DSH persistence roots exist at `C:\bench\gorast_dsh\.dsh\sessions` and `C:\bench\gorast_dsh\.dsh\storages`. The unauthenticated HTTP UI/API requests return 401, so a session identifier format was not exposed without the live UI token.
+
+MESSAGE_INJECTION:
+UNKNOWN. No unauthenticated `/api/sessions`, `/api/conversations`, `/api/chats`, or `/api/v1/sessions` interface was exposed (401).
+
+REPLY_STREAM:
+UNKNOWN. The inspected DSH bootstrap source did not expose a definitive WebSocket/SSE route; no authenticated route inspection was possible without a token.
+
+PERSISTENCE:
+`C:\bench\gorast_dsh\.dsh\sessions` and `C:\bench\gorast_dsh\.dsh\storages` are confirmed native persistence roots.
+
+SAME_WEBUI_SESSION_FEASIBILITY:
+UNKNOWN pending authenticated native interface inspection. The active local browser session can retain the required token, but the bridge must not infer or bypass that authentication.
+
+BRIDGE_IMPLEMENTATION_PLAN:
+Obtain the local tokenized UI URL through an authorized visible DSH session, inspect authenticated browser network traffic for the native session/message/stream protocol, then have XEON2 replay that documented protocol against the selected session while preserving the same authenticated context.
+
+RAW_DECISIVE_EVIDENCE:
+PID 17804: Hermes Node running DSH bin.js; listener `127.0.0.1:3080`.
+`GET /`, `/api`, `/api/health`, `/api/sessions`, `/api/conversations`, `/api/chats`, and `/api/v1/sessions`: HTTP 401.
+`/health`, `/openapi.json`, and `/docs`: HTTP 404.
+Native DSH root contains `sessions` and `storages` directories. No GORAST/Ornith command was executed.
