@@ -1,0 +1,46 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-ornith-prod-winner-apply-001
+source: TERRA
+state: BLOCKED
+
+RESULT:
+WINNER_IDENTIFIED=YES
+WINNER_APPLIED=NO
+READY_FOR_90K_TEST=NO
+
+WINNER_EVIDENCE:
+benchmark=/opt/testmodels/benchlogs/20260922_002127_ORNITH_Q41_G5_64K.txt
+candidate=Q4_1_G5
+placement=G5/NCM35
+kv=q4_1/q4_1
+PP=102.41495898494674
+TG=14.515200539567783
+status=PASS
+VRAM_PEAK_MIB=7704.910
+KERNEL_GPU_ERRORS=NO
+G6_REJECTION=/opt/testmodels/benchlogs/ornith_q41_g6_64k_latest.txt rejected G6/NCM34 because only 55.3 MiB headroom remained (<128 MiB safety gate)
+
+OLD_COMMAND:
+/opt/llama/llama-b10919/llama-server -m /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf -md /opt/ornith-models/shisa12k-mtp-standalone.gguf --temp 1.0 --host 0.0.0.0 --port 8099 -fa on -t 14 -tb 14 -ub 2048 -b 2048 -c 131072 --cache-type-k f16 --cache-type-v f16 --n-cpu-moe 37 --load-mode mmap -ngl 99 -ngld 2 --prio 2 --poll 100 --cpu-strict 1 --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 -np 1 --jinja --no-webui
+
+INTENDED_NEW_COMMAND:
+/opt/llama/llama-b10919/llama-server -m /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf -md /opt/ornith-models/shisa12k-mtp-standalone.gguf --temp 1.0 --host 0.0.0.0 --port 8099 -fa on -t 14 -tb 14 -ub 2048 -b 2048 -c 131072 --cache-type-k q4_1 --cache-type-v q4_1 --n-cpu-moe 35 --load-mode mmap -ngl 99 -ngld 2 --prio 2 --poll 100 --cpu-strict 1 --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 -np 1 --jinja --no-webui
+
+FAILURE:
+The managed winner start did not reach /health within the bounded 150-second load window. The required failure path stopped the attempt and restored the old configuration. No second winner attempt was made.
+
+ROLLBACK:
+location=/opt/testmodels/benchlogs/rollback_ornith_prod_20260922T223430Z
+unit_backup=optimized-split.conf.before
+captured_command=live-command.before.txt
+rollback_note=The restored stale systemd unit could not open its old output target (status 209/STDOUT), so the exact captured OLD_COMMAND was relaunched directly.
+
+CURRENT_SERVER:
+pid=2501558
+health={"status":"ok"}
+configuration=OLD_COMMAND restored exactly
+model_identity=Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf with shisa12k-mtp-standalone.gguf
+harness_conversation=left intact; no prompt submitted and no context replay performed
+
+BLOCKER:
+Production remains on the healthy old baseline because the validated winner failed the mandatory first load/health gate. Investigate the managed-start failure before a separately authorized retry.
