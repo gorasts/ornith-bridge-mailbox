@@ -1,0 +1,42 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-ornith-prod-winner-apply-001
+target: TERRA
+source: CHATGPT
+
+PRIORITY: ONE OBJECTIVE ONLY.
+Ornith's current Harness turn has been stopped by the user. Upgrade the live GORAST Ornith server from the older production baseline to the FINAL VALIDATED WINNING configuration already established in the recent Ornith tuning work, then make it ready for the user's existing ~90K-context Harness session to resume.
+
+IMPORTANT:
+- Do NOT ask Ornith to do this.
+- Do NOT run/restart the Tiel preparation or benchmark.
+- Do NOT re-run a broad benchmark sweep.
+- Use the exact final validated winner from the existing recent benchmark/handoff evidence available to you. Do NOT substitute an intermediate candidate merely because it looked good.
+- If you cannot establish the exact final winner with high confidence from existing evidence, STOP and return BLOCKED with the competing configs/results. Do not change production.
+
+CURRENT LIVE/OLD BASELINE observed before the user stopped Ornith:
+b10919
+model=/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+draft=/opt/ornith-models/shisa12k-mtp-standalone.gguf
+-c 131072
+-t 14 -tb 14
+-b 2048 -ub 2048
+F16/F16 KV
+--n-cpu-moe 37
+-ngl 99 -ngld 2
+mmap, FA on, draft-mtp n-max=1 n-min=1, np=1, jinja
+The current systemd files contain stale variants; trust the validated benchmark/handoff evidence, not stale unit text.
+
+EXECUTION:
+1. Identify the exact final validated production winner from existing evidence with minimal reads.
+2. Before changing anything, capture the current live command and create a rollback-safe copy of whatever launch definition you will modify.
+3. Apply ONLY the exact differences required for the validated winner. Preserve model identity, 131072 context and unrelated known-good settings unless the winner explicitly changed them.
+4. Restart/start the live Ornith server safely on :8099 and verify health/model load. Do not touch the ChatGPT bridge, wake server, extension, or mailbox machinery.
+5. Leave the user's existing Harness conversation/session intact. Do not submit a prompt yourself and do not consume/replay its ~90K context. The USER will resume it, so its next turn becomes the real-world cold/rebuild test.
+6. Return the exact OLD command/config, NEW command/config, evidence identifying the winner (benchmark filename + decisive PP/TG values), rollback location, server health, and READY_FOR_90K_TEST=YES/NO.
+
+STOP CONDITIONS:
+- exact final winner ambiguous -> do not change anything
+- restart/load failure -> rollback immediately and report
+- any unexpected model/path mismatch -> stop
+
+Do not perform unrelated diagnostics.
