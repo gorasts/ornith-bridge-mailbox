@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-v2-live-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+TERRA_V2_E2E_OK
