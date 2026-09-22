@@ -1,0 +1,41 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-ornith-backlog-archive-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+THIN EXECUTOR. Fix stale Ornith replay WITHOUT restarting any process.
+
+Known state:
+- OrnithReturnWatcher is running.
+- WakeResultServer is running and healthy but its currently loaded code serves historical files from:
+  C:\Users\XEON2\Desktop\OrnithBridge\ORNITH_RETURN\outbox
+- return watcher state has already reached seq183.
+- historical seq93/100/105 are being replayed into ChatGPT.
+- patched WakeResultServer file exists but restart is blocked by local execution policy.
+
+Do exactly:
+1. Create archive directory if absent:
+   C:\Users\XEON2\Desktop\OrnithBridge\ORNITH_RETURN\archive_pre184
+2. In the live outbox directory, find ONLY files matching:
+   result_ornith_seq_<N>.txt
+3. Move ONLY those with N <= 183 into archive_pre184.
+4. Do not delete them.
+5. Do not touch any file with N > 183.
+6. Do not touch Terra/GitHub result files.
+7. Do not restart or modify Ornith, llama-server, Harness, watcher, wake server, Edge, extension, or Tiel work.
+8. After moving, query http://127.0.0.1:3098/results.
+9. Report count of ornith-local items still visible and newest visible Ornith seq if any.
+
+Return only:
+ORNITH_BACKLOG_ARCHIVE
+MOVED=<n>
+LIVE_ORNITH_ITEMS=<n>
+LIVE_NEWEST_SEQ=<n|NONE>
+WATCHER_UNTOUCHED=YES
+WAKE_SERVER_UNTOUCHED=YES
+ORNITH_UNTOUCHED=YES
+STATE=COMPLETE|ERROR
+ERROR=<only if needed>
+PROMPT_END
