@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-listunwrap-001
+source: TERRA
+state: ERROR
+
+RESULT:
+RAW_RESPONSE_SHAPE:
+The existing localhost Harness rejects an unauthenticated safe `session/list` request with HTTP 401. The previous authenticated cookie was intentionally kept only in the completed bootstrap process and is not recoverable from this executor.
+
+PARSER_FIXED:
+yes — `HarnessBridge.mjs` and `HarnessBridgeBootstrap.mjs` now unwrap the rc.1 envelope in order: `payload` → `result` → `value`, stopping at the native list array/object.
+
+SESSION_LIST_COUNT:
+not available without a new authenticated read-only session.
+
+BRIDGE_SESSION_VERIFIED:
+no — stored non-secret metadata remains UUID `9cf30a90-c556-405b-9a16-8c6e0c6253a9`, title `ChatGPT Bridge`, workspace `C:\\bench\\gorast_dsh\\Users\\GG\\Desktop\\Ornith`; it is not claimed as live-verified.
+
+PROMPT_SENT:
+NO
+
+WEBUI_NATIVE_CONFIDENCE:
+The existing Harness node process remains running; both patched scripts passed Node syntax validation. Authentication isolation prevented the required live list verification.
+
+NEXT_TEST:
+Run the existing local auth bootstrap once, then issue only `session/list` through the patched bridge and confirm the returned list contains the stored UUID/title/workspace.
+
+DECISIVE_EVIDENCE:
+Read-only POST to `http://127.0.0.1:3080/api/session/list` returned HTTP 401 without credentials; no credential, prompt, browser automation, GORAST, or Ornith action was used.
