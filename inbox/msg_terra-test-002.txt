@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-test-002
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Return exactly this result text:
+
+TERRA STANDARD WORKER OK
