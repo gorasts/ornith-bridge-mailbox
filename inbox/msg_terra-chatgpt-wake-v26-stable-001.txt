@@ -1,0 +1,102 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-chatgpt-wake-v26-stable-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Build a stable Ornith GitHub Wake v2.6 on XEON2 by comparing the proven v2.4 backup against current v2.5. Preserve the v2.4 polling/injection architecture exactly and transplant only the improved submit/verification behavior from v2.5. Also remove the startup-snapshot race from testing by exposing an explicit READY state.
+
+KNOWN:
+- v2.4 architecture was validated:
+  content-script timer -> runtime message -> service-worker privileged GitHub fetch -> content-script injection.
+- v2.4 successfully detected new results and inserted wake text into the correct ChatGPT composer.
+- v2.5 changed submit behavior, but after reload/refresh a newly published test produced no visible insertion.
+- Possible causes: v2.5 regression OR test result arrived before first initialization snapshot and was classified as historical.
+- v2.4 backup exists:
+  C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension-backup-v23
+  and/or the timestamped v2.4 backup created by the v2.5 patch.
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- Do not publish a GitHub test result during this task.
+
+OBJECTIVES:
+1. Inspect and diff actual current v2.5 files against the last known v2.4 files.
+2. Identify any polling/initialization differences introduced in v2.5.
+3. Rebuild version 2.6 from the known-good v2.4 architecture, not by fragile text patching.
+4. Keep service-worker GitHub fetch path exactly:
+   content.js timer -> chrome.runtime.sendMessage({type:'poll-github'}) -> worker.js fetch -> filenames response.
+5. Keep targetPath/seen/enabled/initialized state in chrome.storage.local.
+6. Keep v2.5 submit logic:
+   - enabled send button first
+   - composer form submit button fallback
+   - form.requestSubmit() fallback
+   - verify composer becomes empty or matching user message appears
+   - mark seen only after verified submit
+   - if exact wake draft remains, retry submit without duplicating
+   - if different user draft exists, defer
+7. Add explicit readiness diagnostics:
+   - ready: false until first successful GitHub listing snapshot/poll finishes
+   - ready: true after initialization is complete
+   - initializedAt
+   - lastPollAt
+   - lastFetchStatus
+   - lastSubmitStatus
+8. Expose readiness visibly without requiring devtools:
+   - extension action badge text 'RDY' when ready, 'ERR' on fetch error, '...' during initialization
+   - optional popup showing Ready/Target pinned/Last poll/Last submit
+9. IMPORTANT startup behavior:
+   - snapshot historical result_*.txt only once when initialized=false.
+   - after ready=true, never resnapshot all files on ordinary page reload/navigation.
+   - preserve initialized/seen across browser/page reloads.
+   - extension update/reload must not unnecessarily clear initialized or seen.
+10. Provide a local Reset Target/Reset Seen control only for deliberate testing, not automatic startup.
+11. Validate manifest JSON and JS syntax.
+12. Verify service-worker GitHub fetch from XEON2.
+
+TEST PROCEDURE AFTER INSTALL:
+- User reloads v2.6 and refreshes target ChatGPT tab.
+- User waits until extension badge visibly says RDY.
+- Only THEN ChatGPT publishes result_extension-integration-test-008.txt.
+- Success requires automatic insertion AND automatic submission with zero user click.
+
+RETURN:
+Write outbox/result_terra-chatgpt-wake-v26-stable-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-v26-stable-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PATCHED_VERSION:
+<version>
+
+DIFF_FINDINGS:
+<v2.4 vs v2.5 relevant changes>
+
+KNOWN_GOOD_POLLING_PRESERVED:
+<yes/no>
+
+SUBMIT_LOGIC:
+<strategies and verification>
+
+READY_SIGNAL:
+<badge/popup behavior>
+
+STATE_PERSISTENCE:
+<how initialized/seen survive reload>
+
+USER_ACTION_REQUIRED:
+<exact reload/refresh and wait-for-RDY step>
+
+NEXT_TEST:
+result_extension-integration-test-008.txt
+
+DECISIVE_EVIDENCE:
+<validation/fetch evidence>
+
+If blocked, use state: ERROR and state exact blocker.
