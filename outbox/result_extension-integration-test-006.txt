@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: extension-integration-test-006
+source: LOCAL_TEST
+state: COMPLETE
+
+RESULT:
+Sixth extension integration test marker created after Edge extension v2.5 reload.
