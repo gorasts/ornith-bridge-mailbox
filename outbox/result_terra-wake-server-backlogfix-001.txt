@@ -1,0 +1,10 @@
+WAKE_SERVER_BACKLOG_FIX
+BASELINE_SEQ=183
+BACKUP=C:\Users\XEON2\Desktop\OrnithBridge\WAKE\WakeResultServer.pre-backlogfix-001.mjs
+WAKE_SERVER=ERROR
+WAKE_HEALTH=OK
+OLD_ORNITH_VISIBLE=22
+ORNITH_CONTENT=ASSISTANT_REPLY_ONLY
+TERRA_UNCHANGED=YES
+STATE=ERROR
+ERROR=Restart command blocked by local execution policy; patched server not deployed.
