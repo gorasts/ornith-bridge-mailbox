@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-owner-auth-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+MAIN_HARNESS:
+PID 19880 listens on 127.0.0.1:3080. It is DSH `web --host 127.0.0.1 --port 3080 --trusted-host localhost:3080 --no-open`, launched with the configured DSH_HOME and Ornith working directory by parent bootstrap PID 30440.
+
+OTHER_HARNESS_PROCESSES:
+Eleven additional detached DSH web processes are alive on ports 3081–3091, each launched by a corresponding HarnessBridgeBootstrap parent. They share the same local DSH configuration/workspace and are competing resumptions, not independent bridge transports.
+
+BRIDGE_SESSION_OWNER:
+Likely PID 25708 on port 3088 (parent bootstrap PID 12472). It is the process that created dedicated UUID `4b0b7cb2-ed4e-4339-bb20-3b688cc09f94`; the later selection through port 3091 received `SessionAlreadyOwnedError` for that UUID. Direct lock-holder introspection is not exposed by the local runtime.
+
+WHY_SELECTMODEL_FAILED:
+The mutation was sent through a different DSH web process than the active owner. rc.1 attempted to resume the dedicated session and rejected it because the active write handle was already owned.
+
+AUTH_TO_EXISTING_3080:
+The current bootstrap obtains a one-time local login URL only from a newly spawned child process stdout, immediately exchanges it for an in-memory cookie, and does not persist either. The already-running 3080 parent retains no exposed token/cookie endpoint or launcher log. Its original one-time launch token cannot be safely recovered from the current process state without browser automation or process-memory inspection.
+
+SAFE_FIX:
+On the next controlled 3080 Harness restart, change the same 3080 launcher/bootstrap to retain a private loopback-only bridge helper that performs authenticated RPC through that one process using the fresh in-memory cookie. Do not start any secondary DSH web process. The helper must expose no token/cookie and should be scoped to the dedicated UUID.
+
+MUTATIONS:
+NONE
+
+PROMPT_SENT:
+NO
+
+DECISIVE_EVIDENCE:
+Process/port mapping shows 3080 PID 19880 and the dedicated-session creator PID 25708:3088, both with HarnessBridgeBootstrap parents. The existing bootstrap source captures a token from child stdout, exchanges it for a cookie, and keeps it only in its running JavaScript context; its status file contains no credential. No process was terminated or restarted.
