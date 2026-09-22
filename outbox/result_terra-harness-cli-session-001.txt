@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-cli-session-001
+source: TERRA
+state: ERROR
+
+RESULT:
+CLI_SESSION_COMMANDS:
+`dsh --profile <name>` launches a profile. Documented examples include `dsh --profile headless "run the tests"` and `dsh --profile tui --resume <session>`.
+
+RESUME_BY_UUID:
+NO supported usable path found on this installation. The only documented resume syntax is `dsh --profile tui --resume <session>`, but `tui` is not installed: DSH reports that profile "tui" does not exist.
+
+NONINTERACTIVE_SEND:
+PARTIAL only: installed `headless` accepts `dsh --profile headless [task...]`, answers one task, streams reasoning to stderr, prints a final message, and exits. Its help exposes no session/resume flag.
+
+SAME_WEBUI_SESSION:
+NOT ESTABLISHED. The installed `web` profile shares DSH_HOME persistence plugins, but no supported CLI command was found that both resumes a UUID and uses the WebUI's active session.
+
+BRIDGE_FEASIBILITY:
+NO supported CLI-only same-visible-session bridge was established without browser automation.
+
+MINIMAL_ADAPTER:
+Do not write persistence files. A safe adapter requires either installation of a documented TUI/resume profile with verified WebUI-compatible session behavior, or an authenticated WebUI-native protocol.
+
+DECISIVE_EVIDENCE:
+`C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh\lib\bin.js` help: `dsh --profile tui --resume <session>` example.
+`dsh --profile headless --help`: one task, stream reasoning to stderr, print final message, exit; no resume option.
+`dsh --profile tui --help`: error that profile `tui` does not exist.
+`C:\bench\gorast_dsh\.dsh\profiles` contains only `web` plus dependency directories.
