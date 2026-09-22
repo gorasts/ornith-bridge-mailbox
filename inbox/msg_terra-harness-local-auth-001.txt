@@ -1,0 +1,83 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-local-auth-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Finish the XEON2 native Harness bridge by giving it a private local authentication bootstrap that requires no user copy/paste and no browser automation.
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- You may stop/restart ONLY the local DeepSeek Harness web process on 127.0.0.1:3080.
+- Do not send any model prompt in this task.
+- Never write local Harness authentication values to GitHub, logs, files, or console output.
+
+KNOWN:
+- Safe Harness-only launcher exists:
+  C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\Start-Harness-Only.ps1
+- Native adapter exists:
+  C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridge.mjs
+- DSH emits a one-time local login URL when its web process starts.
+- Normal local login exchanges that one-time URL for a session cookie.
+- Native API calls then use the cookie.
+- Current adapter supports list/create/rename/send/follow/steer/cancel but lacks an authenticated context.
+
+OBJECTIVE:
+Create an integrated local bootstrap so the bridge can authenticate itself to its own local Harness process without user interaction.
+
+IMPLEMENTATION:
+1. Stop only the local DSH web process on port 3080 if necessary.
+2. Start DSH locally using the Harness-only configuration.
+3. Capture the one-time local login URL from process startup privately in memory.
+4. Perform the normal local login exchange in code and retain the returned session cookie only in process memory.
+5. Pass that in-memory authenticated context to HarnessBridge.mjs.
+6. Do not print/store/publish the one-time URL or cookie.
+7. Create/reuse one native session for the Ornith workspace and rename it:
+   ChatGPT Bridge
+8. Persist only the resulting session UUID/title/workspace metadata in:
+   C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\bridge-session.json
+9. Verify native session.list sees that session.
+10. Do NOT call session.prompt yet.
+11. Keep local Harness running after the test.
+
+CREATE/UPDATE:
+- a local bootstrap/daemon under OrnithBridge\HARNESS
+- update HarnessBridge.mjs only as needed
+- optionally add Start/Stop Bridge shortcuts, silent where practical
+
+RETURN:
+Write outbox/result_terra-harness-local-auth-001.txt with:
+
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-local-auth-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+BOOTSTRAP_CREATED:
+<paths>
+
+LOCAL_HARNESS:
+<running yes/no, PID/port; no auth values>
+
+BRIDGE_SESSION:
+<UUID/title/workspace>
+
+SESSION_LIST_VERIFIED:
+<yes/no>
+
+PROMPT_SENT:
+NO
+
+WEBUI_VISIBILITY:
+<whether this is a native session that appears in WebUI>
+
+NEXT_TEST:
+<exact harmless send/follow test for later>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If local authentication cannot be completed safely, use state: ERROR and state the exact blocker.
