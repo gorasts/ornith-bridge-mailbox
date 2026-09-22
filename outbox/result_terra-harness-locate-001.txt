@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-locate-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+XEON2_LAUNCHER:
+`C:\Users\XEON2\Desktop\Ornith Harness.cmd` calls `C:\bench\gorast_dsh\launch-ornith-harness.cmd`, which runs Hermes Node with `C:\bench\gorast_dsh\launch-ornith-harness.js`. The desktop shortcut targets `cmd.exe /k "C:\bench\gorast_dsh\launch-ornith-harness.cmd"`.
+
+GORAST_HARNESS:
+No dsh executable, Harness/deployment files, matching systemd unit, or matching Docker container was found on GORAST. This Harness deployment is local to XEON2, not GORAST.
+
+START_MECHANISM:
+Normal launcher: Hermes Node executes `launch-ornith-harness.js`; it runs local DSH `bin.js web --host 127.0.0.1 --port 3080 --trusted-host localhost:3080 --no-open`, with `DSH_HOME=C:\bench\gorast_dsh\.dsh` and local working directory `C:\bench\gorast_dsh\Users\GG\Desktop\Ornith`. The launcher first checks GORAST `http://192.168.100.116:8099/health` and, if unavailable, attempts to start `ornith-server` remotely.
+
+WEBUI_ACCESS:
+WebUI is bound to XEON2 loopback at `http://127.0.0.1:3080`. DSH emits a tokenized loopback URL; token value redacted. No GORAST port-forwarding mechanism was found.
+
+SAFE_NEXT_STEP:
+Only when Ornith is already healthy, run the local launcher script directly. Do not use its automatic remote-start branch while preserving current Ornith state.
+
+RAW_DECISIVE_EVIDENCE:
+Desktop command: `call "C:\bench\gorast_dsh\launch-ornith-harness.cmd"`.
+Launcher model health endpoint: `http://192.168.100.116:8099/health`.
+Local DSH entrypoint: `C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh\lib\bin.js`.
+GORAST checks: `command -v dsh`, relevant file search, systemd unit search, and Docker container search returned no Harness deployment.
