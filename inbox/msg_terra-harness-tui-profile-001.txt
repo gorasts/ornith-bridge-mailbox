@@ -1,0 +1,73 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-tui-profile-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+On XEON2 only, inspect the installed DeepSeek Harness/DSH package and package metadata to determine the exact TUI profile/package required for documented session resume support.
+
+Do not install, modify, start, stop, or reconfigure anything.
+Do not touch GORAST or Ornith.
+Do not use browser automation.
+
+KNOWN:
+- Current DSH install documents:
+  dsh --profile tui --resume <session>
+- Current install reports profile "tui" does not exist.
+- Installed web/headless profiles use DSH_HOME:
+  C:\bench\gorast_dsh\.dsh
+- Native WebUI sessions are UUID keyed under that same DSH_HOME.
+
+OBJECTIVE:
+Find:
+1. the exact npm/package/profile name that provides the TUI profile for this DSH version,
+2. whether it is already present as an unregistered dependency,
+3. the documented install/enable command,
+4. whether it uses the same DSH_HOME session persistence,
+5. whether --resume <UUID> is expected to continue the same native session,
+6. any compatibility/version constraints with the current installed DSH.
+
+CHECK LOCAL:
+- package.json / lockfiles
+- node_modules package metadata
+- DSH help/source/docs
+- profile registry/config
+- package names containing dsh + tui/session/profile
+- installed package versions
+
+RETURN:
+Write outbox/result_terra-harness-tui-profile-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-tui-profile-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+CURRENT_DSH_VERSION:
+<version>
+
+TUI_PACKAGE:
+<exact package/profile name>
+
+INSTALL_ENABLE:
+<exact documented command, not executed>
+
+SAME_DSH_HOME:
+<yes/no and evidence>
+
+RESUME_SAME_SESSION:
+<yes/no/likely and evidence>
+
+COMPATIBILITY:
+<constraints>
+
+SAFE_NEXT_STEP:
+<minimal install/test plan, still not executed>
+
+DECISIVE_EVIDENCE:
+<compact file/package/help evidence>
+
+If no definitive TUI package can be identified, use state: ERROR and state what was checked.
