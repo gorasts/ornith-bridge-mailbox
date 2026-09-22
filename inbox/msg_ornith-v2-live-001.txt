@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: ornith-v2-live-001
+target: ORNITH
+source: CHATGPT
+
+TASK:
+Live Bridge V2 verification. Reply exactly: ORNITH_V2_E2E_OK
