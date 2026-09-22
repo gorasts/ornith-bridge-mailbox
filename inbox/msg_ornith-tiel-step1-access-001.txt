@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-tiel-step1-access-001
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+STEP 1 ONLY. Do not download, start, stop, modify, or benchmark anything.
+
+Machine facts:
+XEON2 = Windows orchestrator.
+GORAST = Linux host 192.168.100.116.
+Linux user = ubuntu.
+Use the access already configured on XEON2; do not request or expose credentials.
+
+Check only:
+1. Can you access GORAST from XEON2?
+2. Does /opt/llama/llama-b10919/llama-server exist?
+3. Does /opt/tiel-models exist?
+4. Does /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf exist?
+5. How many free bytes are available on the filesystem containing /opt/tiel-models (or /opt if the directory is absent)?
+
+Reply only:
+TIEL_STEP1
+GORAST_ACCESS=OK|ERROR
+LLAMA_SERVER=YES|NO
+TIEL_DIR=YES|NO
+TIEL_FILE=YES|NO
+DISK_FREE=<bytes|NA>
+READY=YES|NO
+ERROR=<only if needed>
+PROMPT_END
