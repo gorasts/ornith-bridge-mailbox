@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-tiel-phase1-exactfile-001
+source: TERRA
+state: ERROR
+
+RESULT:
+TIEL_PHASE1
+STATE=ERROR
+ERROR=Local execution policy blocked creation of the required visible `TIEL LIVE TEST` PowerShell download console before it launched. No download, server replacement, or benchmark case was started.
