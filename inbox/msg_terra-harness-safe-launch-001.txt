@@ -1,0 +1,104 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-safe-launch-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Build and test a SAFE Harness-only launcher on XEON2, then inspect the running DeepSeek Harness native session/conversation interface.
+
+KNOWN:
+- XEON2 Windows desktop.
+- Existing launcher chain:
+  C:\Users\XEON2\Desktop\Ornith Harness.cmd
+  -> C:\bench\gorast_dsh\launch-ornith-harness.cmd
+  -> C:\bench\gorast_dsh\launch-ornith-harness.js
+- Existing launcher checks GORAST Ornith health at http://192.168.100.116:8099/health and may start ornith-server remotely.
+- DO NOT execute any code path that starts, stops, restarts, reconfigures, or probes Ornith beyond passive health if strictly needed.
+- Current Ornith optimization/testing must remain untouched.
+- Local DSH entrypoint found previously:
+  C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh\lib\bin.js
+- DSH_HOME:
+  C:\bench\gorast_dsh\.dsh
+- Working directory:
+  C:\bench\gorast_dsh\Users\GG\Desktop\Ornith
+- Desired local web binding:
+  127.0.0.1:3080
+
+OBJECTIVES:
+1. Create a new Harness-only launcher that starts ONLY local DSH WebUI on XEON2.
+2. It must never invoke the existing Ornith health/start branch and must never SSH to GORAST.
+3. Start the Harness-only launcher for this test.
+4. Capture the tokenized local WebUI URL, but redact the token in the published result.
+5. While Harness is running, inspect the native interface to determine:
+   - how WebUI sessions/conversations are identified,
+   - how a message can be injected into an existing visible session,
+   - how replies/progress are streamed or polled,
+   - where session history is persisted.
+6. Prefer definitive evidence from local DSH source/runtime behavior over guesses.
+7. Keep the test session visible in the native WebUI if possible.
+8. Do not change any model/server settings.
+
+CREATE:
+- Safe launcher script under:
+  C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\Start-Harness-Only.ps1
+- Optional desktop shortcut:
+  Start Harness Only
+- The launcher should:
+  - set DSH_HOME to C:\bench\gorast_dsh\.dsh
+  - use working dir C:\bench\gorast_dsh\Users\GG\Desktop\Ornith
+  - launch the local dsh bin.js web process bound to 127.0.0.1:3080
+  - use --trusted-host localhost:3080 --no-open
+  - avoid duplicates if port 3080 is already serving Harness
+  - write a compact local log under OrnithBridge\HARNESS
+  - NOT call any Ornith/GORAST start logic
+
+INSPECTION:
+Once local Harness is running, inspect:
+- active process command line and cwd
+- HTTP routes on 127.0.0.1:3080
+- local DSH source around session/conversation/message/websocket/SSE handlers
+- browser-visible session identifiers if available from HTML/JS/API
+- local persistence/store files under DSH_HOME
+Do not expose live tokens or secrets in GitHub.
+
+RETURN:
+Write:
+outbox/result_terra-harness-safe-launch-001.txt
+
+Format:
+
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-safe-launch-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+LAUNCHER_CREATED:
+<exact path and what it does>
+
+HARNESS_STARTED:
+<yes/no, PID/port, tokenized URL with token redacted>
+
+SESSION_IDENTITY:
+<exact mechanism>
+
+MESSAGE_INJECTION:
+<exact endpoint/request/event shape if found, otherwise UNKNOWN>
+
+REPLY_STREAM:
+<exact websocket/SSE/poll mechanism if found, otherwise UNKNOWN>
+
+PERSISTENCE:
+<exact local store/session paths if found>
+
+SAME_WEBUI_SESSION_FEASIBILITY:
+<yes/no and why>
+
+BRIDGE_IMPLEMENTATION_PLAN:
+<short concrete adapter plan for XEON2 -> same Harness session -> reply/progress back>
+
+RAW_DECISIVE_EVIDENCE:
+<compact redacted evidence>
+
+If any step fails, use state: ERROR and include the exact failure.
