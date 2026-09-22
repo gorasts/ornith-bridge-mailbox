@@ -1,0 +1,97 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-chatgpt-wake-github-extension-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+On XEON2, replace the localhost-daemon wake design with a daemonless Edge extension that polls the public GitHub bridge mailbox directly and wakes one pinned ChatGPT conversation.
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- Do not start background daemons or create Startup tasks.
+- Do not use OpenAI API or another AI supervisor.
+- Do not extract browser credentials/cookies.
+
+GOAL:
+Ornith/bridge publishes a result file to the public repo gorasts/ornith-bridge-mailbox -> Edge extension notices it -> extension submits a tiny wake message into the pinned current ChatGPT conversation -> this exact chat gets a new turn automatically.
+
+INSTALL ROOT:
+C:\Users\XEON2\Desktop\OrnithBridge\WAKE
+
+IMPLEMENTATION:
+1. Replace/update the unpacked MV3 extension under:
+   C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension
+2. No localhost daemon. No wake.key required.
+3. Poll GitHub public API directly, not raw.githubusercontent caching:
+   repository: gorasts/ornith-bridge-mailbox
+   branch: main
+4. Poll for result files in outbox at a modest interval such as 5 seconds.
+5. Keep local extension state using chrome.storage.local:
+   - pinned ChatGPT conversation URL/path
+   - seen result filenames/IDs
+   - enabled flag
+6. Pin exactly one ChatGPT conversation:
+   - when first loaded on a https://chatgpt.com/c/<id> page, store that path as target
+   - never inject into a different conversation
+   - provide a small extension popup or simple reset action if practical
+7. Result filtering:
+   - only wake for NEW bridge result files after activation/pinning
+   - do not replay historical outbox files
+   - support at minimum result files named result_*.txt
+   - ignore known Terra worker results if possible once production mode is enabled; for test mode a dedicated marker is acceptable
+8. For each new relevant result, submit exactly one compact user message:
+   ORNITH_BRIDGE_RESULT_READY
+   result_file: <filename>
+   Fetch this result from gorasts/ornith-bridge-mailbox and continue the existing task autonomously. Do not ask me to relay it.
+9. Submission safety:
+   - never overwrite a non-empty user draft
+   - wait/retry if composer unavailable or ChatGPT is currently generating
+   - acknowledge/mark seen only after the message was actually submitted
+   - dedupe across browser restarts
+10. Use robust selectors with fallbacks for the ChatGPT composer/send button.
+11. Do not activate or load the extension through unsafe policy hacks.
+
+TEST PREPARATION:
+- Add a local extension test mode or test marker mechanism that can be triggered after the user loads the extension.
+- Do NOT generate a wake event before the extension is loaded, to avoid it being treated as historical.
+
+USER EXPERIENCE TARGET:
+After ONE manual Edge approval (Load unpacked), there should be no daemon, no startup command, no manual 'done' turn, and no repeated user action.
+
+RETURN:
+Write outbox/result_terra-chatgpt-wake-github-extension-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-github-extension-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+EXTENSION_PATH:
+<path>
+
+DAEMON_REQUIRED:
+NO
+
+GITHUB_POLLING:
+<how it polls and dedupes>
+
+TARGET_PINNING:
+<behavior>
+
+USER_ACTION_REQUIRED:
+<exact one-time Edge action>
+
+TEST_COMMAND_OR_ACTION:
+<exact harmless test after extension load>
+
+PRODUCTION_WAKE_FLOW:
+<compact flow>
+
+DECISIVE_EVIDENCE:
+<files created/validated>
+
+If blocked, use state: ERROR and explain exact blocker.
