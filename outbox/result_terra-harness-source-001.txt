@@ -1,0 +1,28 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-source-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+SESSION_IDENTITY
+Native sessions are UUID-keyed under the workspace-derived directory `C:\bench\gorast_dsh\.dsh\sessions\--C-Users-GG-Desktop-Ornith--\<session-id>`. Identifiers appear both as bare UUIDs and `session-<UUID>` names.
+
+PERSISTENCE
+Conversation history is stored as compressed `session.v3.jsonl.zstd` in each native session directory. WebUI project/session metadata is mirrored at `C:\bench\gorast_dsh\.dsh\storages\session_projcache\sessions\<session-id>.json`; inspected cache documents have `version` and `record`, with `record.identity` and `record.rows`.
+
+MESSAGE_FLOW
+The installed public DSH bootstrap is `lib\bin.js`, which aliases `dsh web` to the web profile. No definitive authenticated send route or local request schema is present in that bootstrap/source subset. Therefore a helper must not write JSONL/cache files directly.
+
+REPLY_FLOW
+UNKNOWN. No definitive assistant output WebSocket/SSE/poll route was exposed by the specified installed source subset.
+
+WEBUI_RELOAD
+The cache/session pairing strongly indicates that WebUI reloads a session by the same UUID and workspace key; exact client route remains unknown.
+
+BRIDGE_FEASIBILITY
+Plausible only through a documented authenticated native interface. Directly editing `session.v3.jsonl.zstd` or session cache is unsafe and was not attempted; such edits may not update the live WebUI/runtime state.
+
+DECISIVE_FILE_PATHS
+`C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh\lib\bin.js`
+`C:\bench\gorast_dsh\.dsh\sessions\--C-Users-GG-Desktop-Ornith--\<session-id>\session.v3.jsonl.zstd`
+`C:\bench\gorast_dsh\.dsh\storages\session_projcache\sessions\<session-id>.json`
