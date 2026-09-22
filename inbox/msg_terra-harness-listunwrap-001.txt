@@ -1,0 +1,73 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-listunwrap-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Fix the exact DeepSeek Harness 0.1.5-rc.1 session/list response unwrapping in the existing XEON2 native Harness bridge and verify the already-created native ChatGPT Bridge session.
+
+KNOWN GOOD STATE:
+- Local Harness auth bootstrap works.
+- rc.1 slash routes and full client-request envelope work.
+- Native session was created:
+  9cf30a90-c556-405b-9a16-8c6e0c6253a9
+- Native rename succeeded to:
+  ChatGPT Bridge
+- bridge-session.json exists under:
+  C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\bridge-session.json
+- session/list authenticated call works enough to return a response, but current parser unwraps it incorrectly and therefore relist verification is false.
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- Do not call session/prompt.
+- Do not use browser automation.
+- Keep auth material private/in-memory only.
+
+OBJECTIVES:
+1. Inspect the ACTUAL raw safe shape of authenticated rc.1 session/list response locally.
+2. Patch HarnessBridge.mjs / HarnessBridgeBootstrap.mjs to unwrap the exact rc.1 server-response and nested result/value shape correctly.
+3. Verify session/list returns the existing UUID:
+   9cf30a90-c556-405b-9a16-8c6e0c6253a9
+4. Verify its title is ChatGPT Bridge.
+5. Verify workspace/cwd association if exposed by the returned summary.
+6. Update bridge-session.json only with non-secret native session metadata if needed.
+7. Keep local Harness running.
+8. Do NOT send any prompt.
+
+RETURN:
+Write outbox/result_terra-harness-listunwrap-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-listunwrap-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+RAW_RESPONSE_SHAPE:
+<safe structural summary, no auth values>
+
+PARSER_FIXED:
+<yes/no and files>
+
+SESSION_LIST_COUNT:
+<count>
+
+BRIDGE_SESSION_VERIFIED:
+<yes/no, uuid/title/workspace>
+
+PROMPT_SENT:
+NO
+
+WEBUI_NATIVE_CONFIDENCE:
+<evidence>
+
+NEXT_TEST:
+<exact safest send/follow test for later>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If blocked, use state: ERROR and report exact safe response structure/error.
