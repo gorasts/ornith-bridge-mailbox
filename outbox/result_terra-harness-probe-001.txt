@@ -1,0 +1,34 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-probe-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+HARNESS_PROCESS:
+No matching dsh, DeepSeek, or Harness process was running. No dsh executable was found.
+
+HARNESS_HTTP:
+No relevant listening socket was found. All requested localhost:3080 probes returned curl connection failure (HTTP 000, size 0).
+
+SESSION_IDENTITY:
+UNKNOWN. The expected Harness service was not running and no Harness source/config was located in the inspected paths.
+
+MESSAGE_INJECTION:
+UNKNOWN.
+
+REPLY_STREAM:
+UNKNOWN.
+
+PERSISTENCE:
+UNKNOWN.
+
+BRIDGE_RECOMMENDATION:
+Start or identify the intended Harness deployment, then repeat this read-only probe while its WebUI/backend is active; no reliable same-session bridge API can be established from an inactive service.
+
+RAW_DECISIVE_EVIDENCE:
+HOST=gorast TIME=2026-09-22T01:52:17+00:00
+Processes matching dsh/deepseek/harness: none.
+Relevant listening sockets: none.
+dsh executable: not found.
+GET /, /api, /api/health, /health, /openapi.json, /docs, /api/sessions, /api/conversations, /api/chats, /api/v1/sessions: curl connection failure to 127.0.0.1:3080 (HTTP 000, 0 bytes).
+Only DeepSeek references found were llama.cpp conversion/model/template sources, not a Harness deployment.
