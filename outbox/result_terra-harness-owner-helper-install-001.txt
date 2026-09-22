@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-owner-helper-install-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+BACKUPS:
+`C:\\Users\\XEON2\\Desktop\\OrnithBridge\\HARNESS\\Start-Harness-Only.ps1.pre-owner-helper-001.bak`; `HarnessBridge.mjs.pre-owner-helper-001.bak`; `HarnessBridgeBootstrap.mjs.pre-owner-helper-001.bak`.
+
+SECONDARY_HARNESS_CLEANUP:
+Removed only the pre-verified bridge DSH web/bootstrap pairs on ports 3081–3091. Their command lines were all DSH web listeners on loopback with HarnessBridgeBootstrap parents. No unrelated node or PowerShell process was targeted.
+
+MAIN_3080_RESTART:
+Old 3080 PID 19880 and its bootstrap parent were stopped after persistence presence was checked. Upgraded main DSH now listens on 3080 as PID 29760; its owner helper listens on 127.0.0.1:3099 as PID 20884.
+
+HELPER:
+`C:\\Users\\XEON2\\Desktop\\OrnithBridge\\HARNESS\\HarnessOwnerHelper.mjs` owns the 3080 child lifecycle, privately captures/exchanges the fresh one-time login token, retains the cookie only in process memory, and exposes loopback-only `/health` and `/rpc` on 3099. Its allowed RPC surface is list, selectModel, prompt, and follow; mutations are restricted to the dedicated bridge UUID.
+
+SECONDARY_SPAWN_DISABLED:
+yes — `Start-Harness-Only.ps1` now starts the owner helper/3080 pair and refuses to operate against an unassisted existing 3080. `HarnessBridge.mjs` now calls the helper instead of spawning or using direct credentials.
+
+BRIDGE_SESSION_FOUND:
+yes — UUID `4b0b7cb2-ed4e-4339-bb20-3b688cc09f94`, title `ChatGPT Bridge`, cwd `C:\\Users\\GG\\Desktop\\Ornith`.
+
+MODEL_SELECTION_APPLIED:
+yes — native `session/selectModel` returned selected provider `llama-local`, model `ornith-ad-q4k-iq4xs-mtp.gguf`; relist reports `next` with that provider/model.
+
+PROMPT_SENT:
+NO
+
+NEXT_TEST:
+Send exactly one queue-mode prompt through `http://127.0.0.1:3099/rpc` for the dedicated UUID, then open native `session/follow` through the same helper and wait for the committed assistant response.
+
+DECISIVE_EVIDENCE:
+The helper health endpoint reported ready. After cleanup/restart, exactly one DSH web listener remained across ports 3080–3091 (3080); no 3081–3091 listener remained. Session list, model selection, and relist all succeeded through the same-owner helper. No prompt or GORAST/Ornith action was performed.
