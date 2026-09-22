@@ -1,0 +1,86 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-create-dedicated-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Create and verify a BRAND-NEW dedicated native DeepSeek Harness session on XEON2 for the ChatGPT bridge. Do not reuse or mutate the previously stored UUID.
+
+CRITICAL FINDING:
+The stored UUID 9cf30a90-c556-405b-9a16-8c6e0c6253a9 is an existing user session. Live session/list shows title `Hey Ornette, what is my` and cwd `C:\Users\GG\Desktop\Ornith`. Do NOT rename, prompt, cancel, or otherwise mutate that session.
+
+KNOWN PROTOCOL:
+- Installed DSH: 0.1.5-rc.1
+- slash RPC endpoints are correct
+- full client-request envelope is correct
+- rc.1 requires payload.args._request for session/list
+- safe response unwrap: payload -> result -> value -> {items:[...]}
+- fresh local auth bootstrap works in-memory
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- Do not send any model prompt.
+- Do not use browser automation.
+- Keep auth material private/in-memory only.
+
+OBJECTIVES:
+1. Back up existing:
+   C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\bridge-session.json
+   if present.
+2. Generate a NEW UUID for the dedicated bridge session.
+3. Inspect installed rc.1 session/create method signature/request shape from local source before sending.
+4. Determine the correct native cwd/workspace value for the currently active Ornith workspace. Prefer the exact cwd representation used by existing native sessions / current Harness workspace rather than assuming the earlier stored path string.
+5. Call native session/create for the NEW UUID in the Ornith workspace.
+6. Rename only the NEW UUID to exactly:
+   ChatGPT Bridge
+7. Call authenticated session/list and verify:
+   - new UUID is present
+   - title is exactly ChatGPT Bridge
+   - cwd/workspace corresponds to the active Ornith workspace
+8. Only after successful relist verification, write:
+   C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\bridge-session.json
+   with the verified new UUID/title/cwd and no secrets.
+9. Leave the old mistaken UUID untouched.
+10. Keep local Harness running.
+11. Do NOT call session/prompt.
+
+PROTOCOL:
+Write the final GitHub result only once when COMPLETE or ERROR. Do not create an in-progress final result.
+
+RETURN:
+Write outbox/result_terra-harness-create-dedicated-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-create-dedicated-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+OLD_SESSION_UNTOUCHED:
+<yes/no>
+
+NEW_BRIDGE_SESSION:
+<uuid/title/cwd>
+
+SESSION_CREATE_VERIFIED:
+<yes/no>
+
+SESSION_RELIST_VERIFIED:
+<yes/no>
+
+BRIDGE_SESSION_JSON:
+<path and safe contents summary>
+
+PROMPT_SENT:
+NO
+
+NEXT_TEST:
+<exact safest first prompt+follow test, but do not run it>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If blocked, write one final ERROR result with exact blocker.
