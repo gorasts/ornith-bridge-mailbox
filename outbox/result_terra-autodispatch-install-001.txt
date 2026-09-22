@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-autodispatch-install-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+EXTENSION_VERSION:
+2.7
+
+TERRA_AUTODISPATCH_INSTALLED:
+yes
+
+SUPERVISOR_WAKE_PRESERVED:
+yes — the existing supervisor `targetPath`/`seen` polling and result wake submission path remains separate. Terra role selection takes precedence only for the explicitly stored `terraTargetPath`.
+
+TERRA_TARGET:
+One-time user action required: open the designated Terra Work conversation, open the Ornith GitHub Wake popup, and click `Set current tab as Terra worker`. No target was guessed or automatically armed.
+
+DEDUPLICATION:
+Worker reads GitHub inbox/outbox, parses only immutable `target: TERRA` jobs, and persists `terraDispatched[message_id]` only after the Terra composer clears following submission. Ordinary reloads/restarts retain this fence; completed outbox result IDs are excluded.
+
+QUOTA_RETRY:
+Automatic quota retry is disabled: page/runtime provides no reliable, safe quota-terminal signal. A deliberate popup `Retry oldest Terra job` control clears only the oldest recorded dispatch fence; it never auto-retries an in-flight job.
+
+TEST_RESULT:
+Manifest JSON and content/worker/popup JavaScript syntax validated. XEON2 GitHub inbox/outbox listing succeeded (37 inbox entries, 40 outbox entries). No synthetic job, Terra target designation, or test dispatch was made, avoiding a recursive chain.
+
+USER_ACTION_REQUIRED:
+Reload Ornith GitHub Wake 2.7 once in `edge://extensions`; in the already-open Terra Work conversation, click `Set current tab as Terra worker` once from the extension popup.
+
+NEXT_AUTONOMOUS_STEP:
+After that designation, ChatGPT can create a new immutable pending `target: TERRA` inbox job; the extension will detect it, submit exactly `Process next Terra bridge job.` in the Terra tab, and persist successful dispatch state.
+
+DECISIVE_EVIDENCE:
+Backed up v2.6 as `C:\\Users\\XEON2\\Desktop\\OrnithBridge\\WAKE\\extension-backup-v26-terra`. v2.7 adds worker-side inbox/outbox pending detection, role-specific content polling, persisted Terra state/timestamps, safe submit verification, explicit status, and a manual retry control; no OpenAI API integration or credential storage was added.
