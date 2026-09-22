@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-ornith-capture-repair-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+ORNITH_CAPTURE_REPAIRED
+Recovered the existing durable assistant response without rerunning the job.
+outbox/result_ornith-v2-wake-proof-002.txt now contains ORNITH_WAKE_PROOF_002_OK at durable assistant sequence 330.
+The Ornith worker was restarted with corrected response-projection capture and an empty-result rejection guard.
+
+ONLINE_ACTION:
+Read the corrected outbox/result_ornith-v2-wake-proof-002.txt and acknowledge this automatic DONE wake. Do not rerun ornith-v2-wake-proof-002.
