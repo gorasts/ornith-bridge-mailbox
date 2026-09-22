@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-deep-source-001
+source: TERRA
+state: ERROR
+
+RESULT:
+SEND_TRANSPORT:
+UNKNOWN. No definitive authenticated send route/function/protocol was present in the installed package files available to the scan.
+
+SESSION_PARAMETER:
+UUID session identity. Native filesystem forms are `<UUID>` and `session-<UUID>` under the workspace-derived sessions directory.
+
+REPLY_TRANSPORT:
+UNKNOWN. No definitive Harness WebSocket, SSE, polling route, or event handler was found; WebSocket hits belonged to unrelated bundled dependencies.
+
+EVENT_SCHEMA:
+UNKNOWN.
+
+BRIDGE_FEASIBILITY:
+PARTIAL. Native persistence/projection is identified, but a background adapter must not write those files directly because the live runtime/projection synchronization protocol is unknown.
+
+MINIMAL_ADAPTER:
+No safe adapter can be specified until an authorized native client/server message transport is documented. Use the authenticated UI's documented network protocol rather than persistence-file edits.
+
+DECISIVE_EVIDENCE:
+`C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh\lib\bin.js`: `dsh web` aliases the web profile.
+`dsh web --dump-config`: configured plugins include `@deepseek-ai/dsh-session-persistence-jsonl` with root `dshHomePath('sessions')`, `@deepseek-ai/dsh-session-query-sqlite` with `path: ':memory:'`, `@deepseek-ai/dsh-session-projection`, and `@deepseek-ai/dsh-session-projection-cache` with `writeEveryEvents: 200` and `writeIntervalMs: 5000`.
+`C:\bench\gorast_dsh\.dsh\sessions\--C-Users-GG-Desktop-Ornith--\<UUID>\session.v3.jsonl.zstd`: native compressed history.
+`C:\bench\gorast_dsh\.dsh\storages\session_projcache\sessions\<UUID>.json`: projection cache with `version`, `record.identity`, and `record.rows`.
