@@ -1,0 +1,80 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-auth-api-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Inspect the authenticated DeepSeek Harness native session/message/reply interface on XEON2 using the already-authorized local Harness UI/session. Do not extract, reveal, copy, or publish authentication credentials.
+
+KNOWN:
+- Safe Harness-only launcher exists at:
+  C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\Start-Harness-Only.ps1
+- Local DSH runs on 127.0.0.1:3080.
+- Native persistence roots:
+  C:\bench\gorast_dsh\.dsh\sessions
+  C:\bench\gorast_dsh\.dsh\storages
+- Unauthenticated requests return 401.
+- Do not touch Ornith or GORAST.
+
+OBJECTIVE:
+Using the active authorized local Harness UI plus local DSH source/runtime inspection, determine how the native WebUI:
+1. enumerates sessions,
+2. identifies a session/conversation,
+3. sends a user message to that same session,
+4. receives assistant progress/reply events,
+5. persists the exchange in native WebUI history.
+
+RULES:
+- Do not reveal or publish any token, cookie, Authorization value, or secret.
+- Do not start/stop/reconfigure Ornith or anything on GORAST.
+- You may restart only the local XEON2 Harness web process if required.
+- Prefer a dedicated harmless test session.
+- Test message if needed: BRIDGE SESSION TEST
+- Prefer definitive source/runtime evidence over guesses.
+
+INSPECT:
+- local DSH source for authenticated web routes and request/event shapes
+- active authorized Harness UI network behavior where available
+- session persistence files before/after a minimal test
+- WebSocket/SSE/polling mechanisms
+- native session IDs and mapping to stored history
+
+RETURN:
+Write outbox/result_terra-harness-auth-api-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-auth-api-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+AUTH_CONTEXT:
+<how the authorized UI context is used, no secrets>
+
+SESSION_LIST:
+<exact native route/request and response shape if found>
+
+SESSION_IDENTITY:
+<exact session/conversation identifier>
+
+MESSAGE_INJECTION:
+<exact method/path/body or event shape>
+
+REPLY_STREAM:
+<exact websocket/SSE/poll mechanism>
+
+PERSISTENCE:
+<exact session history/store mapping>
+
+NATIVE_UI_TEST:
+<whether BRIDGE SESSION TEST appeared in the same native WebUI session>
+
+BRIDGE_ADAPTER_SPEC:
+<minimal XEON2 adapter behavior for same-session send/read/progress>
+
+RAW_DECISIVE_EVIDENCE:
+<compact redacted evidence>
+
+If a definitive interface cannot be established, use state: ERROR and state exactly what remains unknown.
