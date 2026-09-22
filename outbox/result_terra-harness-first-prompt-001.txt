@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-first-prompt-001
+source: TERRA
+state: ERROR
+
+RESULT:
+SESSION:
+`4b0b7cb2-ed4e-4339-bb20-3b688cc09f94` / `ChatGPT Bridge`
+
+BACKEND_ALREADY_AVAILABLE:
+yes — the fresh in-memory local Harness bootstrap and authenticated session/list verification completed without changing the existing Harness backend.
+
+PROMPT_ACCEPTED:
+no — the one authorized native queued `session/prompt` call did not return the required accepted result. Its generated requestId was not emitted after the rejected response. It was not retried.
+
+FOLLOW_OBSERVED:
+no — follow was not opened because prompt acceptance was not established.
+
+ASSISTANT_REPLY:
+none observed.
+
+DURABLE_COMMIT:
+none observed.
+
+PASS:
+no
+
+NEXT_STEP:
+Diagnose the native session/prompt response shape/backend acceptance for this dedicated session, then run a new explicitly authorized single-prompt test with a new requestId.
+
+DECISIVE_EVIDENCE:
+Before the one prompt attempt, authenticated rc.1 session/list still contained the dedicated UUID and title. The request used queue mode, the exact requested text, and the installed typed envelope `payload.args.request`; no GORAST/Ornith service was started, stopped, or reconfigured, and no second prompt was sent.
