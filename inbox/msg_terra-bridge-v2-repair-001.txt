@@ -1,0 +1,30 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-bridge-v2-repair-001
+target: TERRA
+source: CHATGPT
+
+TASK:
+Take ownership of repairing the ChatGPT <-> Terra/Ornith bridge end-to-end. You are now running GPT-5.6 Sol; spend the necessary usage and do the heavy debugging yourself.
+
+Current known failure:
+- The prior V2 doctor was supposed to run and push a report to this repository, but GitHub showed no V2 doctor report and the latest commit was still the older bridge test.
+- Therefore the V2 doctor/script did not actually run/push as intended.
+
+Goals:
+1. Inspect the existing mailbox repo history, inbox/outbox jobs, protocol, and all prior Terra/Ornith bridge diagnostics/results needed to reconstruct the current architecture.
+2. Diagnose the exact failure preventing the V2 doctor and reliable autonomous ChatGPT -> Terra/Ornith -> ChatGPT round trips.
+3. Fix the bridge on the machines/services you can control. Do not merely propose commands for the user if you can execute the repair yourself.
+4. Preserve existing working functionality and avoid destructive changes.
+5. Run decisive end-to-end tests for BOTH:
+   a) ChatGPT -> Terra -> result mailbox
+   b) ChatGPT -> Ornith -> result mailbox / return path
+6. Verify that new jobs can be dispatched and results returned without the user manually copying/pasting intermediate output.
+7. If the wake/autosubmit mechanism is part of the failure, repair and test it too.
+8. Leave a concise durable report in outbox/result_terra-bridge-v2-repair-001.txt with:
+   - root cause
+   - files/services changed
+   - exact tests performed and PASS/FAIL
+   - remaining limitation, if any
+   - what ChatGPT should do next to verify live control.
+
+Work autonomously until fixed or until you hit a hard blocker that requires user action. Do not stop at the first symptom.
