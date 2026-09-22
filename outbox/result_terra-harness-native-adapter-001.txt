@@ -1,0 +1,31 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-native-adapter-001
+source: TERRA
+state: ERROR
+
+RESULT:
+ADAPTER_CREATED:
+`C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridge.mjs`.
+
+AUTH_CONNECTION:
+The adapter uses the installed native unary convention `POST /api/<remote method>` and accepts authentication only through the transient process-local `HARNESS_AUTHORIZATION` or `HARNESS_COOKIE` environment variable. It never reads, persists, logs, or publishes credentials.
+
+BRIDGE_SESSION:
+NOT CREATED. Creating/reusing/renaming a native session requires the authorized local UI context; that context could not be supplied without extracting credentials, which this task prohibits.
+
+CAPABILITIES:
+Prepared commands: `list`, `create`, `rename`, `send <text> [queue]`, `follow`, `steer <text>`, and `cancel`. `send`/`steer` construct native `session.prompt` envelopes with UUID request IDs; no prompt was sent. `follow` emits the documented session address/assistant-stream request shape.
+
+PROMPT_SENT:
+NO
+
+WEBUI_VISIBILITY:
+UNVERIFIED because no bridge session was authorized/created.
+
+NEXT_TEST:
+In an authorized local process only, set an approved transient authentication environment variable and run: `node C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridge.mjs list`. Then run `create`; do not run `send` in this task.
+
+DECISIVE_EVIDENCE:
+Installed `@deepseek-ai/dsh-api-session-controller` source exposes `remote.session.rename`, client session state, assistant stream handling, and documents idempotent `requestId` prompt behavior.
+No-credential adapter test stopped with: `Set HARNESS_AUTHORIZATION or HARNESS_COOKIE in this process only. Credentials are never stored.`
+The adapter passed Node syntax validation. No Ornith/GORAST action occurred.
