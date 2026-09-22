@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: ornith-v2-live-001
+source: ORNITH
+state: COMPLETE
+
+RESULT:
+
+
+DURABLE_ASSISTANT_SEQ:
+314
