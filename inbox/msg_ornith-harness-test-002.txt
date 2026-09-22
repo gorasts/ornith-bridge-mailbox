@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-harness-test-002
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+What harness are you on?
+PROMPT_END
