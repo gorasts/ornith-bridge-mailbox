@@ -1,0 +1,85 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-prompt-diagnose-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Diagnose why the first native session/prompt to the dedicated ChatGPT Bridge session was not accepted. This task is READ-ONLY: do not send another prompt and do not change model selection yet.
+
+VERIFIED BRIDGE SESSION:
+UUID: 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94
+title: ChatGPT Bridge
+cwd: C:\Users\GG\Desktop\Ornith
+
+KNOWN WORKING USER SESSION FOR COMPARISON:
+UUID: 9cf30a90-c556-405b-9a16-8c6e0c6253a9
+title begins: Hey Ornette, what is my
+cwd: C:\Users\GG\Desktop\Ornith
+Do not mutate this session.
+
+IMPORTANT OFFICIAL rc.1 SOURCE FINDING:
+SessionCommandController.prompt() checks the session-local model selection before admitting the prompt:
+- const selection = agents.selectionFor(agent).current
+- if routeServed(ctx, selection.provider) is false, it throws RemoteError code session/model-unavailable
+- otherwise it queues with agent.followup(message) for mode queue and returns {accepted:true}.
+
+SCOPE:
+- XEON2 only.
+- Do not touch/start/stop/reconfigure GORAST or Ornith.
+- Do not send another prompt.
+- Do not mutate either session.
+- Keep auth values private/in-memory only.
+
+OBJECTIVES:
+1. Reproduce/inspect the SAFE response from the already-used bridge prompt path without sending a second prompt if the previous safe response/error is still available in local bridge status/log state.
+2. If the prior response is not retained, do NOT resend. Instead inspect the installed bridge code/status and native read-only Session APIs/projections to determine current model selection.
+3. Read the bridge session's native model-selection projection/current selection using the installed rc.1 read-only route/API.
+4. Read the comparison working session's model-selection projection/current selection.
+5. Compare provider/model and any agentPreset fields.
+6. Check whether the bridge session's selected provider is currently served by the local Harness route catalog, using read-only local source/runtime inspection only.
+7. State whether the likely blocker is:
+   - session/model-unavailable
+   - parser/response-unwrapping only
+   - another concrete RemoteError
+   - unknown.
+8. Do not modify bridge-session.json except for optional non-secret diagnostic metadata.
+
+PROTOCOL:
+Write one immutable final result only at COMPLETE or ERROR.
+
+RETURN:
+Write outbox/result_terra-harness-prompt-diagnose-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-prompt-diagnose-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PREVIOUS_PROMPT_ERROR:
+<safe code/message if recoverable, otherwise unavailable>
+
+BRIDGE_MODEL_SELECTION:
+<provider/model/preset read-only state>
+
+WORKING_SESSION_MODEL_SELECTION:
+<provider/model/preset read-only state>
+
+PROVIDER_ROUTE_SERVED:
+<bridge provider yes/no/unknown>
+
+ROOT_CAUSE:
+<concrete diagnosis>
+
+MUTATIONS:
+NONE
+
+NEXT_FIX:
+<exact session-local fix required, but do not perform it>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If blocked, write one final ERROR with exact blocker.
