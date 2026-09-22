@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-rebuild-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+REBUILT_VERSION:
+2.4
+
+BACKUP_PATH:
+`C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension-backup-v23`
+
+ACTUAL_FILES_INSPECTED:
+Previous `manifest.json`, `content.js`, and `worker.js` under `C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension`.
+
+ARCHITECTURE:
+Content script timer -> runtime poll message -> service worker privileged GitHub Contents fetch -> content script exact-pinned-path draft-safe injection.
+
+GITHUB_FETCH_VERIFIED:
+YES, public Contents API returned the outbox listing from XEON2.
+
+VALIDATION:
+Manifest JSON plus worker/content JavaScript syntax validated.
+
+USER_ACTION_REQUIRED:
+At `edge://extensions`, click Reload for Ornith GitHub Wake 2.4, then return to the target chat.
+
+NEXT_TEST:
+Publish fresh `outbox/result_extension-integration-test-004.txt` after reload.
+
+DECISIVE_EVIDENCE:
+v2.4 has only the matched service-worker message-fetch path; content script has no direct GitHub fetch, snapshots historical results on initialization, and retains diagnostics in chrome.storage.local.
