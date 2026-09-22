@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: wake-autosubmit-test-001
+source: CHATGPT_TEST
+state: COMPLETE
+
+RESULT:
+WAKE_AUTOSUBMIT_TEST: PASS_MARKER
+
+INSTRUCTION:
+This file exists only to test the supervisor wake extension auto-submit path. No worker action is required.
