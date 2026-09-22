@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-desktop-dispatcher-install-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+DISPATCHER_INSTALLED:
+yes — `C:\\Users\\XEON2\\Desktop\\OrnithBridge\\TERRA_DISPATCH\\TerraDispatcher.ps1` is running hidden in a stopped-safe state and writes `status.json`.
+
+METHOD:
+Windows UI Automation only: the dispatcher requires the ChatGPT desktop process, an exact `Document` named `Execute Q5 executor packet`, and its descendant `Edit` composer before it will insert or submit the fixed worker command. It uses no screen coordinates and never selects another conversation.
+
+AUTOSTART:
+yes — user-level login startup file `C:\\Users\\XEON2\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\OrnithTerraDispatcher.cmd` launches the dispatcher hidden. Windows denied creation of a Scheduled Task, so the Startup-folder mechanism is used instead.
+
+EXACT_CONVERSATION_MATCH:
+yes — live desktop accessibility inspection found document `Execute Q5 executor packet` and composer edit `Work with ChatGPT` in the ChatGPT Windows app.
+
+TEST_RESULT:
+No synthetic dispatch was sent. The dispatcher is protected by `C:\\Users\\XEON2\\Desktop\\OrnithBridge\\TERRA_DISPATCH\\STOP`, and live status reports `STOPPED` with no error. This avoids sending a representational message or triggering a recursive job without a final user enablement action.
+
+USER_ACTION_REQUIRED:
+When ready to authorize the first desktop dispatch, remove `C:\\Users\\XEON2\\Desktop\\OrnithBridge\\TERRA_DISPATCH\\STOP` while the desktop app is open to `Execute Q5 executor packet`. Recreate `STOP` at any time for an immediate emergency pause.
+
+NEXT_STEP:
+After STOP is removed, the dispatcher conservatively polls GitHub, identifies one pending `target: TERRA` message without a final result, focuses only the exact Terra conversation, submits `Process next Terra bridge job.`, and records the message ID only after composer-clear confirmation.
+
+DECISIVE_EVIDENCE:
+ChatGPT desktop UIA exposes the exact title as RootWebArea and a named editable composer; dispatcher status is `STOPPED`, with no pending ID, error, or dispatch timestamp. No Edge extension, Harness, GORAST, Ornith, model, or service was changed, and no prompt was sent.
