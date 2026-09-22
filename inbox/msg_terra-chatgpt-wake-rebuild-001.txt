@@ -1,0 +1,114 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-chatgpt-wake-rebuild-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Rebuild the installed Ornith GitHub Wake extension on XEON2 from the ACTUAL current files. Do not attempt a patch against an assumed v2.2 baseline.
+
+ROOT CAUSE OF PREVIOUS BLOCK:
+The installed content-script source no longer matched the expected baseline, so the patch was refused. This task must inspect the real current files first, then rewrite/replace the necessary extension files atomically.
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- Do not use OpenAI API or another AI supervisor.
+- Do not publish a new test result during this task.
+
+INSTALL ROOT:
+C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension
+
+REBUILD ARCHITECTURE:
+1. Content script is the timer/driver while the pinned ChatGPT conversation tab is open.
+2. Every ~9 seconds, content script sends chrome.runtime.sendMessage({type:'poll-github'}) to the extension service worker.
+3. Service worker performs the privileged fetch to:
+   https://api.github.com/repos/gorasts/ornith-bridge-mailbox/contents/outbox?ref=main
+4. Service worker returns result_*.txt filenames or a safe error object.
+5. Content script owns:
+   - target conversation pinning
+   - startup snapshot of historical result files
+   - seen-state dedupe
+   - waiting while ChatGPT is generating
+   - never overwriting a non-empty user draft
+   - composer insertion and Send click
+   - marking a filename seen only after successful submission
+
+REBUILD REQUIREMENTS:
+1. Inspect the ACTUAL current manifest.json, content.js, worker.js if present.
+2. Back up the current extension folder to a timestamped sibling folder before rewriting.
+3. Rewrite cleanly as version 2.3 (or 2.4 if 2.3 is already present) with no dependency on prior source text.
+4. Required manifest entries:
+   - manifest_version: 3
+   - permissions: storage, tabs
+   - host_permissions: https://api.github.com/* and https://chatgpt.com/*
+   - background.service_worker: worker.js
+   - content script for https://chatgpt.com/*
+5. Service worker must have a chrome.runtime.onMessage handler for poll-github and perform the GitHub fetch there.
+6. Content script must call runtime.sendMessage for each poll; no direct api.github.com fetch from content script.
+7. Persist chrome.storage.local fields:
+   targetPath
+   seen
+   enabled
+   initialized
+   lastPollAt
+   lastPollStatus
+   lastFetchStatus
+   lastNewResult
+   lastSubmitStatus
+8. First initialization after reload must snapshot current result_*.txt files as seen so historical files do not replay.
+9. Only inject into the exact pinned /c/<id> path.
+10. Robust ChatGPT UI handling:
+    - detect composer with several selectors
+    - detect generating/stop state and defer
+    - do not overwrite a non-empty draft
+    - click the enabled Send button with selector fallbacks
+11. Add concise console-free diagnostics only in chrome.storage.local; do not log private IDs or secrets.
+12. Validate manifest JSON and JavaScript syntax after rewrite.
+13. Verify the public GitHub API call returns outbox contents from XEON2.
+
+USER RELOAD:
+After rebuild, the user should only need to click Reload once on the extension in edge://extensions and return to the target chat.
+
+NEXT TEST:
+After reload ChatGPT will create a fresh:
+outbox/result_extension-integration-test-004.txt
+
+RETURN:
+Write outbox/result_terra-chatgpt-wake-rebuild-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-rebuild-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+REBUILT_VERSION:
+<version>
+
+BACKUP_PATH:
+<path>
+
+ACTUAL_FILES_INSPECTED:
+<paths/current versions>
+
+ARCHITECTURE:
+<content script timer -> service worker fetch -> content script inject>
+
+GITHUB_FETCH_VERIFIED:
+<yes/no>
+
+VALIDATION:
+<manifest/js syntax>
+
+USER_ACTION_REQUIRED:
+<exact reload step>
+
+NEXT_TEST:
+<fresh result filename>
+
+DECISIVE_EVIDENCE:
+<compact evidence>
+
+If blocked, use state: ERROR and state exact blocker.
