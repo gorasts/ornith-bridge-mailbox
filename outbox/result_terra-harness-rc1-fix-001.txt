@@ -1,0 +1,31 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-rc1-fix-001
+source: TERRA
+state: ERROR
+
+RESULT:
+PATCHED:
+YES. `HarnessBridge.mjs` and `HarnessBridgeBootstrap.mjs` now use slash routes and the rc.1 client-request envelope: `type`, `rpcId`, `method`, and `payload.args`.
+
+SESSION_LIST:
+Authenticated `session/list` succeeded sufficiently for bootstrap flow, but its returned shape did not include the reused UUID under the currently parsed response representation; count is not safely established.
+
+BRIDGE_SESSION:
+`9cf30a90-c556-405b-9a16-8c6e0c6253a9`, renamed to `ChatGPT Bridge`. Local metadata persisted only UUID/title/requested workspace at `C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\bridge-session.json`.
+
+SESSION_RELIST_VERIFIED:
+NO. The bootstrap's strict UUID containment check returned false; this is reported rather than inferred as a successful relist.
+
+PROMPT_SENT:
+NO
+
+WEBUI_NATIVE:
+PARTIAL. The UUID corresponds to a native DSH session cache entry under the shared DSH_HOME; native rename completed through the authenticated rc.1 endpoint. WebUI/list reflection remains unverified.
+
+NEXT_TEST:
+After correcting the exact rc.1 `session/list` response unwrap, run `node C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridge.mjs send "BRIDGE SESSION TEST" queue`, then use the documented follow request only. Not run here.
+
+DECISIVE_EVIDENCE:
+Local Harness running: PID 19880 on `127.0.0.1:3080`.
+Bootstrap non-secret status: session UUID, title `ChatGPT Bridge`, `sessionListVerified:false`.
+No prompt endpoint was called; no GORAST/Ornith action occurred; no authentication value was output.
