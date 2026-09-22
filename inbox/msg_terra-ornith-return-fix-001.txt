@@ -1,0 +1,41 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-ornith-return-fix-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+THIN EXECUTOR. Fix ONLY the Ornith return bridge on XEON2. Do not touch Ornith, llama-server, Harness, Tiel work, browser tabs, or extension.
+
+Known diagnosis:
+RETURN_WATCHER=STOPPED
+WAKE_HEALTH=http://127.0.0.1:3098/health is OK
+RETURN_STATE_SEQ=183
+local outbox contains result_ornith_seq_183.txt
+wake results previously appeared stale around seq100
+helper 127.0.0.1:3099 is healthy
+extension version=2.14
+
+Do exactly:
+1. Check whether a Node process is running for:
+   C:\Users\XEON2\Desktop\OrnithBridge\ORNITH_RETURN\OrnithReturnWatcher.mjs
+2. If not running, start exactly ONE background Node process for that file using the existing Node executable/environment. Do not open/read its source unless startup fails.
+3. Wait up to 5 seconds.
+4. Query http://127.0.0.1:3098/results and check specifically whether result_ornith_seq_183.txt is present as source ornith-local.
+5. If seq183 is absent but 3098 health is OK, restart ONLY:
+   C:\Users\XEON2\Desktop\OrnithBridge\WAKE\WakeResultServer.mjs
+   then wait up to 3 seconds and check /health and /results again.
+6. Do not alter any files unless a process start command requires none.
+7. Do not restart Edge or reload extension.
+
+Return <=10 lines:
+ORNITH_RETURN_FIX
+RETURN_WATCHER=RUNNING|ERROR
+WAKE_SERVER=RUNNING|ERROR
+SEQ183_VISIBLE=YES|NO
+WAKE_HEALTH=OK|ERROR
+HELPER_UNTOUCHED=YES
+ORNITH_UNTOUCHED=YES
+STATE=COMPLETE|ERROR
+ERROR=<only if needed>
+PROMPT_END
