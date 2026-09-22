@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-follow-stream-001
+source: TERRA
+state: ERROR
+
+RESULT:
+STREAM_CARRIER_PATCHED:
+yes — `HarnessOwnerHelper.mjs` now opens authenticated `ws://127.0.0.1:3080/api/remote.mux` connections and sends the specified `open` frame for the fixed dedicated session. Unary `/rpc` behavior remains available for list/selectModel/prompt.
+
+WEBSOCKET_FOLLOW_OPENED:
+yes — helper `/follow` returned mux `item` frames without the previous `gateway/signature-invalid` error.
+
+EXISTING_REQUEST_FOUND:
+yes — opening snapshot includes the accepted requestId `7811712e-66e5-42fd-bd9e-2eec450cc93f`.
+
+ASSISTANT_REPLY:
+none
+
+DURABLE_COMMIT:
+no assistant message committed. The snapshot’s durable turn frames end at seq 34 after provider `llama-local` exhausted retry 5/5; the terminal turn error is `Connection error.` with code `TRANSPORT`.
+
+PASS:
+no
+
+PROMPT_SENT:
+NO
+
+HELPER_STATUS:
+3080 and helper 3099 are running; helper health reports ready and follow transport `websocket-mux`.
+
+NEXT_STEP:
+Diagnose the configured local `llama-local` provider transport from the already-running Harness without submitting another bridge prompt; restore provider connectivity, then authorize a new one-prompt test with a new requestId.
+
+DECISIVE_EVIDENCE:
+Backed up the prior helper as `HarnessOwnerHelper.mjs.pre-follow-stream-001.bak`; controlled restart restored one 3080 owner and one 3099 helper. Native mux snapshot contained 35 records, the accepted request, retry frames, and terminal `TRANSPORT` failure at seq 34. No prompt was resent and no GORAST/Ornith process or configuration was changed.
