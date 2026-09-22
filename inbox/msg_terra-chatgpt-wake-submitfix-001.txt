@@ -1,0 +1,90 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-chatgpt-wake-submitfix-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Patch the installed Ornith GitHub Wake extension on XEON2. GitHub polling and composer injection now work, but automatic submission did not occur.
+
+PROVEN STATE:
+- v2.3 detected fresh result_extension-integration-test-005.txt.
+- It injected the exact wake text into the correct pinned ChatGPT conversation composer.
+- Screenshot showed the blue Send button enabled with the wake text still sitting in the composer.
+- Therefore polling, target pinning, result detection, and text insertion are working.
+- The remaining failure is final submission / verification.
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- Do not publish a new GitHub result during this task.
+- Do not use OpenAI API or another AI supervisor.
+
+INSTALL ROOT:
+C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension
+
+OBJECTIVE:
+Make automatic Send reliable and never mark a result seen merely because text was inserted.
+
+IMPLEMENTATION REQUIREMENTS:
+1. Inspect the ACTUAL installed v2.3 content.js/manifest/worker.js first.
+2. Back up files before changing them.
+3. Increment extension version to 2.4.
+4. Keep the working architecture:
+   content-script timer -> service-worker GitHub fetch -> content-script injection.
+5. After inserting wake text, wait until ChatGPT has recognized the text and the send control is enabled.
+6. Find the send control robustly using multiple strategies, in this order or equivalent:
+   - button[data-testid='send-button']
+   - button[aria-label='Send prompt'] or aria-label beginning with Send
+   - enabled button[type='submit'] inside the composer/form
+   - the enabled submit button in the nearest form containing #prompt-textarea / contenteditable composer.
+7. Primary submit should use the actual button.click() on the enabled visible send button.
+8. If no successful submit is observed, fallback to the enclosing form's requestSubmit() when valid.
+9. If still not successful, fallback to a trusted-like Enter key event sequence on the composer only when the composer is not configured for multiline-only behavior and without adding a newline. Prefer button/form paths first.
+10. VERIFY success after submit:
+    - composer becomes empty OR
+    - a new user-message node containing the wake marker appears in the conversation.
+11. Only after verified success mark that result filename seen.
+12. If text remains in composer after timeout, leave filename UNSEEN, preserve the draft, set lastSubmitStatus='failed-not-sent', and retry later without duplicating the text.
+13. If the exact wake text is already present in the composer on retry, do not insert it again; only retry submission.
+14. If a different user draft is present, defer and do not overwrite it.
+15. Store non-secret diagnostics:
+    lastSubmitAttemptAt, lastSubmitStrategy, lastSubmitStatus.
+16. Validate JS syntax and manifest JSON.
+
+NEXT TEST:
+After user reloads v2.4 and refreshes the target ChatGPT tab, ChatGPT will publish fresh:
+outbox/result_extension-integration-test-006.txt
+
+RETURN:
+Write outbox/result_terra-chatgpt-wake-submitfix-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-submitfix-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PATCHED_VERSION:
+<version>
+
+ROOT_CAUSE:
+<why v2.3 left text unsent, if determinable>
+
+SUBMIT_STRATEGIES:
+<implemented order>
+
+SUCCESS_VERIFICATION:
+<how confirmed before marking seen>
+
+USER_ACTION_REQUIRED:
+<exact reload/refresh step>
+
+NEXT_TEST:
+<fresh result filename>
+
+DECISIVE_EVIDENCE:
+<validation>
+
+If blocked, use state: ERROR with exact blocker.
