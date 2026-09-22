@@ -1,0 +1,79 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-select-model-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Set the native session-local model selection for the dedicated ChatGPT Bridge session on XEON2, then verify it read-only. Do not send a prompt.
+
+VERIFIED BRIDGE SESSION:
+UUID: 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94
+title: ChatGPT Bridge
+cwd: C:\Users\GG\Desktop\Ornith
+
+REQUIRED MODEL SELECTION:
+provider: llama-local
+model: ornith-ad-q4k-iq4xs-mtp.gguf
+
+KNOWN:
+- Working user session uses exactly that provider/model.
+- Read-only settings confirm provider llama-local is served.
+- Dedicated bridge session currently has modelSelection lastUsed:null, next:null.
+- Installed rc.1 prompt admission likely rejects because no current selection exists.
+
+SCOPE:
+- XEON2 only.
+- Do not touch/start/stop/reconfigure GORAST or Ornith.
+- Do not change llama-server flags, model files, context, GPU settings, or backend service.
+- Do not send any prompt.
+- Do not mutate any other Harness session.
+- Keep auth private/in-memory only.
+
+OBJECTIVES:
+1. Inspect installed rc.1 source for exact native session-local model-selection Remote method name and request envelope before calling it.
+2. Refresh local Harness auth using existing bootstrap.
+3. Confirm bridge UUID/title still match.
+4. Apply ONLY the dedicated session's model selection:
+   provider llama-local
+   model ornith-ad-q4k-iq4xs-mtp.gguf
+5. Relist/read projections and verify the dedicated session now reports that selection in the expected current/next fields.
+6. Leave title/cwd unchanged.
+7. Keep Harness running.
+8. Do NOT call session/prompt.
+
+PROTOCOL:
+Write the final GitHub result file only once at COMPLETE or ERROR.
+
+RETURN:
+Write outbox/result_terra-harness-select-model-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-select-model-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+SELECTION_METHOD:
+<exact rc.1 route/method used>
+
+SELECTION_APPLIED:
+<yes/no>
+
+BRIDGE_MODEL_SELECTION:
+<provider/model/current-next state after verification>
+
+SESSION_UNCHANGED:
+<uuid/title/cwd verification>
+
+PROMPT_SENT:
+NO
+
+NEXT_TEST:
+<exact one-prompt + follow test, but do not run>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If blocked, write one immutable ERROR result with the exact blocker.
