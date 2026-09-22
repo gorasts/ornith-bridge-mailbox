@@ -1,0 +1,137 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-tiel-phase1-runnerfix-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+THIN EXECUTOR MODE. Minimize Terra token use. Do not analyze benchmark content.
+
+The previous job stopped because no ready-made 20K/TG512 Tiel runner existed. FIX THAT by creating one deterministic runner. Do not search further for a pre-existing runner.
+
+OBJECTIVE
+Download/verify Tiel if needed, create a dedicated deterministic benchmark script, launch it in ONE visible PowerShell window titled "TIEL LIVE TEST", run 4 cases, and publish only the compact summary.
+
+DO NOT TOUCH
+- working Ornith bridge infrastructure
+- ORNITH_WORKER
+- Ornith return watcher
+- wake server / Edge extension
+- existing model files
+- existing benchmark prompt contents
+
+MODEL
+Repo: peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+Preferred GGUF: Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+Target: /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+Text only. No mmproj.
+If exact filename differs in repo, determine filename from listing metadata only; do not read model contents.
+
+BASELINE TO CLONE FROM CURRENT PROVEN ORNITH RUNTIME
+- llama.cpp: current known-good b10919 tree/runtime unless Tiel load proves incompatible
+- single GORAST GPU baseline
+- ctx 131072
+- cache K/V F16/F16
+- mmap
+- B=2048
+- UB=2048
+- T=14
+- TB=14
+- FA on
+- n-cpu-moe=37
+- keep the same safe GPU expert/layer placement presently used by the proven Ornith baseline where semantically applicable
+- standalone/current MTP mechanism appropriate for the Tiel MTP file; do not invent unsupported flags
+- generation TG512
+- prompt target ~20K input tokens
+
+IMPORTANT
+If Tiel's architecture/metadata makes any one Ornith flag invalid, omit ONLY that incompatible flag and note it in BASELINE_DIFF. Do not redesign topology.
+
+PROMPT POLICY
+- Reuse an existing long-context benchmark prompt/file already on disk if available.
+- Terra MUST NOT open/read the prompt or generated answer.
+- If no suitable opaque prompt file exists, generate a neutral synthetic repeated-text prompt deterministically in the runner itself to approximately 20K tokens. Terra must not ingest the generated prompt.
+- Generated model response goes to a file; Terra never reads it.
+
+RUNNER
+Create:
+C:\Users\XEON2\Desktop\OrnithBridge\TIEL\Run-Tiel-Phase1.ps1
+
+The runner itself performs all SSH/server start/health/test/parse logic. Terra only writes/launches it.
+
+CASES
+Run exactly:
+1) MTP0 = speculative disabled
+2) MTP1 = draft MTP n-max 1
+3) MTP2 = draft MTP n-max 2
+4) MTP3 = draft MTP n-max 3
+
+All other settings identical.
+
+Each case:
+- start server
+- health wait
+- one benchmark request at ~20K + TG512
+- save raw stdout/stderr/response to disk
+- parse only numeric timings/status
+- stop only the test server between cases as needed
+- do not restore Ornith production during the batch
+
+VISIBLE POWERSHELL
+Open ONE visible PowerShell window titled exactly:
+TIEL LIVE TEST
+
+It should print only:
+DOWNLOAD <percent/bytes or REUSED>
+TEST 1/4 MTP0
+STATUS=<...> PP=<...> TG=<...> WALL=<...>
+TEST 2/4 MTP1
+...
+DONE
+plus compact telemetry if already available.
+
+NO RAW MODEL RESPONSE OR LONG SERVER LOG ON SCREEN.
+
+TELEMETRY
+Use existing lightweight telemetry only if already installed/scripts exist. Do not build new telemetry. Capture compact:
+VRAM peak/headroom
+GPU temp peak/avg
+power peak/avg
+network peak/avg if RPC actually used
+otherwise NA.
+
+AUTOMATIC WAIT
+After launching the visible runner, Terra must NOT repeatedly inspect logs.
+Use a local deterministic watcher/timer waiting for:
+C:\Users\XEON2\Desktop\OrnithBridge\TIEL\phase1.DONE
+
+The runner writes:
+C:\Users\XEON2\Desktop\OrnithBridge\TIEL\phase1_summary.txt
+C:\Users\XEON2\Desktop\OrnithBridge\TIEL\phase1.DONE
+
+When DONE appears, read ONLY phase1_summary.txt, not raw logs or responses.
+
+PUBLISH
+Write/push:
+outbox/result_terra-tiel-phase1-runnerfix-001.txt
+
+FINAL RESULT MUST BE <= 20 LINES:
+TIEL_PHASE1
+MODEL=<path>
+SIZE=<bytes>
+BUILD=<build>
+BASELINE_DIFF=<none or compact>
+TESTS=4
+MTP0 PP=<n/NA> TG=<n/NA> WALL=<n> STATUS=<...>
+MTP1 PP=<n/NA> TG=<n/NA> WALL=<n> ACC=<n/NA> STATUS=<...>
+MTP2 PP=<n/NA> TG=<n/NA> WALL=<n> ACC=<n/NA> STATUS=<...>
+MTP3 PP=<n/NA> TG=<n/NA> WALL=<n> ACC=<n/NA> STATUS=<...>
+VRAM=<compact/NA>
+THERMAL_POWER=<compact/NA>
+NETWORK=<compact/NA>
+SUMMARY_FILE=<path>
+STATE=<COMPLETE|ERROR>
+ERROR=<only if needed>
+
+Do not choose a winner. Do not explain results. ChatGPT will decide the next step.
+PROMPT_END
