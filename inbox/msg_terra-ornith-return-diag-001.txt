@@ -1,0 +1,48 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-ornith-return-diag-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+THIN EXECUTOR ONLY. Do not analyze. Minimize token use.
+
+Goal: locate the broken hop in the Ornith return pipeline. READ-ONLY. Do not restart or modify anything.
+
+On XEON2, check exactly these local components:
+1. Is a process running whose command line contains OrnithReturnWatcher.mjs?
+2. Is a process running whose command line contains WakeResultServer.mjs?
+3. HTTP GET http://127.0.0.1:3098/health — status only.
+4. HTTP GET http://127.0.0.1:3098/results — do NOT return full body; report item count and newest ornith-local result name/seq only.
+5. Read only tiny file:
+   C:\Users\XEON2\Desktop\OrnithBridge\ORNITH_RETURN\state.json
+   Return only its last/durable seq fields if present.
+6. List filenames only (no contents) for newest 5 files in:
+   C:\Users\XEON2\Desktop\OrnithBridge\ORNITH_RETURN\outbox
+7. Check GET http://127.0.0.1:3099/health — status only.
+8. Read manifest.json from:
+   C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension
+   Return only version.
+9. Do NOT inspect benchmark/model files.
+10. Do NOT restart processes, browser, extension, Harness, or servers.
+
+Return <=12 lines exactly:
+ORNITH_RETURN_DIAG
+RETURN_WATCHER=RUNNING|STOPPED
+WAKE_SERVER=RUNNING|STOPPED
+WAKE_HEALTH=OK|ERROR
+WAKE_ITEMS=<n|NA>
+WAKE_NEWEST_ORNITH=<filename|NONE>
+RETURN_STATE_SEQ=<n|NA>
+OUTBOX_NEWEST=<comma-separated filenames|NONE>
+HELPER_HEALTH=OK|ERROR
+EXT_VERSION=<version|NA>
+BROKEN_HOP=<WATCHER|WAKE_SERVER|EXTENSION_OR_BROWSER|UNKNOWN>
+ERROR=<only if needed>
+
+BROKEN_HOP rule:
+- watcher stopped or state/outbox not advancing => WATCHER
+- watcher/outbox advanced but 3098 missing/not serving => WAKE_SERVER
+- 3098 serves newest ornith-local result but it did not reach ChatGPT => EXTENSION_OR_BROWSER
+- otherwise UNKNOWN
+PROMPT_END
