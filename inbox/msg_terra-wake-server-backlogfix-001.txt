@@ -1,0 +1,44 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-wake-server-backlogfix-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+THIN EXECUTOR. Fix ONLY WakeResultServer.mjs on XEON2. Do not touch Edge, Ornith, llama-server, Harness, Tiel work, or OrnithReturnWatcher.
+
+Problem:
+- current loaded Edge extension v2.14 is replaying stale ornith-local backlog after this ChatGPT window restarted
+- local Ornith outbox has advanced to seq183 or newer
+- wake server currently exposes historical ornith-local files
+
+Patch:
+C:\Users\XEON2\Desktop\OrnithBridge\WAKE\WakeResultServer.mjs
+
+Required behavior:
+1. Backup the current file before editing.
+2. On WakeResultServer startup, scan the local Ornith return outbox and determine BASELINE_ORNITH_SEQ = maximum existing result_ornith_seq_<n>.txt seq.
+3. For /results, NEVER expose ornith-local files with seq <= BASELINE_ORNITH_SEQ.
+4. Expose only ornith-local files created with seq > BASELINE_ORNITH_SEQ after this server start.
+5. For each exposed ornith-local item, keep name and source='ornith-local' but compact content:
+   - extract ASSISTANT_REPLY text only from the stored result file when present
+   - omit RAW_EVENT_JSON completely
+   - include at most 12000 chars
+6. Preserve the existing GitHub/Terra result behavior unchanged.
+7. Restart ONLY WakeResultServer.mjs after patch.
+8. Verify http://127.0.0.1:3098/health is OK.
+9. Verify /results currently exposes ZERO ornith-local backlog items at or below the baseline.
+10. Do not restart/reload Edge. Do not restart return watcher.
+
+Return <=10 lines:
+WAKE_SERVER_BACKLOG_FIX
+BASELINE_SEQ=<n>
+BACKUP=<path>
+WAKE_SERVER=RUNNING|ERROR
+WAKE_HEALTH=OK|ERROR
+OLD_ORNITH_VISIBLE=0|<n>
+ORNITH_CONTENT=ASSISTANT_REPLY_ONLY
+TERRA_UNCHANGED=YES
+STATE=COMPLETE|ERROR
+ERROR=<only if needed>
+PROMPT_END
