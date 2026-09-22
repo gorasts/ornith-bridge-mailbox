@@ -1,0 +1,89 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-chatgpt-wake-bgfetch-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Patch Ornith GitHub Wake v2.2 on XEON2. The content-script polling design did not wake the chat after >1 minute.
+
+LIKELY ROOT CAUSE:
+Do not fetch api.github.com directly from the ChatGPT content script. In Chromium/Edge MV3, cross-origin fetches from content scripts are constrained by the page/CORS context. Host permissions should be used by the extension service worker/background context.
+
+CORRECT ARCHITECTURE:
+- Content script remains the timer/driver every ~9 seconds while the pinned ChatGPT tab is open.
+- On each tick, content script sends chrome.runtime.sendMessage({type:'poll-github'}) to the service worker.
+- Service worker performs the privileged fetch to:
+  https://api.github.com/repos/gorasts/ornith-bridge-mailbox/contents/outbox?ref=main
+- Service worker returns the result_*.txt filenames (or safe error) to the content script.
+- Content script owns target pinning, seen-state logic, composer detection, and message injection.
+- Service worker has NO timer/alarm requirement; it only wakes on message and does one fetch.
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- Do not use OpenAI API or another AI supervisor.
+- Do not publish a new test result during this Terra task.
+
+INSTALL ROOT:
+C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension
+
+OBJECTIVES:
+1. Inspect v2.2 files and confirm whether direct content-script GitHub fetch is failing.
+2. Implement service-worker message handler for GitHub fetch.
+3. Ensure manifest has:
+   - background.service_worker
+   - permissions including storage and tabs if still needed
+   - host_permissions including https://api.github.com/*
+4. Content script polls by messaging service worker every 9 seconds.
+5. Preserve targetPath / seen / enabled state in chrome.storage.local.
+6. Preserve safety:
+   - never overwrite non-empty draft
+   - wait while ChatGPT is generating
+   - mark seen only after successful send
+7. Add diagnostic fields:
+   lastPollAt
+   lastPollStatus
+   lastFetchStatus
+   lastNewResult
+   lastSubmitStatus
+8. Increment version to 2.3.
+9. Validate manifest JSON and JS syntax.
+10. If possible, locally exercise the service worker fetch path or equivalent Node/PowerShell request to prove GitHub API returns the test file list.
+
+NEXT TEST:
+After user reloads v2.3 and returns to the target ChatGPT conversation, ChatGPT will publish:
+outbox/result_extension-integration-test-004.txt
+
+RETURN:
+Write outbox/result_terra-chatgpt-wake-bgfetch-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-bgfetch-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+ROOT_CAUSE_CONFIRMED:
+<yes/no and exact evidence>
+
+PATCHED_VERSION:
+<version>
+
+FETCH_PATH:
+<content script -> service worker -> GitHub>
+
+DIAGNOSTICS:
+<what was added>
+
+USER_ACTION_REQUIRED:
+<exact reload step>
+
+NEXT_TEST:
+<fresh result filename>
+
+DECISIVE_EVIDENCE:
+<validation/fetch evidence>
+
+If blocked, use state: ERROR and state the exact blocker.
