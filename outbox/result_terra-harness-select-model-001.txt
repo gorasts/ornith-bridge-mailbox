@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-select-model-001
+source: TERRA
+state: ERROR
+
+RESULT:
+SELECTION_METHOD:
+Installed rc.1 route `session/selectModel`, using the typed direct-request envelope `payload.args.request` with `sessionId`, `provider`, and `model`.
+
+SELECTION_APPLIED:
+no
+
+BRIDGE_MODEL_SELECTION:
+Unchanged after the failed call: `lastUsed: null`, `next: null`.
+
+SESSION_UNCHANGED:
+yes — authenticated relist still reports UUID `4b0b7cb2-ed4e-4339-bb20-3b688cc09f94`, title `ChatGPT Bridge`, and cwd `C:\\Users\\GG\\Desktop\\Ornith`.
+
+PROMPT_SENT:
+NO
+
+NEXT_TEST:
+Release or reconnect through the existing active owner of the dedicated session, then invoke exactly one `session/selectModel` request for `llama-local` / `ornith-ad-q4k-iq4xs-mtp.gguf`, relist, and only then authorize a one-prompt + follow test.
+
+DECISIVE_EVIDENCE:
+The typed rc.1 descriptor confirms `session/selectModel`. The live server returned `gateway/internal`: `resume failed for session "4b0b7cb2-ed4e-4339-bb20-3b688cc09f94": SessionAlreadyOwnedError: session "4b0b7cb2-ed4e-4339-bb20-3b688cc09f94" is already owned by an active write handle`. No prompt, title, cwd, backend, GORAST, or Ornith setting was changed; no Harness process was interrupted.
