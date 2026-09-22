@@ -1,0 +1,30 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-ornith-baseline-current-002
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+THIN EXECUTOR.
+On XEON2, archive the Ornith result files currently present in:
+C:\Users\XEON2\Desktop\OrnithBridge\ORNITH_RETURN\outbox
+
+Match only filenames result_ornith_seq_<number>.txt.
+At start, note the highest number present.
+Move all matching files currently present into:
+C:\Users\XEON2\Desktop\OrnithBridge\ORNITH_RETURN\archive_baseline_current
+
+Do not delete files.
+Do not restart or modify any process.
+Do not touch Terra files.
+
+Then query http://127.0.0.1:3098/results and count ornith-local items.
+
+Reply only:
+ORNITH_BASELINE_CURRENT
+MAX_SEQ=<n|NONE>
+MOVED=<n>
+LIVE_ORNITH_ITEMS=<n>
+STATE=COMPLETE|ERROR
+ERROR=<only if needed>
+PROMPT_END
