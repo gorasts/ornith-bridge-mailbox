@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: ornith-v2-supervisor-proof-001
+target: ORNITH
+source: CHATGPT
+
+TASK:
+Fresh live supervisor proof requested directly by ChatGPT.
+Reply exactly: ORNITH_SUPERVISOR_PROOF_OK
+
+This is a NEW uniquely named test. Execute exactly once and publish the normal durable result.
