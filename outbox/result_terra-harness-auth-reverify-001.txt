@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-auth-reverify-001
+source: TERRA
+state: ERROR
+
+RESULT:
+AUTH_REFRESHED:
+yes — a fresh in-memory local authentication context was created against an isolated localhost Harness instance, while the existing 127.0.0.1:3080 Harness remained running.
+
+SESSION_LIST_COUNT:
+11
+
+BRIDGE_SESSION_FOUND:
+yes — UUID `9cf30a90-c556-405b-9a16-8c6e0c6253a9` is present.
+
+BRIDGE_SESSION:
+The live returned summary does NOT match the required bridge identity: title is `Hey Ornette, what is my`; cwd is `C:\\Users\\GG\\Desktop\\Ornith`. It is not `ChatGPT Bridge` or the required stored workspace path. No rename or other mutation was performed.
+
+PROMPT_SENT:
+NO
+
+WEBUI_NATIVE_VERIFIED:
+no — native session/list itself works, but the actual returned title/workspace fail the requested identity verification.
+
+NEXT_TEST:
+After the session identity discrepancy is resolved deliberately, run one queued first prompt through the bridge and then a read-only follow check; do not run either now.
+
+DECISIVE_EVIDENCE:
+rc.1 required `payload.args._request`; after that correction, the safe response shape was `payload → result → value → { items: [...] }`. The list had 11 items and the matching UUID summary exposed `cwd`, `projections.values.title`, and the mismatching title above. No authentication material was written.
