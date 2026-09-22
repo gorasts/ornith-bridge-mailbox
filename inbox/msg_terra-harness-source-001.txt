@@ -1,0 +1,37 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-source-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+On XEON2 only, inspect the installed DeepSeek Harness files and its local DSH_HOME data to document how native chat sessions work.
+
+Use these paths:
+C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh
+C:\bench\gorast_dsh\.dsh\sessions
+C:\bench\gorast_dsh\.dsh\storages
+
+Do not use browser automation.
+Do not touch GORAST or Ornith.
+Do not modify existing sessions.
+
+Find:
+- how sessions are identified,
+- how session history is stored,
+- how the WebUI loads an existing session,
+- which local source files handle sending a user message,
+- which local source files handle receiving assistant output,
+- whether a local background helper could use the same session that later appears in the WebUI.
+
+Write a compact result to:
+outbox/result_terra-harness-source-001.txt
+
+Include:
+SESSION_IDENTITY
+PERSISTENCE
+MESSAGE_FLOW
+REPLY_FLOW
+WEBUI_RELOAD
+BRIDGE_FEASIBILITY
+DECISIVE_FILE_PATHS
