@@ -1,0 +1,120 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-native-adapter-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Build a first native DeepSeek Harness bridge adapter on XEON2 using the installed DSH Web/session-controller stack. This is a local-only task.
+
+SAFETY / SCOPE:
+- Do NOT touch GORAST.
+- Do NOT start, stop, probe, or reconfigure Ornith.
+- Do NOT send a model prompt in this task.
+- Do NOT edit session persistence files directly.
+- Do NOT use browser desktop automation.
+- Any local Harness authentication material must stay private on XEON2 and must never be written to GitHub output/logs.
+
+KNOWN LOCAL SETUP:
+- Harness-only launcher:
+  C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\Start-Harness-Only.ps1
+- DSH package:
+  C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh
+- DSH_HOME:
+  C:\bench\gorast_dsh\.dsh
+- Workspace cwd:
+  C:\bench\gorast_dsh\Users\GG\Desktop\Ornith
+- Web host:
+  http://127.0.0.1:3080
+- Installed DSH version:
+  0.1.5-rc.1
+
+OFFICIAL NATIVE CONTRACT ALREADY ESTABLISHED:
+- unary route convention: POST /api/<remote method>
+- session list: /api/session.list
+- session create: /api/session.create
+- session prompt: /api/session.prompt
+- session rename: /api/session.rename
+- session cancel: /api/session.cancel
+- browser downlink streams use /api/events.mux and /api/events.host
+- Session.prompt request:
+  {
+    requestId,
+    sessionId,
+    mode: "queue" | "steer",
+    content: [{type:"text", text:"..."}],
+    clientTimeZone?
+  }
+- Session follow request logically uses:
+  {
+    address:{kind:"session",sessionId},
+    assistantStream:true
+  }
+- live assistant frames include start/chunk/end; durable completion includes assistant/message or assistant/attempt.
+- The normal local Web login establishes the same authenticated context used by the native UI.
+
+OBJECTIVES:
+1. Inspect the INSTALLED rc.1 client/connection/session-controller modules to confirm exact current wire/envelope details.
+2. Create:
+   C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridge.mjs
+   plus small PowerShell wrappers if useful.
+3. Adapter capabilities must be:
+   - status/list native sessions
+   - create or reuse ONE dedicated native session in the Ornith workspace
+   - rename it to exactly: ChatGPT Bridge
+   - persist its session UUID in:
+     C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\bridge-session.json
+   - prepare a send(text, mode=queue) operation using native session.prompt
+   - prepare a follow operation that emits compact JSONL progress/reply events
+   - prepare steer(text) using native prompt mode "steer"
+   - prepare cancel using native session.cancel
+4. For this task, TEST ONLY:
+   - Harness connectivity/authenticated native client setup
+   - session.list
+   - create/reuse the dedicated bridge session
+   - rename/title if supported
+   - verify the bridge session is present in native session list/persistence
+   DO NOT CALL session.prompt yet.
+5. Keep the Harness process available after the test.
+
+IMPLEMENTATION PREFERENCE:
+- Prefer reusing the official installed DSH client packages/classes rather than reimplementing its protocol.
+- If that is impractical, use the exact installed rc.1 HTTP/WebSocket contract after reading local source.
+- Never fake success.
+
+RETURN:
+Write:
+outbox/result_terra-harness-native-adapter-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-native-adapter-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+ADAPTER_CREATED:
+<paths>
+
+AUTH_CONNECTION:
+<how local native connection is established, secrets omitted>
+
+BRIDGE_SESSION:
+<session UUID, title, workspace/cwd, verification>
+
+CAPABILITIES:
+<list/status/send/follow/steer/cancel readiness>
+
+PROMPT_SENT:
+NO
+
+WEBUI_VISIBILITY:
+<evidence session is native and will appear in WebUI>
+
+NEXT_TEST:
+<exact harmless command to send one message later>
+
+DECISIVE_EVIDENCE:
+<compact rc.1 source/runtime evidence; no secrets>
+
+If the adapter cannot be built safely, use state: ERROR and state the exact blocker.
