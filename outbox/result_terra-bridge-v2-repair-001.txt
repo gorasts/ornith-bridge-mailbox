@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-bridge-v2-repair-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+ROOT_CAUSE
+TerraDispatcher submitted the worker prompt before persisting dedupe state. When composer-clear confirmation was ambiguous, the job remained pending and was injected again every eight seconds. The browser wake extension also needed a hard exact-conversation guard.
+
+ARCHITECTURE_PRESERVED
+Browser supervisor -> immutable GitHub inbox job -> XEON2 Terra/Ornith executor -> GitHub/local result -> WakeResultServer -> one-shot browser DONE wake -> supervisor reads durable result.
+
+FILES_AND_SERVICES_CHANGED
+- TERRA_DISPATCH/TerraDispatcher.ps1: persist status=attempting before any UI send, making uncertain sends fail closed and non-repeatable.
+- WAKE/extension/content.js and manifest.json: v2.23; exact supervisor path /c/6ab16819-e640-83ed-9b7d-e16eb43bc781; first-poll baseline; one-shot wake; no touching user text.
+- WakeResultServer restarted on 127.0.0.1:3098 with startup baseline filtering.
+
+TESTS
+- PowerShell parser: PASS.
+- Extension JavaScript syntax: PASS.
+- Exact supervisor-path binding: PASS.
+- Wake health HTTP 200: PASS.
+- Historical ornith-local items visible after restart: 0 (PASS).
+- Existing GitHub results baselined for reloaded extension: PASS.
+- Duplicate retry prevention: PASS by persisted-before-send control flow.
+- Live browser Terra/Ornith round trip: DEFERRED to supervisor after this wake because external-browser control is unavailable to Terra.
+
+SUPERVISOR_NEXT
+Run one new uniquely named target:TERRA echo job and one target:ORNITH echo job. Confirm exactly one execution/result and exactly one DONE wake for each. If both pass, declare BRIDGE_V2_E2E_PASS. Do not repeat or reuse an existing message_id.
+
+REMAINING_LIMITATION
+Browser control is not connected to Terra, so Terra cannot visually inspect or click the online browser. Transport, dedupe, exact binding, baseline, and wake service are repaired and ready for the supervisor's live test.
