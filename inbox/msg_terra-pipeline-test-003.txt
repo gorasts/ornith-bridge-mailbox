@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-pipeline-test-003
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+TERRA PIPELINE TEST 003. Reply with exactly: TERRA PIPELINE TEST OK
+PROMPT_END
