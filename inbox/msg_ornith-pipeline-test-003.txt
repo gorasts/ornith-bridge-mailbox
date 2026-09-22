@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-pipeline-test-003
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+ORNITH PIPELINE TEST 003. Reply with exactly: ORNITH PIPELINE TEST OK
+PROMPT_END
