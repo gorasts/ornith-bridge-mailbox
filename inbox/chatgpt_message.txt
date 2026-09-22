@@ -1,0 +1,6 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: test-001
+source: ChatGPT
+state: NEW
+
+HELLO XEON2 FROM CHATGPT
