@@ -1,0 +1,100 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-rc1-fix-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Patch the existing XEON2 Harness bridge for the exact installed DeepSeek Harness version 0.1.5-rc.1.
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- Do not send any model prompt.
+- Do not use browser automation.
+- Keep auth values private/in-memory only.
+
+ROOT CAUSE ALREADY IDENTIFIED FROM OFFICIAL 0.1.5-rc.1 SOURCE:
+The rc.1 Connection/Gateway uses slash-style Remote endpoints, not dotted URLs.
+
+Examples from rc.1:
+- URL /api/goals/create
+- request method goals/create
+- shared carrier mounted at /api
+- request envelope:
+  {
+    "type": "client-request",
+    "rpcId": "<uuid/string>",
+    "method": "<namespace>/<method>",
+    "payload": {
+      "args": { ... }
+    }
+  }
+
+Therefore session calls must use:
+- /api/session/list with method session/list
+- /api/session/create with method session/create
+- /api/session/rename with method session/rename
+- /api/session/prompt with method session/prompt
+- /api/session/cancel with method session/cancel
+
+NOT dotted forms such as /api/session.list.
+
+FILES:
+C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridge.mjs
+C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridgeBootstrap.mjs
+
+OBJECTIVE:
+1. Patch HarnessBridge.mjs to use exact rc.1 slash URLs/method names and full client-request envelope.
+2. Preserve the existing private in-memory authentication bootstrap.
+3. Start/reuse local Harness on 127.0.0.1:3080 using the safe local-only bootstrap.
+4. Test authenticated session/list.
+5. Create or reuse ONE native session for cwd:
+   C:\bench\gorast_dsh\Users\GG\Desktop\Ornith
+6. Rename it exactly:
+   ChatGPT Bridge
+7. Persist only non-secret session metadata to:
+   C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\bridge-session.json
+8. Verify session/list returns that same UUID/title/workspace.
+9. Do NOT call session/prompt in this task.
+10. Keep local Harness running.
+
+IMPORTANT:
+If a request fails, report HTTP status plus safe response body/error code, with no credential values.
+Do not broaden into another discovery sweep unless the rc.1 source contradicts the slash contract.
+
+RETURN:
+Write outbox/result_terra-harness-rc1-fix-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-rc1-fix-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PATCHED:
+<yes/no and files>
+
+SESSION_LIST:
+<success and count>
+
+BRIDGE_SESSION:
+<UUID/title/cwd>
+
+SESSION_RELIST_VERIFIED:
+<yes/no>
+
+PROMPT_SENT:
+NO
+
+WEBUI_NATIVE:
+<evidence this is native DSH session persistence/list state>
+
+NEXT_TEST:
+<exact harmless send+follow command for later>
+
+DECISIVE_EVIDENCE:
+<compact non-secret request path/method and result>
+
+If still blocked, use state: ERROR and report the exact safe status/error body.
