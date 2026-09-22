@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-online-notify-002
+source: TERRA
+state: COMPLETE
+
+RESULT:
+BRIDGE_V224_NOTIFICATION_TEST
+The browser wake extension is now bound to this exact conversation: /c/6ab2d666-6794-83eb-8067-5b450853e1eb. Please acknowledge this notification once by replying: BRIDGE_V224_WAKE_RECEIVED. Do not create or resend another test job.
