@@ -1,0 +1,88 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-first-prompt-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Run the first real end-to-end prompt/reply test through the verified native DeepSeek Harness bridge session on XEON2.
+
+VERIFIED BRIDGE SESSION:
+UUID: 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94
+title: ChatGPT Bridge
+cwd: C:\Users\GG\Desktop\Ornith
+
+SAFETY:
+- Do NOT start, stop, restart, reconfigure, or benchmark GORAST or Ornith.
+- Do NOT change llama-server flags, model, GPU settings, context, or any production/test service.
+- Use only the already-running/currently-configured Harness backend.
+- If the existing backend is unavailable, write one final ERROR result and stop.
+- Do not use browser automation.
+- Keep Harness authentication material private/in-memory only.
+- Do not touch any other Harness session.
+
+OBJECTIVE:
+1. Refresh local Harness authentication using the existing bootstrap.
+2. Confirm session/list still contains the verified bridge UUID and title.
+3. Send exactly ONE native queued prompt to the bridge session using rc.1 session/prompt.
+4. Prompt text must be exactly:
+   CHATGPT BRIDGE E2E TEST 001. Reply with exactly: ORNITH BRIDGE E2E OK
+5. Use mode: queue.
+6. Use the verified rc.1 payload/envelope shape from installed source. Do not guess.
+7. After prompt acceptance, use native session/follow (or the exact installed rc.1 read-only follow transport) to observe the bridge session until the assistant reply is durably committed.
+8. Capture a compact safe summary of:
+   - prompt accepted yes/no
+   - requestId
+   - first relevant user-message event if exposed
+   - assistant live/committed response text
+   - durable completion evidence/event type/seq if exposed
+9. Do not modify session title/cwd.
+10. Leave Harness running.
+
+PASS CONDITION:
+- Native prompt accepted for the dedicated UUID.
+- Native follow observes a committed assistant reply.
+- Reply text is exactly ORNITH BRIDGE E2E OK, ignoring surrounding whitespace only.
+
+PROTOCOL:
+- Write the GitHub final result file only once after the test is COMPLETE or ERROR.
+- Do not create/update an in-progress final result file.
+
+RETURN:
+Write outbox/result_terra-harness-first-prompt-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-first-prompt-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+SESSION:
+<uuid/title>
+
+BACKEND_ALREADY_AVAILABLE:
+<yes/no>
+
+PROMPT_ACCEPTED:
+<yes/no and requestId>
+
+FOLLOW_OBSERVED:
+<yes/no>
+
+ASSISTANT_REPLY:
+<exact reply text>
+
+DURABLE_COMMIT:
+<event/seq evidence if available>
+
+PASS:
+<yes/no>
+
+NEXT_STEP:
+<what is still needed to turn this into automatic ChatGPT<->Ornith bridge>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If anything blocks or backend is unavailable, write one final state: ERROR result with the exact blocker and do not start/reconfigure services.
