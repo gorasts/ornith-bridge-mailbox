@@ -1,0 +1,95 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-probe-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Run a read-only DeepSeek Harness discovery probe from XEON2 against GORAST, then publish the results back to this repository.
+
+ENVIRONMENT:
+- XEON2 is Windows.
+- GORAST SSH host: 192.168.100.116
+- SSH user: ubuntu
+- SSH private key on XEON2: %USERPROFILE%\.ssh\gorast_ed25519
+- DeepSeek Harness web UI/backend is expected around port 3080.
+- llama-server is separate on port 8099.
+- Do NOT stop, restart, reconfigure, or modify any running service.
+- Do NOT restore or change Ornith production/test configuration.
+- This task is read-only.
+
+OBJECTIVE:
+Discover how DeepSeek Harness identifies, stores, and exposes its native web conversation/session so a background bridge can inject messages into the SAME session visible in the WebUI and later read replies/progress from that same session.
+
+RUN FROM XEON2:
+Use PowerShell to SSH into GORAST and collect, in one self-contained pass:
+
+1. Hostname and timestamp.
+2. Processes matching dsh, deepseek, harness.
+3. Listening TCP sockets relevant to ports 3080, 3000, 5000, 8000, 8080, 8099, 9000.
+4. dsh executable path and relevant --help lines mentioning web/server/session/conversation/api/token/port.
+5. For matching processes: PID, cwd, executable path, command line.
+6. Read-only HTTP probes against localhost:3080 for:
+   /
+   /api
+   /api/health
+   /health
+   /openapi.json
+   /docs
+   /api/sessions
+   /api/conversations
+   /api/chats
+   /api/v1/sessions
+   Record HTTP code, response size, and MIME type.
+7. Locate likely Harness source/config files and inspect only enough to identify:
+   - API route definitions
+   - websocket/SSE endpoints
+   - session or conversation IDs
+   - persistence/store/database paths
+   - request format for adding a user message to an existing session
+   - response/progress streaming mechanism
+8. Redact any bearer tokens, URL tokens, passwords, secrets, or private keys from the published result.
+
+IMPORTANT:
+- Prefer definitive source/config evidence over guesses.
+- Do not dump huge trees/logs. Keep only decisive findings.
+- If the exact session API cannot be found, say exactly what is known and what remains unknown.
+- Do not perform writes on GORAST.
+
+RETURN FORMAT:
+Create a NEW UTF-8 file:
+outbox/result_terra-harness-probe-001.txt
+
+The file must contain:
+
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-probe-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+HARNESS_PROCESS:
+<decisive process/path info>
+
+HARNESS_HTTP:
+<decisive endpoint findings>
+
+SESSION_IDENTITY:
+<how a native WebUI session/conversation is identified>
+
+MESSAGE_INJECTION:
+<exact API/route/request shape if found, otherwise UNKNOWN>
+
+REPLY_STREAM:
+<exact websocket/SSE/poll mechanism if found, otherwise UNKNOWN>
+
+PERSISTENCE:
+<where/how conversation history is stored if found>
+
+BRIDGE_RECOMMENDATION:
+<shortest reliable way for XEON2 bridge to talk to the SAME WebUI session>
+
+RAW_DECISIVE_EVIDENCE:
+<compact supporting command output, with secrets redacted>
+
+If any step fails, use state: ERROR and include the exact failure under RESULT.
