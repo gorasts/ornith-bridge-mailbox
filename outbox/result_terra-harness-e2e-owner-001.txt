@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-e2e-owner-001
+source: TERRA
+state: ERROR
+
+RESULT:
+HELPER_READY:
+yes
+
+SESSION_VERIFIED:
+yes — the same-owner helper listed UUID `4b0b7cb2-ed4e-4339-bb20-3b688cc09f94`, title `ChatGPT Bridge`, with selected next model `llama-local` / `ornith-ad-q4k-iq4xs-mtp.gguf`.
+
+PROMPT_ACCEPTED:
+yes — requestId `7811712e-66e5-42fd-bd9e-2eec450cc93f`; native rc.1 `session/prompt` unwrapped to `accepted: true` for the exact authorized queue-mode prompt.
+
+FOLLOW_OBSERVED:
+no — no assistant stream was opened.
+
+ASSISTANT_REPLY:
+not observed.
+
+DURABLE_COMMIT:
+not observed.
+
+PASS:
+no
+
+NEXT_STEP:
+Extend the owner helper with the installed rc.1 stream carrier for `session/follow`, rather than forwarding it through the unary `client-request` carrier. Then attach read-only to this already-submitted request/session and inspect its durable frames; do not send another prompt.
+
+DECISIVE_EVIDENCE:
+The helper’s unary follow forwarding returned native `gateway/signature-invalid`: `typert gateway: session/follow: stream Remote methods must be opened through the stream carrier`. Installed gateway source confirms stream Remote methods must use that carrier. The one prompt was accepted and was not retried; 3080 and helper 3099 were left running and no GORAST/Ornith setting was changed.
