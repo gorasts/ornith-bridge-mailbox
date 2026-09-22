@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-name-test-001
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+What is my name?
+PROMPT_END
