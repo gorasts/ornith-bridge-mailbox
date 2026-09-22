@@ -1,0 +1,110 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-chatgpt-wake-install-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+On XEON2, build and install a local Ornith -> ChatGPT wake bridge so an Ornith completion can automatically create a new user turn in the currently logged-in ChatGPT web conversation.
+
+GOAL:
+Ornith result -> local XEON2 wake daemon -> Edge/ChatGPT conversation -> automatically submit a tiny wake message -> this exact ChatGPT conversation gets a real new turn.
+
+IMPORTANT:
+- Do not use any second AI supervisor.
+- Do not use the OpenAI API.
+- Do not touch GORAST or Ornith model/runtime in this task.
+- Do not send any model prompt to Ornith.
+- Keep all local wake secrets only on XEON2; never publish them to GitHub.
+- Use the user's existing logged-in Edge ChatGPT session.
+- Prefer a robust local solution over browser desktop automation.
+
+INSTALL ROOT:
+C:\Users\XEON2\Desktop\OrnithBridge\WAKE
+
+IMPLEMENTATION REQUIREMENTS:
+1. Create a hidden localhost-only wake daemon listening on 127.0.0.1:38471.
+2. Generate a private random wake key stored only in the WAKE folder.
+3. Expose localhost endpoints:
+   GET /health
+   POST /register
+   POST /notify
+   POST /ack
+   GET /wait
+   POST /reset-target
+4. Pin exactly one ChatGPT conversation URL of the form https://chatgpt.com/c/<id>.
+5. Create an Edge Manifest V3 content-script extension under:
+   C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension
+6. Extension behavior:
+   - run only on https://chatgpt.com/*
+   - register the current /c/<id> conversation with the daemon
+   - long-poll /wait
+   - never overwrite a non-empty user draft
+   - when an event arrives, place the event text into ChatGPT's composer and submit it
+   - acknowledge only after successful submission
+   - if the UI is busy/unavailable, retry later
+   - never expose the wake key in console/logs
+7. Create:
+   Notify-OrnithWake.ps1 -MessageId <id> [-Text <text>]
+   Test-OrnithWake.ps1
+   Reset-OrnithWakeTarget.ps1
+   hidden daemon launcher
+8. Create a Windows Startup shortcut for the daemon and start it now.
+9. Validate daemon /health locally.
+10. Prepare an integration hook that the later Harness/Ornith bridge can invoke after publishing a result.
+
+ZERO-TOUCH EDGE SETUP:
+Investigate and use the safest practical method to activate the unpacked local extension for the user's existing Edge profile without requiring repeated manual steps.
+- If Edge can be safely launched with --load-extension for the existing profile without corrupting profile state, implement a dedicated launcher/shortcut.
+- If a persistent local policy/registry deployment for this unpacked extension is not valid or would require an unsafe workaround, do NOT force it.
+- If exactly one user approval step in edge://extensions is unavoidable, prepare everything else and state the exact single action required.
+- Do not use brittle credential/session-cookie extraction.
+
+WAKE MESSAGE DEFAULT:
+ORNITH_BRIDGE_RESULT_READY
+message_id: <id>
+Fetch the corresponding result from gorasts/ornith-bridge-mailbox and continue the existing task autonomously. Do not ask me to relay the result.
+
+TEST:
+Do not automatically submit a wake message into ChatGPT unless the extension is confirmed installed/active and the target conversation is known.
+If the extension can be activated safely without user interaction, perform a harmless wake test whose text ends with:
+Reply exactly: WAKE BRIDGE OK
+
+RETURN:
+Write outbox/result_terra-chatgpt-wake-install-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-install-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+INSTALLED:
+<paths>
+
+DAEMON:
+<running yes/no, pid, health>
+
+EDGE_EXTENSION:
+<installed/activated/prepared>
+
+USER_ACTION_REQUIRED:
+<NONE or the exact one-time action>
+
+TARGET_CONVERSATION:
+<registered yes/no; do not expose private IDs unnecessarily>
+
+WAKE_TEST:
+<not-run / success / failure>
+
+HARNESS_INTEGRATION_HOOK:
+<exact local command/path>
+
+NEXT_STEP:
+<smallest next action>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If blocked, use state: ERROR and state the exact blocker without leaking secrets.
