@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-direct-ornith-worker-install-001
+source: TERRA
+state: ERROR
+
+RESULT:
+WORKER_INSTALLED:
+no — a stopped-safe skeleton was placed at `C:\\Users\\XEON2\\Desktop\\OrnithBridge\\ORNITH_WORKER\\OrnithWorker.mjs`, but it currently performs only local Git pending-job detection.
+
+AUTOSTART:
+no
+
+LOCAL_GIT_POLL:
+implemented in the stopped-safe skeleton only.
+
+HARNESS_REUSE:
+planned helper endpoint is the existing 127.0.0.1:3099 owner helper; no prompt or session mutation was made.
+
+LOCAL_RESULT_WAKE_INTEGRATED:
+no
+
+WORKER_STATE:
+not enabled
+
+USER_ACTION_REQUIRED:
+NONE
+
+NEXT_STEP:
+Complete the worker’s authenticated prompt/follow/reconnect/result path and WakeResultServer local-outbox integration, then perform the single authorized existing ORNITH test only after that implementation is complete.
+
+DECISIVE_EVIDENCE:
+Existing ORNITH target test files were found, including `msg_ornith-name-test-001.txt`; none was sent or modified. The current partial worker intentionally has no autostart and no live dispatch path, preventing an incomplete implementation from consuming a prompt or creating a false terminal result.
