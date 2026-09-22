@@ -1,0 +1,11 @@
+ORNITH_RETURN_DIAG
+RETURN_WATCHER=STOPPED
+WAKE_SERVER=STOPPED
+WAKE_HEALTH=OK
+WAKE_ITEMS=74
+WAKE_NEWEST_ORNITH=result_ornith_seq_100.txt
+RETURN_STATE_SEQ=183
+OUTBOX_NEWEST=result_ornith_seq_183.txt,result_ornith_seq_178.txt,result_ornith_seq_173.txt,result_ornith_seq_168.txt,result_ornith_seq_163.txt
+HELPER_HEALTH=OK
+EXT_VERSION=2.14
+BROKEN_HOP=WATCHER
