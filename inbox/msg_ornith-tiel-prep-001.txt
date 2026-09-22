@@ -1,0 +1,50 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: ornith-tiel-prep-001
+target: ORNITH
+source: CHATGPT
+
+TASK:
+Prepare the GORAST/XEON2 environment for the upcoming Tiel-Coder benchmark. Do the preparation autonomously, but DO NOT begin the actual benchmark/tournament yet.
+
+TARGET ARTIFACT:
+Hugging Face repository: peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+Preferred file: Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf (~18.1 GB).
+Tiel is Ornith-derived 35B-A3B with Sharp template/coding imatrix; do not assume its tuning is identical to Ornith.
+
+KNOWN ENVIRONMENT:
+- GORAST Ubuntu host: 192.168.100.116, user ubuntu.
+- llama-server: /opt/llama/llama-b10919/llama-server
+- production API port: 8099
+- AMD Vega/RADV environment; known selector MESA_VK_DEVICE_SELECT=1002:687f
+- Last preflight found >800 GB free and no Tiel file/directory present.
+- Current production-equivalent baseline includes 131072 ctx, B/UB 2048/2048, T/TB 14, F16 KV for the planned Tiel controlled test, with GPU expert placement to be determined safely from measured VRAM.
+- Representative generation test later is TG512.
+- Do not disturb/replace the known-good Ornith production model/configuration.
+
+IMPORTANT ACCESS CONSTRAINT:
+Do NOT assume you have ChatGPT's web/Hugging Face access, browser cookies, tokens, connectors, or credentials. Your environment has previously had trouble accessing Hugging Face.
+
+Work in this order:
+1. Inventory what THIS environment can actually access: DNS, HTTPS to huggingface.co, redirects/CDN endpoints, installed curl/wget/git/git-lfs/python/huggingface tooling, proxy variables, certificates, and any already-configured NON-SECRET HF credential mechanism. Never print or publish tokens/secrets.
+2. Determine whether the target repo/file is public and whether your machine can resolve/download it using its own available tools. Use HEAD/range/small metadata probes before attempting ~18 GB.
+3. If direct HF access works, download resumably to a sensible staging path on GORAST, preserving the original filename. Prefer a method that survives interruption and can resume. Verify final byte size and, if an authoritative checksum is obtainable from the repository metadata, verify it. Do not rename a different artifact to look like the target.
+4. If HF access fails, diagnose the exact layer (DNS/TLS/HTTP auth/redirect/CDN/tool/proxy). Try safe environment-local fixes you are authorized to make. Do not weaken TLS verification globally and do not expose credentials.
+5. If you cannot solve it locally, DO NOT invent access or loop endlessly. Return a concise blocker with the exact failing request/error and ask ChatGPT for advice. State what capability you need (for example: a public direct URL resolved externally, a file transfer from another host that can reach HF, or user authorization for credentials). ChatGPT can then research/advise; do not assume it can simply hand you its own authenticated session.
+6. Once the exact GGUF is present, inspect it locally with available llama.cpp metadata/tools. Confirm architecture, quantization, embedded MTP/draft tensors if present, chat/Jinja template metadata, file size, and enough identity information to avoid testing the wrong model.
+7. Prepare a reversible Tiel launch/test definition based on the existing known-good harness, but keep Tiel isolated from production. Do NOT blindly copy Ornith GPU placement. Plan the first controlled run at CTX=131072, F16 KV, B=2048, UB=2048, T=14, TB=14, MTP n-max=1 / TG512, and determine the maximum SAFE GPU expert placement from actual model metadata + measured VRAM/headroom. Start conservatively because ROCm/Vulkan MTP stability has mattered previously.
+8. Verify required directories, permissions, ports/test isolation, disk headroom, and that production Ornith can be restored unchanged.
+9. Do NOT run a long benchmark yet. Short load/metadata/preflight checks are allowed only when needed to prove readiness and must not waste a TG512 benchmark.
+
+RETURN:
+Publish outbox/result_ornith-tiel-prep-001.txt with:
+- READY or BLOCKED
+- exact target artifact and local path
+- download/access method and any HF problem encountered
+- size/checksum/identity verification
+- discovered Tiel metadata (including MTP/template)
+- proposed first-run command/config
+- measured VRAM/headroom basis for initial GPU expert placement
+- production-safety/restoration status
+- anything you need ChatGPT to research or advise on
+
+Be resourceful in your own environment. If a step is impossible, ask for targeted advice instead of guessing or pretending it succeeded.
