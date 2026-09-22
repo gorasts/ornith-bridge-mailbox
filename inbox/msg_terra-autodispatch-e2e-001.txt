@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-autodispatch-e2e-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Minimal Terra autodispatch end-to-end verification only.
+
+OBJECTIVE:
+Prove that this job was started automatically by the Edge extension without Gorast manually typing or clicking Send.
+
+DO:
+1. Do not touch GORAST, Ornith, Harness, models, services, files, or settings except writing the final result.
+2. Write exactly one immutable final result file:
+   outbox/result_terra-autodispatch-e2e-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-autodispatch-e2e-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+AUTODISPATCH_E2E:
+PASS
+
+DETAIL:
+Terra received and processed the pending bridge job.
+
+PROTOCOL:
+Do not create an in-progress result file.
