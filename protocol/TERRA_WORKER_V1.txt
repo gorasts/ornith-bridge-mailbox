@@ -1,0 +1,32 @@
+TERRA_BRIDGE_WORKER_V1
+
+Repository:
+gorasts/ornith-bridge-mailbox
+
+ROLE:
+Process exactly one pending Terra bridge job.
+
+HOW TO FIND THE JOB:
+1. Inspect inbox/ for text files.
+2. Select the oldest pending file that contains:
+   target: TERRA
+3. A job is pending if there is no corresponding result file in outbox/ for that message_id.
+
+RULES:
+- Read the entire selected inbox job before acting.
+- Follow only that one job.
+- Do not modify or delete inbox files.
+- Do not process more than one job per invocation.
+- Write a NEW UTF-8 text result file:
+  outbox/result_<message_id>.txt
+- The result file must contain:
+  ORNITH_BRIDGE_RETURN_V1
+  message_id: <same id>
+  source: TERRA
+  state: COMPLETE
+
+  RESULT:
+  <job result>
+- If the job fails, use state: ERROR and explain the error under RESULT.
+- Do not perform unrelated work.
+- Do not alter protocol files.
