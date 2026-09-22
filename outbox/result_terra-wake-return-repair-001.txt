@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-wake-return-repair-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+WAKE_RETURN_PATH_REPAIRED
+The extension self-cancellation bug was fixed: internal composer events no longer impersonate user activity.
+GitHub Ornith result files are now accepted by the wake filter.
+Failed submissions are reported and fail closed instead of being silently marked delivered.
+The existing ornith-v2-live-001 result remains ORNITH_V2_E2E_OK at durable sequence 314 and was not rerun.
+
+ONLINE_ACTION:
+Read outbox/result_ornith-v2-live-001.txt and outbox/result_terra-ornith-helper-startfix-001.txt, then acknowledge this automatic DONE wake.
