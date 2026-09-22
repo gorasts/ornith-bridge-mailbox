@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-ornith-helper-startfix-001
+target: TERRA
+source: CHATGPT
+
+AUTHORIZATION / TASK:
+Repair only the blocked Ornith V2 execution path for the already-pending job ornith-v2-live-001.
+
+You are explicitly authorized to add/use a narrowly bounded XEON2 catalogued process-start operation for the EXISTING Ornith components:
+- HarnessOwnerHelper.mjs
+- OrnithWorker.mjs
+
+Requirements:
+1. Inspect the existing known-good launch definitions/configuration and add the minimum bounded operation(s) needed to start those exact existing components. Do not create a generic arbitrary process launcher.
+2. Start HarnessOwnerHelper.mjs and OrnithWorker.mjs using their existing intended configuration.
+3. Verify both remain healthy/running and that the helper actually owns/executes the Harness prompt path while the worker detects/coordinates the mailbox job as designed.
+4. DO NOT resend, recreate, rename, or duplicate ornith-v2-live-001.
+5. Let the EXISTING pending ornith-v2-live-001 execute exactly once.
+6. Verify outbox/result_ornith-v2-live-001.txt is produced and contains ORNITH_V2_E2E_OK.
+7. Report the exact catalog/guard change, processes started, health evidence, execution count/dedupe evidence, and final PASS/FAIL in outbox/result_terra-ornith-helper-startfix-001.txt.
+8. Preserve the repaired Terra V2 path and all duplicate protections.
+
+Work autonomously. Only stop if a hard blocker truly requires user action.
