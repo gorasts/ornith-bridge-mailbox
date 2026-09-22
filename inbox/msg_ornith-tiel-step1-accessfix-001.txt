@@ -1,0 +1,39 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-tiel-step1-accessfix-001
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+REPLACEMENT FOR THE PREVIOUS TIEL ACCESS CHECK. The user stopped the prior SSH attempt.
+
+Do not retry SSH repeatedly and do not explore authentication methods.
+
+Known facts:
+GORAST host = 192.168.100.116
+SSH user = ubuntu
+llama API = 192.168.100.116:8099
+
+Do exactly this:
+1. From XEON2, attempt ONE non-interactive SSH check to ubuntu@192.168.100.116 using the SSH authentication already configured on XEON2.
+2. Use non-interactive/batch mode so there is no password prompt and no hanging.
+3. If authentication fails or would require interactive credentials, STOP immediately and report AUTH_REQUIRED. Do not retry and do not ask for or expose a password.
+4. If SSH succeeds, run only these read-only checks:
+   - test -x /opt/llama/llama-b10919/llama-server
+   - test -d /opt/tiel-models
+   - test -f /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+   - df -B1 /opt
+5. Do not download anything.
+6. Do not start/stop/change any server.
+7. Do not create the benchmark runner yet.
+
+Reply only:
+TIEL_STEP1
+SSH=OK|AUTH_REQUIRED|ERROR
+LLAMA_SERVER=YES|NO|NA
+TIEL_DIR=YES|NO|NA
+TIEL_FILE=YES|NO|NA
+DISK_FREE=<bytes|NA>
+READY=YES|NO
+ERROR=<only if needed>
+PROMPT_END
