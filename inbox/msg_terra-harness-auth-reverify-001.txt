@@ -1,0 +1,74 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-auth-reverify-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Re-run the existing local Harness authentication bootstrap on XEON2 and perform ONLY a read-only native session/list verification using the now-fixed rc.1 parser.
+
+KNOWN:
+- Installed DSH is 0.1.5-rc.1.
+- Slash RPC routes and full client-request envelope are correct.
+- Parser now unwraps rc.1 response as payload -> result -> value.
+- Stored bridge metadata:
+  UUID: 9cf30a90-c556-405b-9a16-8c6e0c6253a9
+  title: ChatGPT Bridge
+  workspace/cwd: C:\bench\gorast_dsh\Users\GG\Desktop\Ornith
+- Existing local Harness should remain on 127.0.0.1:3080.
+
+SCOPE:
+- XEON2 only.
+- Do not touch GORAST or Ornith.
+- Do not call session/prompt.
+- Do not use browser desktop automation.
+- Authentication material must remain private/in-memory and must not be written to GitHub/logs/output.
+
+OBJECTIVES:
+1. Use the existing local auth bootstrap to obtain a fresh authenticated local Harness context.
+2. Call only native rc.1 session/list through the patched bridge.
+3. Verify the returned native list contains UUID 9cf30a90-c556-405b-9a16-8c6e0c6253a9.
+4. Verify title is exactly ChatGPT Bridge.
+5. Verify workspace/cwd association if the list exposes it.
+6. Report list count and a safe structural summary.
+7. Keep Harness running after the test.
+8. Do not create/rename/send/cancel anything unless session/list itself requires no mutation.
+
+PROTOCOL:
+Write the final result file only once when the verification is finished. Do not create an in-progress final result file.
+
+RETURN:
+Write outbox/result_terra-harness-auth-reverify-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-auth-reverify-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+AUTH_REFRESHED:
+<yes/no>
+
+SESSION_LIST_COUNT:
+<count>
+
+BRIDGE_SESSION_FOUND:
+<yes/no>
+
+BRIDGE_SESSION:
+<uuid/title/workspace fields actually returned>
+
+PROMPT_SENT:
+NO
+
+WEBUI_NATIVE_VERIFIED:
+<yes/no and concise evidence>
+
+NEXT_TEST:
+<exact safest first prompt+follow test, but do not run it>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If blocked, write one final ERROR result with the exact blocker.
