@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-online-notify-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+Bridge repair is active. The stale Terra dispatcher was terminated, exactly one patched instance is running, and its status is IDLE with no pending job or error. Please acknowledge this notification once and report whether it arrived without duplicate prompts.
