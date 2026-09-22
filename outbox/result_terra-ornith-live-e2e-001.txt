@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-ornith-live-e2e-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+HELPER_READY:
+yes
+
+PROMPT_ACCEPTED:
+yes — requestId `794e9b91-8c5d-4247-ab99-9866f8e20838` returned native `accepted: true` for the one exact queue-mode prompt.
+
+FOLLOW_OBSERVED:
+yes — authenticated WebSocket mux follow snapshot exposed the dedicated session’s durable event sequence.
+
+ASSISTANT_REPLY:
+ORNITH BRIDGE LIVE OK
+
+DURABLE_COMMIT:
+`assistant/message` seq 47 contains the exact text reply, followed by `step/end` seq 48 and `turn/end` seq 55 with reason `completed`. The message source is provider `llama-local`, model `ornith-ad-q4k-iq4xs-mtp.gguf`, with server response model `/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf` and stop reason `stop`.
+
+PASS:
+yes
+
+NEXT_STEP:
+Repair/enable the desktop dispatcher’s deliberate STOP gate only when ready for a separately authorized automated GitHub-job wake; the native Harness-to-Ornith path is now verified.
+
+DECISIVE_EVIDENCE:
+Helper health was ready; relist confirmed the dedicated session and `llama-local` selection. One prompt only was accepted, mux follow recorded the assistant message and completed turn, and no GORAST/Ornith runtime setting was changed.
