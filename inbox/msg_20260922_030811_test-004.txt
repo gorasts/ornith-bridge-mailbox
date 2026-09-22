@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: test-004
+source: ChatGPT
+state: NEW
+sequence: 2
+
+QUEUE TEST MESSAGE TWO
