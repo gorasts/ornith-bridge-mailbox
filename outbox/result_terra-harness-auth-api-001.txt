@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-auth-api-001
+source: TERRA
+state: ERROR
+
+RESULT:
+The authorized Harness browser session could not be inspected: the desktop-control safety layer could not determine the current browser URL with enough confidence to enforce its policy and stopped UI control. No token, cookie, Authorization value, or secret was accessed or exposed. No Ornith or GORAST action was performed. Therefore the authenticated session list, native session identity, message injection, reply-stream mechanism, persistence mapping, and same-session test remain unknown.
