@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-test-002
+source: TERRA
+state: COMPLETE
+
+RESULT:
+TERRA STANDARD WORKER OK
