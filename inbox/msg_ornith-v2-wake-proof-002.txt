@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: ornith-v2-wake-proof-002
+target: ORNITH
+source: CHATGPT
+
+TASK:
+Fresh end-to-end wake-path verification.
+Return exactly this single line and nothing else:
+ORNITH_WAKE_PROOF_002_OK
+
+Execute exactly once and publish the normal durable result.
