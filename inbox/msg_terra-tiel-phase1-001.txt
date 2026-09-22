@@ -1,0 +1,101 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-tiel-phase1-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+Act as a THIN EXECUTOR, not an analyst. Minimize Terra token use.
+
+GOAL
+Download Tiel MTP IQ4_XS if absent, then run the first controlled performance batch and return only a compact machine-produced summary.
+
+MODEL
+Repo: peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+File: Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+Target on GORAST: /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+Text-only test: do NOT download mmproj.
+
+STRICT TOKEN RULES
+1. DO NOT open/read benchmark prompts, test cases, generated answers, or large logs into Terra context.
+2. Treat test content as opaque bytes/files. Execute it only.
+3. DO NOT paste stdout/stderr or per-token output into Terra.
+4. Use deterministic PowerShell/bash parsing for metrics.
+5. Terra should return at most ~20 compact lines.
+6. If a long task is running, do NOT sit and reason/watch it. Launch a local deterministic watcher and stop consuming Terra tokens.
+
+SAFETY
+- Do not delete/overwrite Ornith models, Harness bridge, ORNITH_WORKER, return watcher, wake server, or extension.
+- Do not alter the working ChatGPT<->Ornith bridge.
+- Do not restore Ornith after the tests; leave the test setup as-is.
+- Reuse current known-good llama.cpp build/topology/flags where compatible. Do not invent a new placement.
+- Before replacing the running model server, capture its exact command line to a small restore-info file only.
+- If download/model boot fails, STOP; do not improvise destructive fixes.
+
+VISIBLE USER MONITOR
+Open ONE visible PowerShell window on XEON2 titled:
+  TIEL LIVE TEST
+It must show only compact progress:
+  download progress/size
+  TEST i/N + config
+  PASS/FAIL
+  PP tok/s
+  TG tok/s
+  wall time
+  MTP acceptance if available
+  peak VRAM / temp / power if existing telemetry supports it
+No raw prompts, responses, or huge logs.
+
+DOWNLOAD
+- Reuse existing complete file if present.
+- Otherwise download/resume from the repo above.
+- Verify final byte size is plausible and record it.
+- Keep raw download/log files on disk, not in Terra context.
+
+FIRST BATCH
+Use the existing real long-context benchmark/harness machinery already present on XEON2/GORAST. Do not inspect prompt contents.
+Minimum realistic input: ~20K tokens.
+Generation: TG512.
+Context: 131072.
+Run exactly 4 cases unless boot/safety failure stops the batch:
+  MTP OFF / n-max 0
+  MTP ON / n-max 1
+  MTP ON / n-max 2
+  MTP ON / n-max 3
+Keep every other setting/topology identical to the current proven baseline.
+If an existing benchmark script already implements these conditions, reuse it rather than rewriting it.
+One warmup maximum if required by the existing runner; do not repeat successful cases.
+
+TELEMETRY
+Reuse existing telemetry collection if available: VRAM/headroom, GPU temp/power/utilization/clocks, and network RX/TX if RPC/dual-GPU is actually used. Do not spend time building a new telemetry stack in this phase; mark unavailable fields as NA.
+
+AUTOMATIC COMPLETION
+Create/use a deterministic local watcher that waits for the batch completion/result file without Terra polling.
+The batch must write:
+  C:\Users\XEON2\Desktop\OrnithBridge\TIEL\phase1_summary.txt
+and a DONE marker.
+The watcher must display the compact summary in the visible PowerShell window at completion.
+If the existing mailbox publisher can safely publish the summary as:
+  outbox/result_terra-tiel-phase1-001.txt
+then do so deterministically after completion; otherwise return the compact summary in this Terra turn after the process exits.
+
+FINAL RETURN FORMAT ONLY
+TIEL_PHASE1
+MODEL=<path>
+SIZE=<bytes>
+BUILD=<build>
+TOPOLOGY=<short>
+TESTS=4
+MTP0 PP=<n> TG=<n> WALL=<n> STATUS=<...>
+MTP1 PP=<n> TG=<n> WALL=<n> ACC=<n/NA> STATUS=<...>
+MTP2 PP=<n> TG=<n> WALL=<n> ACC=<n/NA> STATUS=<...>
+MTP3 PP=<n> TG=<n> WALL=<n> ACC=<n/NA> STATUS=<...>
+VRAM=<compact/NA>
+THERMAL_POWER=<compact/NA>
+NETWORK=<compact/NA>
+SUMMARY_FILE=<path>
+STATE=<STARTED|COMPLETE|ERROR>
+ERROR=<only if needed>
+
+Do not analyze which case is best. ChatGPT will decide the next step.
+PROMPT_END
