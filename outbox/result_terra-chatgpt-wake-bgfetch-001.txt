@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-bgfetch-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+ROOT_CAUSE_CONFIRMED:
+YES. Version 2.2 fetched GitHub directly from the ChatGPT content-script context, which is CORS/page-context constrained.
+
+PATCHED_VERSION:
+2.3
+
+FETCH_PATH:
+Content script timer -> `chrome.runtime.sendMessage({type:'poll-github'})` -> MV3 service worker privileged GitHub API fetch -> result filename response -> content-script pinned-tab injection.
+
+DIAGNOSTICS:
+Content script retains `lastPollAt`, `lastPollStatus`, `lastFetchStatus`, `lastNewResult`, and `lastSubmitStatus` in local extension storage.
+
+USER_ACTION_REQUIRED:
+At `edge://extensions`, click Reload for Ornith GitHub Wake 2.3, then return to the target ChatGPT conversation.
+
+NEXT_TEST:
+Publish fresh `outbox/result_extension-integration-test-004.txt` after reload.
+
+DECISIVE_EVIDENCE:
+Manifest 2.3 restores a background service worker, retains GitHub host permission, and adds `tabs`; the worker performs only on-demand fetches with no alarms/timers.
