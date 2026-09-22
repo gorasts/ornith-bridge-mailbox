@@ -1,0 +1,3 @@
+TERRA BRIDGE TEST OK
+message_id: terra-test-001
+source: TERRA
