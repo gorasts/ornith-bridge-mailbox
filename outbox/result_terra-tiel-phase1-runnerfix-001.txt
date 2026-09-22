@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-tiel-phase1-runnerfix-001
+source: TERRA
+state: ERROR
+
+RESULT:
+TIEL_PHASE1
+STATE=ERROR
+ERROR=Target IQ4_XS GGUF is absent at /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf and the requested repository public metadata query returned no matching artifact name. No server/model change or benchmark launch was performed.
