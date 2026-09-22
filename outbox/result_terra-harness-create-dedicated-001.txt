@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-create-dedicated-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+OLD_SESSION_UNTOUCHED:
+yes — UUID `9cf30a90-c556-405b-9a16-8c6e0c6253a9` was neither renamed nor prompted nor otherwise changed.
+
+NEW_BRIDGE_SESSION:
+UUID `4b0b7cb2-ed4e-4339-bb20-3b688cc09f94`; title `ChatGPT Bridge`; cwd `C:\\Users\\GG\\Desktop\\Ornith`.
+
+SESSION_CREATE_VERIFIED:
+yes — installed rc.1 descriptor was inspected first and accepts optional `cwd` and caller-supplied `sessionId`. The create response returned the newly requested UUID.
+
+SESSION_RELIST_VERIFIED:
+yes — authenticated native session/list returned 12 items and the new UUID summary reports exactly `ChatGPT Bridge` with the active native workspace cwd above.
+
+BRIDGE_SESSION_JSON:
+`C:\\Users\\XEON2\\Desktop\\OrnithBridge\\HARNESS\\bridge-session.json` now contains only the new UUID, verified title, verified workspace, and `sessionListVerified: true`. The preceding file was backed up as `bridge-session.pre-dedicated-001.json`.
+
+PROMPT_SENT:
+NO
+
+NEXT_TEST:
+Use the patched bridge to send one queued first prompt to UUID `4b0b7cb2-ed4e-4339-bb20-3b688cc09f94`, then make one read-only native follow call to inspect the response; do not run it now.
+
+DECISIVE_EVIDENCE:
+rc.1 session/list requires `payload.args._request`; create/rename require `payload.args.request`. The safe list envelope is `payload → result → value → {items:[…]}`. Fresh local authentication stayed in memory; the original 127.0.0.1:3080 Harness remained running.
