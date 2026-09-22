@@ -1,0 +1,88 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-tiel-phase1-exactfile-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+THIN EXECUTOR. This is a DELTA to terra-tiel-phase1-runnerfix-001. Do not redo repository discovery or analysis.
+
+The exact artifact is CONFIRMED externally:
+repo=peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+file=Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+size=18119933792
+sha256=96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf
+target=/opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+
+Do not query metadata again. Do not download mmproj.
+
+DOWNLOAD
+On GORAST, mkdir -p /opt/tiel-models and resume/download exactly:
+https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP/resolve/main/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+Use curl -L -C - or equivalent resumable transfer.
+Show download progress in ONE visible XEON2 PowerShell titled "TIEL LIVE TEST".
+After completion verify exact byte size 18119933792. If size differs: STOP ERROR. SHA256 may be verified by deterministic shell command without bringing file/log data into Terra context.
+
+THEN
+Create and run the dedicated deterministic runner already specified in the prior job:
+C:\Users\XEON2\Desktop\OrnithBridge\TIEL\Run-Tiel-Phase1.ps1
+
+Do not search for another runner. Build this one.
+
+Clone the exact CURRENT proven Ornith server command line mechanically, changing only what is required for Tiel:
+- model path -> exact Tiel file above
+- context 131072
+- F16/F16 KV
+- mmap
+- B/UB 2048/2048
+- T/TB 14/14
+- FA on
+- n-cpu-moe 37
+- same current safe GPU placement/topology
+- no mmproj
+For MTP0 omit --spec-type draft-mtp.
+For MTP1/2/3 use --spec-type draft-mtp and --spec-draft-n-max 1/2/3 respectively.
+Keep all other compatible current baseline flags identical.
+If one cloned Ornith-specific flag is rejected by Tiel, omit ONLY that flag and record BASELINE_DIFF=<flag>; do not redesign topology.
+
+TEST
+Exactly 4 cases, ~20K opaque/synthetic input, TG512.
+Terra MUST NOT read prompts, model outputs, or raw logs.
+Runner saves raw files to disk and parses numeric metrics itself.
+One visible PowerShell only:
+DOWNLOAD...
+TEST 1/4 MTP0 STATUS=... PP=... TG=... WALL=...
+...
+DONE
+
+Do not restore Ornith after batch.
+
+WAIT
+Runner writes:
+C:\Users\XEON2\Desktop\OrnithBridge\TIEL\phase1_summary.txt
+C:\Users\XEON2\Desktop\OrnithBridge\TIEL\phase1.DONE
+Use deterministic local wait for DONE. Terra does not poll/read raw logs.
+
+PUBLISH only compact summary to:
+outbox/result_terra-tiel-phase1-exactfile-001.txt
+
+<=20 lines:
+TIEL_PHASE1
+MODEL=...
+SIZE=18119933792
+BUILD=...
+BASELINE_DIFF=...
+TESTS=4
+MTP0 PP=... TG=... WALL=... STATUS=...
+MTP1 PP=... TG=... WALL=... ACC=... STATUS=...
+MTP2 PP=... TG=... WALL=... ACC=... STATUS=...
+MTP3 PP=... TG=... WALL=... ACC=... STATUS=...
+VRAM=...
+THERMAL_POWER=...
+NETWORK=...
+SUMMARY_FILE=...
+STATE=COMPLETE|ERROR
+ERROR=<only if needed>
+
+Do not analyze winners. ChatGPT decides next step.
+PROMPT_END
