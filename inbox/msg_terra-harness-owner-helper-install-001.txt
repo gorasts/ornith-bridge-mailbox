@@ -1,0 +1,108 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-owner-helper-install-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Fix the Harness bridge architecture on XEON2 so all future native session mutations go through the ONE real Harness process on 127.0.0.1:3080. Clean up only the bridge-created secondary DSH web processes, add a private loopback helper to the main launcher/bootstrap, restart 3080 once in a controlled way, then verify the dedicated ChatGPT Bridge session can be resumed and receive its model selection. Do NOT send any model prompt.
+
+CURRENT VERIFIED STATE:
+- Main Harness: PID 19880 on 127.0.0.1:3080, parent bootstrap PID 30440.
+- Eleven extra bridge-created DSH web processes exist on ports 3081-3091, each with HarnessBridgeBootstrap parents.
+- Dedicated bridge session UUID: 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94
+- Title: ChatGPT Bridge
+- CWD: C:\Users\GG\Desktop\Ornith
+- Likely old owner: PID 25708 on 3088, created by bridge bootstrap.
+- Desired model selection: provider llama-local, model ornith-ad-q4k-iq4xs-mtp.gguf.
+- Current failure: SessionAlreadyOwnedError when a different DSH process tries to resume/mutate the session.
+
+NON-NEGOTIABLE SAFETY:
+- XEON2 only.
+- Do NOT touch, start, stop, restart, or reconfigure GORAST or Ornith/llama-server.
+- Do NOT send session/prompt in this job.
+- Do NOT mutate any user Harness session.
+- Preserve all session persistence under C:\bench\gorast_dsh\.dsh.
+- Before terminating anything, verify process command lines prove they are the bridge-created DSH web/bootstrap instances on ports 3081-3091.
+- Do not kill unrelated node/pwsh processes.
+- Keep all Harness launch tokens/cookies/secrets local and private. Never write them to GitHub or ordinary logs.
+
+IMPLEMENTATION GOAL:
+Use the existing real Harness launcher path:
+C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\Start-Harness-Only.ps1
+and its existing DSH_HOME/workspace.
+
+OBJECTIVES:
+1. Back up all Harness bridge launcher/helper files before edits.
+2. Inspect the current launcher/bootstrap and installed rc.1 auth behavior.
+3. Implement ONE persistent local helper owned by the same bootstrap lifecycle as the 3080 Harness:
+   - starts the real DSH web child on 127.0.0.1:3080
+   - captures its fresh one-time launch token from child stdout privately
+   - exchanges it immediately for the authenticated cookie in memory
+   - retains that cookie only in the helper process memory
+   - exposes a loopback-only RPC facade for our bridge scripts to call the authenticated 3080 /api routes
+   - binds only to 127.0.0.1 on a dedicated local helper port chosen to avoid conflicts
+   - exposes NO token/cookie through its API, status, GitHub, or logs
+   - restricts mutating session operations to the dedicated bridge UUID where practical
+   - provides at minimum safe calls needed for session/list, session/selectModel, session/prompt, and session/follow/projections, while preserving native rc.1 envelopes/streaming semantics.
+4. Update HarnessBridge.mjs / bridge bootstrap path so normal bridge operations use this persistent 3080 helper and NEVER spawn a secondary DSH web server.
+5. Gracefully terminate only the verified bridge-created secondary DSH web/bootstrap processes on 3081-3091.
+6. Gracefully stop the old main 3080 bootstrap/web pair after confirming session persistence is durable.
+7. Start the upgraded main 3080 launcher/helper once.
+8. Verify exactly one DSH web listener remains for the bridge architecture on port 3080 and no bridge-created listeners remain on 3081-3091.
+9. Through the new authenticated same-owner helper, native session/list must find bridge UUID 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94.
+10. If the dedicated bridge UUID is safely resumable after orphan cleanup, call session/selectModel ONLY for that UUID with:
+    provider llama-local
+    model ornith-ad-q4k-iq4xs-mtp.gguf
+11. Relist/read projection and verify the bridge session model selection is now set.
+12. Do not send a prompt.
+13. Leave the upgraded 3080 Harness/helper running.
+
+FAIL-SAFE:
+- If session persistence looks unsafe, the main 3080 process cannot be restarted cleanly, or process identity is ambiguous, STOP and return ERROR before killing/restarting anything ambiguous.
+- If the old bridge UUID cannot be safely resumed after cleanup, do not create a replacement in this job; report the blocker.
+
+PROTOCOL:
+Write the GitHub final result only once after COMPLETE or ERROR. Never create an in-progress result file.
+
+RETURN:
+Write outbox/result_terra-harness-owner-helper-install-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-owner-helper-install-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+BACKUPS:
+<paths>
+
+SECONDARY_HARNESS_CLEANUP:
+<ports/PIDs removed; confirm only verified bridge-created instances>
+
+MAIN_3080_RESTART:
+<old/new PID and status>
+
+HELPER:
+<loopback address/port, process path, capabilities; no secrets>
+
+SECONDARY_SPAWN_DISABLED:
+<yes/no and how verified>
+
+BRIDGE_SESSION_FOUND:
+<yes/no UUID/title/cwd>
+
+MODEL_SELECTION_APPLIED:
+<yes/no provider/model projection>
+
+PROMPT_SENT:
+NO
+
+NEXT_TEST:
+<exact single prompt+follow test now possible>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If anything blocks, write one immutable state: ERROR result with exact blocker and what was left running.
