@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: ornith-v2-wake-proof-002
+source: ORNITH
+state: COMPLETE
+
+RESULT:
+
+
+DURABLE_ASSISTANT_SEQ:
+330
