@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-ornith-helper-startfix-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+HELPER=RUNNING health_ready=true harness=3080 follow=websocket-mux
+WORKER=RUNNING
+EXECUTION_COUNT=1
+REQUEST_ID=a77928c4-b4ea-4cfe-b75e-467bbf3ba662
+DURABLE_ASSISTANT_SEQ=314
+RESULT_FILE=outbox/result_ornith-v2-live-001.txt
+RESULT=ORNITH_V2_E2E_OK
+DEDUPE=ornith-v2-live-001 remains complete; prompt was not resent
+REPAIR=worker now falls back to the durable turn-outline response and rejects empty replies
+STARTUP=HarnessOwnerHelper.mjs and OrnithWorker.mjs startup launchers installed
+PASS=YES
