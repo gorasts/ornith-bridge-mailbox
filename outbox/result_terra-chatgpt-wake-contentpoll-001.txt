@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-contentpoll-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PATCHED_VERSION:
+2.2
+
+PRIMARY_POLLING:
+The pinned ChatGPT content script polls GitHub Contents API every 9 seconds while that tab is open. On first pin it snapshots current `result_*.txt` files; only later files can trigger a wake. It defers while generating, composer-unavailable, or draft-nonempty, and marks seen only after Send click.
+
+DIAGNOSTICS:
+`chrome.storage.local` records `targetPath`, `seen`, `enabled`, `lastPollAt`, `lastPollStatus`, `lastNewResult`, and `lastSubmitStatus`; no secrets are stored.
+
+USER_ACTION_REQUIRED:
+At `edge://extensions`, click Reload for Ornith GitHub Wake 2.2, then return to the intended ChatGPT conversation once.
+
+NEXT_TEST:
+Publish fresh `outbox/result_extension-integration-test-003.txt` after reload.
+
+DECISIVE_EVIDENCE:
+Updated `manifest.json` and `content.js`; manifest JSON and content script syntax validated. No service worker is required for wake polling and no GitHub test result was created during this task.
