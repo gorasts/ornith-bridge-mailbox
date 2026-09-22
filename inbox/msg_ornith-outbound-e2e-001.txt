@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-outbound-e2e-001
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+CHATGPT DIRECT ORNITH TEST 001. Reply with exactly: DIRECT ORNITH LOOP OK
+PROMPT_END
