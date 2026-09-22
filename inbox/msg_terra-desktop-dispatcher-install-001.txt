@@ -1,0 +1,81 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-desktop-dispatcher-install-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Install a local XEON2 dispatcher that can automatically wake the ChatGPT Windows desktop app Terra conversation when a pending target:TERRA job appears in gorasts/ornith-bridge-mailbox. Preserve the same ChatGPT Work/Terra allowance. Do NOT use OpenAI API billing.
+
+CONTEXT:
+- Terra runs in the ChatGPT Windows desktop app, conversation title: Execute Q5 executor packet.
+- Edge extension cannot control the desktop app.
+- Supervisor result wake remains in Edge and is separate.
+- GitHub inbox jobs are immutable: inbox/msg_*.txt.
+- Final results are outbox/result_<message_id>.txt.
+- Exact worker command to submit: Process next Terra bridge job.
+
+GOAL:
+GitHub pending target:TERRA job -> local XEON2 dispatcher -> ChatGPT desktop app -> exact Terra conversation -> submit worker command -> Terra runs -> result file -> supervisor wake.
+
+REQUIREMENTS:
+1. Build a persistent local Windows dispatcher under C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH.
+2. Prefer Windows UI Automation / accessibility APIs, not brittle screen coordinates.
+3. Poll GitHub conservatively for pending target:TERRA jobs; no API keys if current public repo access is sufficient.
+4. A job is pending only when target:TERRA exists and corresponding outbox/result_<message_id>.txt does not.
+5. Persist dispatched message_ids locally so ordinary restart cannot duplicate an active job.
+6. Locate the ChatGPT desktop app window and the conversation titled exactly `Execute Q5 executor packet`.
+7. Activate that conversation safely, focus the composer, insert exactly `Process next Terra bridge job.`, and submit.
+8. Mark dispatched only after UI evidence indicates submission occurred.
+9. If ChatGPT app is closed, conversation is missing, composer unavailable, or UI Automation cannot prove target identity, do not mark dispatched; retry later and log concise status.
+10. Never send into another conversation.
+11. Add a local status file with lastPollAt, lastDispatchAt, lastError, pendingId, and dispatcher state. No secrets.
+12. Add autostart for Windows login, hidden/no visible PowerShell window if practical.
+13. Add an emergency stop file or command.
+14. Do not touch GORAST, Ornith, Harness, models, or GPU settings.
+15. Do not modify the Edge extension in this job.
+
+TEST:
+- First inspect the ChatGPT desktop accessibility tree safely.
+- If exact conversation/composer controls are discoverable, run ONE synthetic dispatch test against a dedicated pending test job and verify the command appears/submits in the correct Terra conversation.
+- If exact UIA targeting is not reliable, STOP and report the exact blocker rather than using unsafe coordinate clicking.
+- Avoid recursive multi-job dispatch; one test maximum.
+
+PROTOCOL:
+Write one immutable final result only at COMPLETE or ERROR.
+
+RETURN:
+outbox/result_terra-desktop-dispatcher-install-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-desktop-dispatcher-install-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+DISPATCHER_INSTALLED:
+<yes/no>
+
+METHOD:
+<UI Automation approach>
+
+AUTOSTART:
+<yes/no>
+
+EXACT_CONVERSATION_MATCH:
+<yes/no>
+
+TEST_RESULT:
+<what was proven>
+
+USER_ACTION_REQUIRED:
+<NONE or exact minimal action>
+
+NEXT_STEP:
+<what ChatGPT can now do unattended>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If blocked, write one immutable ERROR result with exact blocker.
