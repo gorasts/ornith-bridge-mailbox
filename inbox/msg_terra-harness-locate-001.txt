@@ -1,0 +1,57 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-locate-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Locate the DeepSeek Harness launcher/deployment used by this setup. Do not start or modify anything.
+
+KNOWN CONTEXT:
+- XEON2 is Windows.
+- GORAST is Ubuntu at 192.168.100.116.
+- SSH user is ubuntu using the existing XEON2 SSH key.
+- A previous XEON2 launcher named open_harness.ps1 may exist.
+- Harness WebUI previously used port 3080 and a live token from dsh.
+- Ornith/llama-server is separate and must not be changed.
+
+CHECKS:
+1. On XEON2:
+   - Find open_harness.ps1 and files/shortcuts with harness or dsh in the name under the Desktop and OrnithBridge-related folders.
+   - Read shortcut target/arguments.
+   - Read relevant launcher script contents.
+2. On GORAST via SSH:
+   - Check command -v dsh.
+   - Check /opt and /home/ubuntu for likely dsh or harness executables/scripts/configs.
+   - Check systemd service/unit names containing dsh, deepseek, or harness.
+   - Check whether Docker containers with those names exist.
+   - Do not start anything.
+3. Determine the normal start mechanism and how WebUI port 3080 is exposed.
+4. Redact any token-like values in the published result.
+
+RETURN:
+Write outbox/result_terra-harness-locate-001.txt with:
+
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-locate-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+XEON2_LAUNCHER:
+<paths and decisive launcher/shortcut details>
+
+GORAST_HARNESS:
+<executable/service/script paths>
+
+START_MECHANISM:
+<exact normal start sequence, not executed>
+
+WEBUI_ACCESS:
+<port/forwarding/token mechanism>
+
+SAFE_NEXT_STEP:
+<minimal later start sequence that avoids touching Ornith>
+
+RAW_DECISIVE_EVIDENCE:
+<compact redacted evidence>
