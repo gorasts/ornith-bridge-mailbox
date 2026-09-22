@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-autodispatch-e2e-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+AUTODISPATCH_E2E:
+PASS
+
+DETAIL:
+Terra received and processed the pending bridge job.
