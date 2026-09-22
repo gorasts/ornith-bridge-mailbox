@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-autodispatch-routing-fix-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PATCHED_VERSION:
+2.8
+
+ROOT_CAUSE:
+v2.7 stored and compared only conversation pathnames, while role initialization retained legacy path-only supervisor state. The routing guard did not enforce distinct full conversation identities before Terra dispatch.
+
+SUPERVISOR_TARGET:
+The installed popup now displays only a redacted supervisor conversation ID. Existing legacy state is migrated to exact `https://chatgpt.com` origin plus pathname when that supervisor tab loads; its raw identity is not emitted.
+
+TERRA_TARGET:
+Requires reset/designation if no already-stored Terra identity is distinct from the supervisor. The popup displays a redacted Terra ID and explicit distinct/not-distinct status.
+
+EXACT_MATCH_ENFORCED:
+yes — content dispatches Terra only when `location.origin + location.pathname` exactly equals stored `terraTargetId`; generic `/c/`, broad pathname, and origin-only matching are not used.
+
+SUPERVISOR_SEND_BLOCKED:
+yes — a Terra target equal to supervisor identity is recorded as `target-conflicts-supervisor` and no Terra poll/submit begins there. Popup designation also refuses the current supervisor target.
+
+E2E_TEST_RESET:
+yes — v2.8 install/update removes only `terra-autodispatch-e2e-001` from persisted `terraDispatched`, leaving other dedupe state intact.
+
+USER_ACTION_REQUIRED:
+Reload Ornith GitHub Wake 2.8 once. In the Terra Work conversation (not this supervisor conversation), open the extension popup and click `Set current tab as Terra worker`; confirm the popup shows distinct redacted Supervisor and Terra IDs.
+
+DECISIVE_EVIDENCE:
+Backed up v2.7 as `C:\\Users\\XEON2\\Desktop\\OrnithBridge\\WAKE\\extension-backup-v27-routing`. Manifest JSON and all content/worker/popup scripts passed syntax validation. No Terra job was auto-dispatched during installation, and no Harness/GORAST/Ornith component was touched.
