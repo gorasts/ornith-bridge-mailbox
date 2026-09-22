@@ -1,0 +1,62 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-tiel-stage-001
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+STAGE TIEL ONLY. Do NOT run the benchmark. Keep your final reply <=12 lines.
+
+Goal: prepare everything so Terra later only has to launch one already-built script and wait for its DONE marker.
+
+Exact model:
+repo=peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+file=Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+size=18119933792
+sha256=96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf
+url=https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP/resolve/main/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+GORAST target=/opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+
+Rules:
+- Do not touch the working Ornith bridge, ORNITH_WORKER, return watcher, wake server, extension, or unrelated model files.
+- Do not run the 4 benchmark cases.
+- Do not read benchmark prompt contents or model output contents.
+- Do not restore/reconfigure the live Ornith server just for staging unless needed to capture its exact command line; do not leave production changed.
+- Use deterministic shell/PowerShell work; keep large outputs/logs on disk, not in your response.
+
+Stage:
+1. On GORAST mkdir -p /opt/tiel-models and resume-download exact GGUF if not already complete. Verify exact byte size 18119933792 and SHA256 above.
+2. On XEON2 create:
+   C:\Users\XEON2\Desktop\OrnithBridge\TIEL\Run-Tiel-Phase1.ps1
+3. The runner must be fully self-contained and require no Terra analysis. It must:
+   - capture current proven Ornith server command/config before stopping test service
+   - use current known-good llama.cpp runtime/build and mechanically clone current proven baseline where compatible
+   - Tiel model path above
+   - CTX 131072; K/V F16/F16; mmap; B/UB 2048/2048; T/TB 14/14; FA on; n-cpu-moe 37; same current safe GPU placement/topology; no mmproj
+   - exactly four cases: MTP0 disabled, then draft-mtp n-max 1,2,3
+   - same settings otherwise
+   - ~20K opaque input, TG512
+   - if a suitable existing long-context prompt file exists, runner can use it as opaque bytes without you reading it; otherwise runner itself generates neutral synthetic repeated text at runtime
+   - never print/read raw model responses
+   - save raw logs/responses under C:\Users\XEON2\Desktop\OrnithBridge\TIEL\raw\
+   - parse PP tok/s, TG tok/s, wall time, status, MTP acceptance if available
+   - reuse existing lightweight telemetry if available without building a new telemetry system
+   - visible console output only compact TEST i/4 / status / PP / TG / wall / telemetry
+   - DO NOT restore Ornith after benchmark; leave test setup as-is
+   - write C:\Users\XEON2\Desktop\OrnithBridge\TIEL\phase1_summary.txt
+   - write C:\Users\XEON2\Desktop\OrnithBridge\TIEL\phase1.DONE only after all cases finish or a terminal error summary is written
+4. Create:
+   C:\Users\XEON2\Desktop\OrnithBridge\TIEL\STAGED.OK
+   containing only compact machine-readable facts: model path, size/hash verification, runner path, build path, and READY=1.
+5. Syntax-check the PowerShell runner without launching its benchmark. If safe, perform only non-destructive preflight checks (paths, SSH, executable existence). No model test run.
+
+Final reply only:
+TIEL_STAGE
+MODEL=<path>
+SIZE_OK=<0|1>
+SHA_OK=<0|1>
+RUNNER=<path>
+PREFLIGHT=<OK|ERROR>
+READY=<0|1>
+ERROR=<only if needed>
+PROMPT_END
