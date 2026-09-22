@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-return-pipeline-clean-001
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+RETURN PIPELINE TEST. Do not use tools. Reply with exactly:
+ORNITH RETURN PIPELINE OK
+PROMPT_END
