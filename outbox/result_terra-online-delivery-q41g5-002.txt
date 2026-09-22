@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-online-delivery-q41g5-002
+source: TERRA
+state: COMPLETE
+
+RESULT:
+NOTIFICATION_ONLY=YES
+READ_EXACT_RESULT=outbox/result_terra-ornith-q41g5-retry-console-001.txt
+Q4_1/G5/NCM35 is live on PID 2515804; health OK; READY_FOR_90K_TEST=YES.
+No Ornith execution or Harness prompt was started by this notification.
