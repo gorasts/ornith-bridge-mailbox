@@ -1,0 +1,84 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-deep-source-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+On XEON2 only, deeply inspect the full local DeepSeek Harness installation to find the live native WebUI message-send and reply/progress transport for an existing session.
+
+DO NOT use browser automation.
+DO NOT touch GORAST or Ornith.
+DO NOT modify session files or existing conversations.
+
+KNOWN:
+- DSH package root:
+  C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh
+- DSH_HOME:
+  C:\bench\gorast_dsh\.dsh
+- Session storage:
+  C:\bench\gorast_dsh\.dsh\sessions\--C-Users-GG-Desktop-Ornith--\<session-id>\session.v3.jsonl.zstd
+- Session cache:
+  C:\bench\gorast_dsh\.dsh\storages\session_projcache\sessions\<session-id>.json
+- Session IDs are UUID based.
+- Local web service is 127.0.0.1:3080.
+
+SEARCH ALL LOCAL PACKAGE FILES INCLUDING:
+- lib
+- dist/build/static/public assets
+- JavaScript bundles
+- source maps
+- package dependencies bundled with DSH
+- runtime-generated local files under DSH_HOME
+
+LOOK FOR:
+- route strings beginning with /api, /rpc, /session, /chat, /message
+- fetch/XMLHttpRequest/axios calls
+- WebSocket/EventSource/SSE use
+- message submit/send functions
+- session-id parameters
+- streaming event names
+- progress/tool-call event names
+- server route registration
+- localhost:3080 client/server protocol code
+- references to session_projcache or session.v3.jsonl.zstd
+
+GOAL:
+Find definitive source-backed details for:
+1. exact send mechanism for adding a user message to an existing session,
+2. exact session-id field/parameter,
+3. exact reply/progress stream mechanism,
+4. event/message schema if present,
+5. whether a background local adapter can use the same native session without editing persistence files.
+
+RETURN:
+Write outbox/result_terra-harness-deep-source-001.txt with:
+
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-deep-source-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+SEND_TRANSPORT:
+<exact route/function/protocol>
+
+SESSION_PARAMETER:
+<exact field/parameter>
+
+REPLY_TRANSPORT:
+<exact websocket/sse/poll/function>
+
+EVENT_SCHEMA:
+<exact known event/message names>
+
+BRIDGE_FEASIBILITY:
+<yes/no/partial>
+
+MINIMAL_ADAPTER:
+<smallest local adapter design>
+
+DECISIVE_EVIDENCE:
+<file paths, function names, route strings, short excerpts>
+
+If still unknown, use state: ERROR and identify the closest files/functions found.
