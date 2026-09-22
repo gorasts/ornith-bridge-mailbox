@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-github-extension-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+EXTENSION_PATH:
+`C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension`.
+
+DAEMON_REQUIRED:
+NO
+
+GITHUB_POLLING:
+MV3 service worker polls GitHub Contents API for `outbox/result_*.txt` every 6 seconds, snapshots historical filenames on initial pin, and persists seen filenames in `chrome.storage.local` only after successful content-script submission.
+
+TARGET_PINNING:
+The first loaded `https://chatgpt.com/c/<id>` path is pinned in `chrome.storage.local`; injection is attempted only in that exact tab/path.
+
+USER_ACTION_REQUIRED:
+Open `edge://extensions`, enable Developer mode, select Load unpacked, and choose `C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension`.
+
+TEST_COMMAND_OR_ACTION:
+After loading, open the intended ChatGPT conversation; the extension snapshots current results and waits for a newly published `result_*.txt` file.
+
+PRODUCTION_WAKE_FLOW:
+Bridge publishes a new public outbox result; extension detects it through GitHub API; exact pinned ChatGPT tab receives one compact wake message; filename is marked seen only after send click.
+
+DECISIVE_EVIDENCE:
+Created MV3 manifest, service worker, and content script. No localhost daemon, startup task, GORAST/Ornith action, credential extraction, or automatic ChatGPT submission was used.
