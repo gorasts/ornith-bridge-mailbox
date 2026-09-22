@@ -1,0 +1,64 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-tiel-step2-download-001
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+AUTHORITATIVE TIEL STEP 2 ONLY. Ignore older Tiel jobs. Step 1 is complete and verified.
+
+STEP 1 VERIFIED FACTS:
+GORAST host = 192.168.100.116
+SSH user = ubuntu
+SSH access from XEON2 = OK using existing configured authentication
+llama-server = /opt/llama/llama-b10919/llama-server
+live Ornith llama-server pid = 1362628
+live API = 192.168.100.116:8099
+/opt/tiel-models = absent
+Tiel GGUF = absent
+free disk = 863984578560 bytes
+
+IMPORTANT: leave pid 1362628 and the live Ornith server completely untouched.
+
+EXACT FILE:
+repo = peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+file = Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+url = https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP/resolve/main/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+expected size = 18119933792 bytes
+expected sha256 = 96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf
+final path = /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+
+DO ONLY THIS:
+1. SSH once to ubuntu@192.168.100.116 using the already-configured non-interactive auth.
+2. Create /opt/tiel-models if absent.
+3. Download/resume the exact URL to:
+   /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf.part
+   Use a resumable transfer (curl -L --fail --retry 5 -C - or equivalent).
+4. Do not load the model. Do not stop/start/restart llama-server.
+5. When download completes, verify exact byte size = 18119933792.
+6. Verify SHA256 = 96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf.
+7. Only if BOTH checks pass, atomically rename .part to the final .gguf path.
+8. If either check fails, leave .part in place and report ERROR. Do not delete it.
+
+STRICT:
+- no benchmark
+- no runner creation
+- no server changes
+- no bridge/Harness changes
+- no reading model contents into context
+- no broad diagnostics
+- no extra downloads, no mmproj
+
+FINAL REPLY ONLY:
+TIEL_STEP2
+DIR=OK|ERROR
+DOWNLOAD=COMPLETE|ERROR
+SIZE=<bytes|NA>
+SIZE_OK=YES|NO|NA
+SHA256=<hash|NA>
+SHA_OK=YES|NO|NA
+FINAL_PATH=<path|NA>
+ORNITH_SERVER_UNTOUCHED=YES|NO
+READY_FOR_STEP3=YES|NO
+ERROR=<only if needed>
+PROMPT_END
