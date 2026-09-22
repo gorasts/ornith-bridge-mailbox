@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-install-001
+source: TERRA
+state: ERROR
+
+RESULT:
+INSTALLED:
+Prepared locally under `C:\Users\XEON2\Desktop\OrnithBridge\WAKE`: `WakeDaemon.ps1`, `Notify-OrnithWake.ps1`, `Test-OrnithWake.ps1`, `Reset-OrnithWakeTarget.ps1`, private `wake.key`, and unpacked MV3 extension files under `extension`.
+
+DAEMON:
+NOT RUNNING. The local execution environment rejected the command that would start the daemon and create its Startup shortcut before any portion ran.
+
+EDGE_EXTENSION:
+PREPARED, NOT ACTIVATED. Safe unpacked-extension activation requires a user-controlled Edge action; no unsafe profile/policy workaround was attempted.
+
+USER_ACTION_REQUIRED:
+After daemon launch is permitted, open `edge://extensions`, enable Developer mode, select Load unpacked, and choose `C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension`.
+
+TARGET_CONVERSATION:
+NOT REGISTERED; extension is not active.
+
+WAKE_TEST:
+NOT RUN.
+
+HARNESS_INTEGRATION_HOOK:
+`C:\Users\XEON2\Desktop\OrnithBridge\WAKE\Notify-OrnithWake.ps1 -MessageId <id>`.
+
+NEXT_STEP:
+Permit the local daemon launcher to run, then validate `http://127.0.0.1:38471/health` before loading the extension.
+
+DECISIVE_EVIDENCE:
+Execution environment rejection: the daemon launch/startup-shortcut command was blocked by policy before execution. No GORAST/Ornith action, no ChatGPT message submission, and no wake secret publication occurred.
