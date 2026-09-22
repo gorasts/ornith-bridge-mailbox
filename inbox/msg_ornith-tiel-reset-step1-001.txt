@@ -1,0 +1,66 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: ornith-tiel-reset-step1-001
+target: ORNITH
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+AUTHORITATIVE RESET FOR TIEL WORK.
+
+IGNORE AND DO NOT EXECUTE ANY EARLIER TIEL INSTRUCTIONS OR QUEUED TIEL TASKS.
+That includes any prior jobs named or related to:
+- ornith-tiel-stage-001
+- ornith-tiel-step1-access-001
+- ornith-tiel-step1-accessfix-001
+- terra-tiel-phase1-*
+- terra-tiel-phase1-runnerfix-*
+- terra-tiel-phase1-exactfile-*
+
+Start fresh from this message only.
+
+STEP 1 ONLY: ACCESS + READ-ONLY PREFLIGHT.
+
+Known facts:
+XEON2 = Windows orchestrator.
+GORAST = Ubuntu host at 192.168.100.116.
+SSH user = ubuntu.
+llama API when running = 192.168.100.116:8099.
+Known llama-server path = /opt/llama/llama-b10919/llama-server
+Expected Tiel directory = /opt/tiel-models
+Expected Tiel file = /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+
+Access rule:
+Use ONLY the SSH authentication already configured on XEON2.
+Attempt SSH ONCE in non-interactive/batch mode.
+Do not ask for, expose, save, or retry passwords/credentials.
+If that one non-interactive attempt cannot authenticate, STOP and report AUTH_REQUIRED.
+
+If SSH succeeds, run ONLY these read-only checks:
+1. test whether /opt/llama/llama-b10919/llama-server exists and is executable
+2. test whether /opt/tiel-models exists
+3. test whether the exact Tiel GGUF exists
+4. report free bytes on the filesystem containing /opt
+5. optionally report whether a llama-server process is currently running; do not alter it
+
+STRICT:
+- NO download
+- NO directory creation
+- NO model load
+- NO server start/stop/restart
+- NO benchmark
+- NO runner creation
+- NO changes to Ornith bridge/Harness
+- NO broad diagnostics
+- NO retries
+
+Reply ONLY:
+TIEL_RESET_STEP1
+SSH=OK|AUTH_REQUIRED|ERROR
+LLAMA_SERVER=YES|NO|NA
+TIEL_DIR=YES|NO|NA
+TIEL_FILE=YES|NO|NA
+DISK_FREE=<bytes|NA>
+SERVER_RUNNING=YES|NO|NA
+READY_FOR_STEP2=YES|NO
+ERROR=<only if needed>
+PROMPT_END
