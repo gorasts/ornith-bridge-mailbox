@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-submitfix-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PATCHED_VERSION:
+2.5
+
+ROOT_CAUSE:
+v2.4 treated button click as success without waiting for ChatGPT to accept the composer text.
+
+SUBMIT_STRATEGIES:
+Enabled `data-testid=send-button`/aria Send button first; enabled send button in composer form next; enclosing form `requestSubmit()` fallback.
+
+SUCCESS_VERIFICATION:
+Waits after submit and marks seen only if the composer is empty. Failed submissions preserve the draft and leave the result unseen.
+
+USER_ACTION_REQUIRED:
+Reload Ornith GitHub Wake 2.5 in `edge://extensions`, then refresh the target ChatGPT tab.
+
+NEXT_TEST:
+Publish fresh `result_extension-integration-test-006.txt`.
+
+DECISIVE_EVIDENCE:
+Backed up v2.4 content script; v2.5 content script passed JavaScript syntax validation.
