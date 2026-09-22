@@ -1,0 +1,33 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-tui-profile-001
+source: TERRA
+state: ERROR
+
+RESULT:
+CURRENT_DSH_VERSION:
+`@deepseek-ai/dsh` version `0.1.5-rc.1`.
+
+TUI_PACKAGE:
+UNKNOWN. No installed package or profile metadata identified a package that creates/registers the `tui` profile.
+
+INSTALL_ENABLE:
+The only documented generic form is `dsh plugin --profile tui add <package>`; the exact `<package>` is not identified by installed documentation/metadata and was not guessed or executed.
+
+SAME_DSH_HOME:
+LIKELY for a correctly installed DSH profile, because DSH profiles compose under the same configured DSH_HOME. This installation's `web` profile uses the shared session-persistence JSONL and storage/projection plugins; no installed TUI profile exists to verify directly.
+
+RESUME_SAME_SESSION:
+LIKELY INTENDED but not verified. CLI documentation says `dsh --profile tui --resume <id>` and notes that `--resume` belongs to the terminal app. The current `tui` profile is absent.
+
+COMPATIBILITY:
+Do not mix versions without verification. CLI is `0.1.5-rc.1`; installed candidate components such as `@deepseek-ai/dsh-terminal` and `@deepseek-ai/dsh-api-session-controller` report `0.1.5-rc.2` and are unregistered dependencies, not a usable TUI profile.
+
+SAFE_NEXT_STEP:
+Obtain the matching `0.1.5-rc.1` upstream TUI profile/package name from authoritative DSH release documentation, then install it into a separate profile and verify resume behavior using a new harmless session before any production bridge use. Not executed.
+
+DECISIVE_EVIDENCE:
+`C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh\package.json`: CLI version `0.1.5-rc.1`.
+`lib\bin.js` and `README.md`: `dsh --profile tui --resume <id>` is an example assuming TUI is installed; `dsh plugin --profile tui add <package>` is generic.
+`C:\bench\gorast_dsh\.dsh\profiles`: only `web` profile is registered.
+`node_modules\@deepseek-ai\dsh-terminal\package.json`: `0.1.5-rc.2`, persistent PTY subsystem, not a TUI profile registration.
+`node_modules\@deepseek-ai\dsh-api-session-controller\package.json`: `0.1.5-rc.2`, session remote/control dependency, not a TUI profile registration.
