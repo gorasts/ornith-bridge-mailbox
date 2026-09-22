@@ -1,0 +1,31 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-local-auth-001
+source: TERRA
+state: ERROR
+
+RESULT:
+BOOTSTRAP_CREATED:
+`C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridgeBootstrap.mjs`, alongside the existing `HarnessBridge.mjs`. The bootstrap starts local DSH only, captures the one-time login URL in memory, exchanges it in memory, and never writes authentication material to files, logs, console output, or GitHub.
+
+LOCAL_HARNESS:
+YES. Local DSH is running on `127.0.0.1:3080` (PID 20212).
+
+BRIDGE_SESSION:
+NOT CREATED. No `bridge-session.json` was written because the authenticated native session-list verification failed before creation.
+
+SESSION_LIST_VERIFIED:
+NO. The private bootstrap's authenticated `POST /api/session.list` call received HTTP 404.
+
+PROMPT_SENT:
+NO
+
+WEBUI_VISIBILITY:
+NOT VERIFIED because no native bridge session was created.
+
+NEXT_TEST:
+Inspect the exact rc.1 web server route registration and login-cookie scope locally, then retry `session.list` only after confirming the active server exposes the documented native API route. Do not send a prompt.
+
+DECISIVE_EVIDENCE:
+Bootstrap status contains only non-secret error: `session.list: HTTP 404`.
+The local listener remained active at `127.0.0.1:3080` after the test.
+No GORAST/Ornith action occurred, no authentication value was emitted, and no prompt/session persistence file was modified.
