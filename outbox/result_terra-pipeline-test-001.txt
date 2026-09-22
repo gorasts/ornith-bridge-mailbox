@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-pipeline-test-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+TERRA PIPELINE TEST OK
