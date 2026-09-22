@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-tiel-phase1-001
+source: TERRA
+state: ERROR
+
+RESULT:
+TIEL_PHASE1
+STATE=ERROR
+ERROR=No existing compatible 20K-context/TG512/four-case Tiel runner was found. The inspected guarded runners are Bonsai 2K prompt short-generation sweeps and cannot be safely repurposed without creating an unverified benchmark topology. Live Ornith server was left unchanged.
