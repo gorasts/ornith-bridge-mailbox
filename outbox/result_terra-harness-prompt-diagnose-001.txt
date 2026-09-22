@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-prompt-diagnose-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PREVIOUS_PROMPT_ERROR:
+Unavailable — the prior one-shot bridge test retained only its non-accepted outcome, not the server error object. No prompt was resent.
+
+BRIDGE_MODEL_SELECTION:
+Dedicated session `4b0b7cb2-ed4e-4339-bb20-3b688cc09f94`: agentPreset `standard`; modelSelection `lastUsed: null`, `next: null`.
+
+WORKING_SESSION_MODEL_SELECTION:
+Comparison session `9cf30a90-c556-405b-9a16-8c6e0c6253a9`: agentPreset `standard`; modelSelection `lastUsed` and `next` are provider `llama-local`, model `ornith-ad-q4k-iq4xs-mtp.gguf`.
+
+PROVIDER_ROUTE_SERVED:
+yes for `llama-local` — read-only DSH settings declare that provider and the same model as the default agent model. The dedicated session itself has no selection to route.
+
+ROOT_CAUSE:
+Likely `session/model-unavailable`: rc.1 prompt admission reads the session-local current selection and rejects if its provider is not served. The dedicated new session has no current/next model selection, whereas the known working session has the configured local selection. This is not parser-only.
+
+MUTATIONS:
+NONE
+
+NEXT_FIX:
+Set the dedicated session's local model selection to provider `llama-local` and model `ornith-ad-q4k-iq4xs-mtp.gguf` using the installed rc.1 session-local selection route, then relist to verify before any newly authorized prompt.
+
+DECISIVE_EVIDENCE:
+Authenticated read-only `session/list` returned 12 items. Its native projection exposes `modelSelection`; the bridge projection was null/null while the comparison projection contained the local provider/model. Installed source shows prompt throws `session/model-unavailable` when `routeServed(ctx, selection.provider)` is false. No prompt, title, cwd, model, backend, GORAST, or Ornith setting was changed.
