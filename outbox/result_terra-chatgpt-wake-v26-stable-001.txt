@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-chatgpt-wake-v26-stable-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PATCHED_VERSION:
+2.6
+
+DIFF_FINDINGS:
+v2.5 retained the worker fetch route but replaced the baseline content flow with a compact initializer that snapshots directly during target assignment, with no user-visible ready boundary. Its submit logic added a post-click empty-composer check, but not readiness diagnostics. v2.6 restores the baseline timer → runtime message → worker fetch → content injection sequence and transplants only the improved submit behavior.
+
+KNOWN_GOOD_POLLING_PRESERVED:
+yes — content.js sends `poll-github`; worker.js alone performs the GitHub fetch and returns result filenames.
+
+SUBMIT_LOGIC:
+Enabled send button first; form send button fallback; `form.requestSubmit()` fallback. The inserted matching wake draft is reused on retry, a different draft defers, and a result is marked seen only after the composer clears following submission.
+
+READY_SIGNAL:
+The extension badge is `...` while initializing, `RDY` after the first successful listing snapshot, and `ERR` after a fetch error. The action popup reports readiness, pinned target, last poll, last submit, and has deliberate Reset Seen/Reset Target controls.
+
+STATE_PERSISTENCE:
+`targetPath`, `seen`, `enabled`, `initialized`, and readiness diagnostics remain in `chrome.storage.local`. Snapshotting occurs only when `initialized` is false; ordinary page refreshes and extension reloads retain initialized/seen state.
+
+USER_ACTION_REQUIRED:
+Reload Ornith GitHub Wake 2.6 in `edge://extensions`, refresh the pinned target ChatGPT tab, and wait for the badge to show `RDY` before publishing the test result.
+
+NEXT_TEST:
+result_extension-integration-test-008.txt
+
+DECISIVE_EVIDENCE:
+Manifest JSON parsed; content.js, worker.js, and popup.js passed Node syntax validation; XEON2 worker-equivalent GitHub API listing returned HTTP 200 with 28 result files. No GitHub test result was published.
