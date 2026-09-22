@@ -1,0 +1,48 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-wake-v215-backlogfix-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+PROMPT_BEGIN
+THIN EXECUTOR. Fix ONLY the Edge wake extension backlog behavior on XEON2. Do not touch Ornith, llama-server, Harness, Tiel work, return watcher, or wake server.
+
+Known problem:
+- Extension v2.14 is bound to the current ChatGPT conversation and is successfully injecting Ornith results.
+- After browser/window restart it replayed stale historical Ornith result seq93.
+- The local Ornith outbox/state had already advanced to at least seq183.
+- Root cause in v2.14 content.js: it filters seq > stored cursor, sorts ascending, and submits the oldest pending result. On a stale/missing cursor this replays backlog.
+
+Goal:
+Create v2.15 that NEVER replays historical Ornith backlog after load/rebind.
+
+Requirements:
+1. Backup current extension folder:
+   C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension
+2. Patch content.js and manifest version to 2.15.
+3. Preserve Terra behavior.
+4. Ornith logic:
+   - On first load of v2.15 for a pathname, fetch /results.
+   - Determine the maximum available ornith-local seq.
+   - Read the old v2.14/v2.13 cursor if present.
+   - If the stored cursor is absent OR more than 1 behind the current max at initialization, BASELINE the cursor directly to current max and submit NOTHING from the existing backlog.
+   - After baseline, only submit results with seq > cursor that appear on later polls.
+   - If multiple genuinely new Ornith results appear between polls, submit ONLY the newest one and advance cursor to that seq.
+   - Never submit older seqs after a newer seq has been acknowledged.
+5. Keep exact-path binding to this conversation.
+6. Preserve ACK-only-after-confirmed-submit behavior.
+7. Do not inject raw reasoning/tool-event payloads if avoidable. For Ornith return, extract only ASSISTANT_REPLY text from the result content when present. If parsing fails, fall back to a compact wrapper with filename + content truncated to 8000 chars. Do not inject RAW_EVENT_JSON.
+8. Terra return behavior should likewise inject only the RESULT body when possible, not the whole envelope.
+9. Do NOT reload/refresh Edge yet. Just patch files and report ready.
+
+Return <=10 lines:
+WAKE_V215
+BACKUP=<path>
+VERSION=2.15
+ORNITH_BACKLOG_POLICY=BASELINE_NEWEST
+ORNITH_PAYLOAD=ASSISTANT_REPLY_ONLY
+TERRA_PAYLOAD=RESULT_ONLY
+FILES_PATCHED=<n>
+READY_TO_RELOAD=YES|NO
+ERROR=<only if needed>
+PROMPT_END
