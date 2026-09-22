@@ -1,0 +1,124 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-autodispatch-install-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Make Terra execution unattended on XEON2 using the SAME existing ChatGPT Work/Terra UI/account allowance — NO OpenAI API key, NO separately billed API calls.
+
+GOAL:
+After this one setup job, when ChatGPT creates a new immutable GitHub inbox file with `target: TERRA`, the XEON2 Edge extension should automatically submit exactly `Process next Terra bridge job.` into the user's designated/pinned Terra Work conversation, once per pending job, without Gorast clicking Send.
+
+EXISTING COMPONENTS:
+- GitHub repo: gorasts/ornith-bridge-mailbox
+- Immutable jobs: inbox/msg_*.txt
+- Final results: outbox/result_<message_id>.txt
+- Existing Edge extension:
+  C:\Users\XEON2\Desktop\OrnithBridge\WAKE\extension
+- Existing extension already proves:
+  * background/service-worker GitHub fetch
+  * correct ChatGPT tab targeting
+  * composer injection
+  * automatic Send
+  * persistent seen/target state
+- Current supervisor wake flow works in this exact ChatGPT conversation.
+- Do not break that working wake path.
+
+ARCHITECTURE REQUIRED:
+Extend the SAME Edge extension with a second explicit target role:
+1. SUPERVISOR target = existing pinned/current ChatGPT conversation used for result wake messages.
+2. TERRA target = a user-designated ChatGPT Work/Terra conversation/tab.
+
+AUTODISPATCH BEHAVIOR:
+- Background worker polls GitHub for pending immutable inbox jobs whose file content contains `target: TERRA`.
+- A Terra job is pending only if there is no corresponding final `outbox/result_<message_id>.txt` and it has not already been successfully dispatched for the current attempt.
+- For a newly pending Terra job, send a message to ONLY the configured TERRA target tab.
+- Inject exactly:
+  Process next Terra bridge job.
+- Automatically submit it using the proven send-button/form fallback logic.
+- Mark `terraDispatched[message_id]` only after the composer clears / submission is accepted.
+- Never dispatch the same message_id twice during ordinary reload/restart.
+- Persist Terra target path/tab identity and dispatch state in chrome.storage.local.
+- If the Terra tab is absent, closed, logged out, or composer is unavailable, do NOT mark dispatched; surface a clear badge/status and retry later.
+- Never use browser automation outside the ChatGPT page content script.
+- Never expose GitHub or ChatGPT credentials.
+
+IMPORTANT RETRY / 5-HOUR LIMIT DESIGN:
+- Do NOT blindly spam the same job.
+- If a job has been dispatched but no final result exists, leave it dispatched.
+- Add a deliberate/manual `Retry oldest Terra job` control in popup for recovery.
+- Also add a SAFE automatic retry eligibility mechanism for quota-window recovery that does not duplicate an active run:
+  * only retry if there is explicit evidence the prior Terra attempt ended/failed due usage/quota/unavailable state, OR a locally recorded terminal failure marker;
+  * otherwise do not automatically redispatch an in-flight job.
+- Document what signal is actually available from the Work page/runtime for detecting quota exhaustion. If none reliable exists, leave automatic quota retry disabled rather than guessing.
+
+TERRA TARGET SETUP:
+- Add a popup action such as `Set current tab as Terra worker`.
+- Preserve the existing supervisor target mechanism separately.
+- The content script must determine which role the current pathname/tab owns; never send Terra worker commands into the supervisor chat.
+- User should need at most ONE extension reload and ONE click to designate the already-open Terra Work conversation. If the existing Terra tab can be safely identified from stored state/current open tabs without guessing, configure it automatically; otherwise report the one exact user click needed.
+
+LATENCY PREP:
+- Keep GitHub polling architecture stable for this job; do not redesign result wake transport yet.
+- Add diagnostics timestamps for Terra queue detection and submit completion so later we can measure dispatch latency.
+- Do not increase GitHub API request rate aggressively.
+
+SAFETY / SCOPE:
+- Back up extension before editing.
+- Validate manifest JSON and JS syntax.
+- Do not touch GORAST/Ornith/Harness services.
+- Do not send any Harness prompt.
+- Do not remove current result wake behavior.
+- Do not create an OpenAI API integration.
+
+TEST:
+1. Use a synthetic non-destructive pending Terra test job ONLY if needed.
+2. Verify extension can detect it and prepare/submit the worker command to the designated Terra tab.
+3. Avoid causing an uncontrolled recursive chain. One test dispatch maximum.
+4. If automatic target designation cannot be completed safely without user interaction, stop before test dispatch and report the exact one-time UI action needed.
+
+PROTOCOL:
+Write the final GitHub result only once after COMPLETE or ERROR. Do not create/update an in-progress result file.
+
+RETURN:
+Write outbox/result_terra-autodispatch-install-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-autodispatch-install-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+EXTENSION_VERSION:
+<version>
+
+TERRA_AUTODISPATCH_INSTALLED:
+<yes/no>
+
+SUPERVISOR_WAKE_PRESERVED:
+<yes/no>
+
+TERRA_TARGET:
+<configured automatically / exact one-time action required>
+
+DEDUPLICATION:
+<how message_id is fenced>
+
+QUOTA_RETRY:
+<safe behavior and whether automatic retry is enabled>
+
+TEST_RESULT:
+<what was proven>
+
+USER_ACTION_REQUIRED:
+<NONE or exact minimal steps>
+
+NEXT_AUTONOMOUS_STEP:
+<what ChatGPT can queue without Gorast launching Terra>
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If blocked, write one immutable ERROR result with the exact blocker.
