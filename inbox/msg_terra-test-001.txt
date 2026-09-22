@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-test-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Return exactly this text in a new file under outbox/:
+TERRA BRIDGE TEST OK
+
+The outbox file must include message_id: terra-test-001 and source: TERRA.
