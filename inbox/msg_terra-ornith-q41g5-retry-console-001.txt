@@ -1,0 +1,30 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-ornith-q41g5-retry-console-001
+target: TERRA
+source: CHATGPT
+
+ONE OBJECTIVE: retry the already validated Ornith production winner Q4_1/G5/NCM35 and make its startup/output visibly observable to the user in a live PowerShell console on XEON2.
+
+EXACT WINNER:
+--cache-type-k q4_1 --cache-type-v q4_1
+--n-cpu-moe 35
+Keep all other settings exactly as the captured known-good production command:
+llama-server b10919
+model=/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+draft=/opt/ornith-models/shisa12k-mtp-standalone.gguf
+--temp 1.0 --host 0.0.0.0 --port 8099
+-fa on -t 14 -tb 14 -ub 2048 -b 2048 -c 131072
+--load-mode mmap -ngl 99 -ngld 2
+--prio 2 --poll 100 --cpu-strict 1
+--spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 -np 1 --jinja --no-webui
+
+REQUIREMENTS:
+1. Preserve rollback to the currently healthy F16/NCM37 command.
+2. Open a NORMAL VISIBLE PowerShell window on XEON2 for the user. It must stream/follow the GORAST llama-server startup/runtime output line-by-line live (stdout+stderr), not merely show a final summary. Keep this console open after successful startup so the user can watch prompt-processing and generation timing when they resume Harness.
+3. Retry the exact Q4_1/G5/NCM35 winner. Do not benchmark, change other flags, or touch Tiel.
+4. The prior 150-second health timeout may have been too short. Allow a substantially longer bounded startup window and inspect actual startup output while waiting. Do not classify slow model loading as failure merely because 150 seconds elapsed.
+5. If llama-server emits a genuine fatal/load/GPU error, capture it and rollback. If it is simply still loading, continue within the longer bound.
+6. Once healthy, STOP. Do NOT submit any Harness prompt and do NOT replay the user's ~90K conversation. The user will resume it manually so we can observe the cold/rebuild PP and subsequent TG in the visible console.
+7. Return PID, exact live command, /health result, console/window method used, and READY_FOR_90K_TEST=YES/NO.
+
+Do not perform unrelated diagnostics or benchmark sweeps.
