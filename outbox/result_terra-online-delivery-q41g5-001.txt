@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-online-delivery-q41g5-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+NOTIFICATION_ONLY=YES
+The completed result is outbox/result_terra-ornith-q41g5-retry-console-001.txt.
+Q4_1/G5/NCM35 is live on PID 2515804 with health OK and READY_FOR_90K_TEST=YES.
+The visible read-only PowerShell console remains open.
+No Ornith job or Harness prompt was rerun by this notification.
+
+ONLINE_ACTION:
+Read outbox/result_terra-ornith-q41g5-retry-console-001.txt and acknowledge this automatic DONE wake.
