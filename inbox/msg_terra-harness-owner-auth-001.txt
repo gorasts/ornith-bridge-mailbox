@@ -1,0 +1,72 @@
+ORNITH_BRIDGE_REMOTE_V1
+message_id: terra-harness-owner-auth-001
+target: TERRA
+source: ChatGPT
+state: NEW
+
+TASK:
+Diagnose and prepare the correct way for the bridge to authenticate to and use the ALREADY-RUNNING native Harness at 127.0.0.1:3080, avoiding any second Harness process competing for the same session write handle.
+
+CURRENT BLOCKER:
+`session/selectModel` for bridge UUID 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94 failed with:
+`gateway/internal`: `resume failed ... SessionAlreadyOwnedError ... already owned by an active write handle`.
+
+IMPORTANT:
+- The bridge must ultimately write through the same running Harness process that owns the WebUI/native sessions.
+- Do NOT kill/restart the existing 127.0.0.1:3080 Harness.
+- Do NOT start/stop/reconfigure GORAST or Ornith.
+- Do NOT send a prompt.
+- Do NOT mutate any Harness session in this job.
+- Keep all tokens/cookies/secrets private and out of GitHub output.
+
+OBJECTIVES:
+1. Enumerate only the relevant local XEON2 Harness/node processes, their PIDs, listening ports, command lines, and DSH_HOME/cwd where safely observable.
+2. Determine which process currently owns/listens on 127.0.0.1:3080.
+3. Determine whether any prior isolated bootstrap Harness process is still alive and whether it is the likely active write-handle owner for bridge session 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94.
+4. Inspect installed rc.1 auth/bootstrap/launcher source and our existing HarnessBridgeBootstrap.mjs to determine the cleanest supported way to obtain an authenticated cookie/session for the ALREADY-RUNNING 3080 process, without browser UI automation and without exposing credentials.
+5. If a one-time launch token for the running 3080 process can be safely obtained from its local launcher/stdout/state, identify the exact private mechanism but do not print the token.
+6. If the current running 3080 process cannot issue/recover a fresh login token, determine whether the correct fix is to add a tiny local authenticated bridge endpoint/helper to the SAME launcher/process on next controlled restart, or another supported rc.1 mechanism.
+7. Identify exactly which process owns the bridge session write handle if possible.
+8. Do not terminate anything in this job.
+
+PROTOCOL:
+Write one immutable final result only at COMPLETE or ERROR.
+
+RETURN:
+Write outbox/result_terra-harness-owner-auth-001.txt
+
+FORMAT:
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-harness-owner-auth-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+MAIN_HARNESS:
+<pid/port/cmd/cwd safe summary>
+
+OTHER_HARNESS_PROCESSES:
+<safe summary>
+
+BRIDGE_SESSION_OWNER:
+<pid/process if determined, else unknown>
+
+WHY_SELECTMODEL_FAILED:
+<concise root cause>
+
+AUTH_TO_EXISTING_3080:
+<exact supported/private mechanism or blocker>
+
+SAFE_FIX:
+<smallest change required, without performing it>
+
+MUTATIONS:
+NONE
+
+PROMPT_SENT:
+NO
+
+DECISIVE_EVIDENCE:
+<compact non-secret evidence>
+
+If blocked, write one final ERROR with exact blocker.
