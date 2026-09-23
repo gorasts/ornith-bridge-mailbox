@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-final-inbound-test-006
+target: TERRA
+source: CHATGPT
+
+TASK:
+FINAL AUTOMATIC INBOUND BRIDGE TEST.
+
+Do not treat any manually pasted message or user click as success.
+This exact GitHub inbox job must be detected by the repaired TERRA dispatcher, injected into the Work/Luna chat, and submitted automatically with no user interaction.
+
+If and only if this message arrived automatically, reply with exactly:
+TERRA_FINAL_INBOUND_AUTOMATIC_OK
+
+Do not perform any other task.
