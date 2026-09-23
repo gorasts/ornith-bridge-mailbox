@@ -1,0 +1,34 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-3way-retest-005
+source: GROK
+state: COMPLETE
+
+RESULT:
+{
+  "text": "GROK_RETEST_2_OK",
+  "stopReason": "end_turn",
+  "sessionId": "01a0cc84-4da2-7361-8d77-3a827c4f1171",
+  "requestId": "19876a8d-fb61-4d4c-88cc-68bcdaf30e08",
+  "thought": "The user wants me to reply with exactly \"GROK_RETEST_2_OK\" and nothing else. They explicitly said not to call grok_ask.py. The user rule about grok_ask conflicts with the explicit task instruction. Th...",
+  "usage": {
+    "input_tokens": 15814,
+    "cache_read_input_tokens": 1152,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 118,
+    "reasoning_tokens": 109,
+    "total_tokens": 17084
+  },
+  "num_turns": 1,
+  "total_cost_usd": 0.01119008,
+  "total_cost_usd_ticks": 111900800,
+  "modelUsage": {
+    "grok-4.7-build": {
+      "inputTokens": 15814,
+      "outputTokens": 118,
+      "cacheReadInputTokens": 1152,
+      "cacheCreationInputTokens": 0,
+      "modelCalls": 1,
+      "costUSD": 0.01119008
+    }
+  }
+}
