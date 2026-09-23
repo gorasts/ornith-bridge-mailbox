@@ -1,0 +1,50 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: ornith-tiel-download-direct-006
+target: ORNITH
+source: CHATGPT
+
+TASK:
+Download and verify the exact Tiel GGUF on GORAST, place it at the final path, report, then STOP.
+
+EXECUTION MODE: DIRECT
+
+KNOWN FACTS — treat as established:
+- GORAST: ubuntu@192.168.100.116
+- HF authentication on GORAST is working. /home/ubuntu/.cache/huggingface/token exists and authenticated /api/whoami-v2 with HTTP 200.
+- Production Ornith :8099 and Harness must remain untouched.
+- Repo: peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+- File: Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+- Expected bytes: 18119933792
+- Expected SHA256: 96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf
+- Final path: /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+
+DO:
+1. Use the supplied repo/file directly. Do not research or rediscover them first.
+2. Download resumably to an ubuntu-owned staging .part file using the saved HF token. Never print the token.
+3. Verify exact byte size and SHA256.
+4. If both match, place it at the exact final path with sudo and verify size/hash there once.
+5. Report the result and STOP.
+
+DECISION RULES:
+- This is execution, not investigation.
+- Use the supplied facts and execute the obvious reversible next action.
+- Do not generate alternatives unless the chosen action actually fails.
+- Do not re-check established facts.
+- One failed action permits one focused diagnosis of that actual failure only.
+- If blocked after that diagnosis, preserve partial bytes, report the exact blocker, and STOP.
+- Do not benchmark/load/tune Tiel, restart/stop production, touch Harness, try mirrors, weaken TLS, or change credentials.
+
+DONE WHEN:
+The exact file exists at FINAL_PATH and byte-size and SHA256 verification pass.
+
+RETURN:
+STATE
+DOWNLOADED_BYTES
+SHA256
+VERIFIED
+FINAL_PATH
+PRODUCTION_UNTOUCHED
+ERROR (only if any)
+NEXT_STEP
+
+Reason briefly, act quickly.
