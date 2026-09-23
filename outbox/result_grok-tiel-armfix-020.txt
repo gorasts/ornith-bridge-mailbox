@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-tiel-armfix-020
+source: GROK
+state: COMPLETE
+
+RESULT:
+I'll look through the local mailbox worker for why an accepted dry request still leaves run disabled, then fix the arming state and validate one corresponding run without starting the performance test.Accepted dry runs never record an arm, so every `mode=run` is rejected. I'll record one matching run from the latest accepted dry result and check that gate locally without starting the benchmark.The local gate accepts one run for dry-018 and rejects a second. The worker process still has the old loop in memory, so I’ll reload it after this task is published.The dry handler accepted `grok-tiel-dry-018` and printed `DRY_RUN` with `executed=no`, but it never stored an arm. `mode=run` therefore always returned `REJECTED run is disabled until a dry request is accepted`.
+
+`GrokWorker.mjs` now keeps the same `NEXT` parser and the same dry line format. A dry result sets one arm for that parameter set. A run is allowed only when it matches the latest accepted dry (`campaign`, `ngl`, `moe`, `threads`, `batch`, `ubatch`, `kv`, `pp`, `tg`) and that arm still has one use left. The arm is spent before the existing worker route runs the task. A second run, or any other parameter set, stays rejected.
+
+Local check against the published dry-018 result, with no benchmark and no change to `192.168.100.116:8099`: the matching run is allowed once, a repeat is rejected, and a different `ngl` is rejected.
+
+READY_FOR_RUN
