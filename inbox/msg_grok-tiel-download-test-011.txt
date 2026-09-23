@@ -1,0 +1,74 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-tiel-download-test-011
+target: GROK
+source: CHATGPT
+
+TASK:
+Take ownership of the Tiel model download + benchmark job. Work autonomously and conserve tokens: do not dump routine logs into chat/context; write detailed logs/results to files and report only decisive milestones, errors, and final measurements.
+
+TARGET MODEL:
+- Hugging Face repo: peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+- file: Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+- expected bytes: 18119933792
+- expected SHA256: 96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf
+- final GORAST path: /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+
+HOSTS:
+- XEON2 = Windows machine where you are running.
+- GORAST = Ubuntu host 192.168.100.116, user ubuntu.
+- Passwordless SSH is already configured from XEON2 using ~/.ssh/gorast_ed25519.
+- Hugging Face auth is already available on GORAST at /home/ubuntu/.cache/huggingface/token.
+
+CRITICAL SAFETY:
+- Production Ornith llama-server on GORAST :8099 MUST remain untouched. Do not stop, restart, reconfigure, kill, or replace it.
+- Do not modify the working TERRA/ORNITH/GROK bridge or wake system.
+- Use separate ports/processes/files for Tiel.
+- Verify model identity by original filename, byte size and SHA256. Do not rename a different model to fake identity.
+- Do not ask the user to paste routine outputs. Diagnose/fix issues yourself when safe.
+
+DOWNLOAD:
+1. First check whether the exact file already exists on XEON2 or GORAST and validate size/hash if present.
+2. If not valid/present, download directly on GORAST using the existing HF authentication, with resume support.
+3. Validate exact byte size and SHA256 after download.
+4. Avoid routing the 18 GB model through ChatGPT/GitHub/bridge.
+
+VISIBLE CONSOLE REQUIREMENT:
+The user wants to SEE the work. Open/use a dedicated visible PowerShell/terminal console on XEON2 for this job, titled clearly such as "GROK - TIEL DOWNLOAD & BENCH". It should continuously show concise live status: current phase, download progress/speed/ETA, validation, server startup, benchmark phase, PP/TG results, VRAM if available. Keep the console open at completion with a compact final summary. Do not rely only on hidden/background execution.
+
+BENCHMARK:
+After verified download, test Tiel without touching production Ornith. Inspect available llama.cpp binaries/options first and choose a compatible separate test server/port. We ultimately want a fair comparison on the user's multi-Vega setup. Start with a safe representative configuration based on the known working Ornith environment, but do not blindly assume Tiel accepts identical MTP/speculative flags—inspect model metadata/help and adapt.
+
+User priorities:
+- realistic long-context performance, not tiny toy prompts
+- TG512 for generation tests; do NOT use TG128 as a benchmark
+- minimum realistic Harness prompt is ~20K tokens; use >=20K for meaningful PP testing
+- collect prompt processing speed and TG512 generation speed
+- capture VRAM/headroom and useful GPU telemetry when available
+- avoid brute-force permutations; use smart coarse→refine testing and stop flat/dead branches
+- do not waste tokens by sending huge benchmark logs through Grok context; parse locally and summarize.
+
+For the first successful baseline, report at minimum:
+- exact model/hash/size
+- binary/build/backend used
+- exact command/config
+- context size
+- GPU placement/offload
+- PP token count and tok/s
+- TG512 tok/s
+- peak VRAM/headroom per relevant GPU if obtainable
+- crashes/errors/throttling
+- comparison against known Ornith reference where genuinely comparable.
+
+KNOWN ORNITH REFERENCE (do not disturb it):
+Production uses /opt/llama/llama-b10919/llama-server and Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf. A validated prior winner Q4_1/G5/NCM35 measured PP ~102.415 tok/s, TG512 ~14.5152 tok/s, VRAM peak ~7704.910 MiB. Treat this only as a reference; ensure Tiel test methodology is comparable before drawing conclusions.
+
+EXECUTION STYLE:
+- Be autonomous.
+- Prefer one bounded script/workflow over many interactive commands.
+- Print ETA before long phases in the visible console.
+- Save detailed logs locally.
+- If something fails, inspect the failure and retry/fix intelligently.
+- Do not declare success until the download is hash-verified and a real >=20K PP + TG512 test has completed.
+- If blocked by a genuinely unsafe/destructive decision, stop and report the exact blocker rather than touching production.
+
+When finished, publish a concise bridge result with final measurements and paths.
