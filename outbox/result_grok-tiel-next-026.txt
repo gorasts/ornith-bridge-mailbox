@@ -1,0 +1,20 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-tiel-next-026
+source: GROK
+state: COMPLETE
+
+RESULT:
+I'll look through the workspace for the previous Tiel result and how production Ornith is stopped and restored, then run one controlled follow-up.The previous candidate is `ngl=8`, `n-cpu-moe=35`, `threads=14`, `batch/ubatch=2048`, `kv=q4_1`. I'll snapshot the live Ornith process, stop it, then rerun that one bench.The same Tiel candidate finished once with production Ornith stopped. The visible console **GROK - TIEL FOLLOW-UP 026** is still open.
+
+**Candidate:** `tiel-opt` `ngl=8` `n-cpu-moe=35` `threads=14` `batch=2048` `ubatch=2048` `kv=q4_1` `pp=20480` `tg=512`  
+**Binary:** `/opt/llama/llama-b11054/llama-bench` build `7d4b92bb9` (11054), Vulkan, flash attention on, one repetition, no warmup  
+**Status:** `DONE exit=0` at 2026-09-23T10:54:33Z
+
+| measurement | value |
+| --- | ---: |
+| prompt pp20480 | 179.44 tok/s |
+| TG512 | 11.16 tok/s |
+| VRAM peak | 5159.7 MiB of 8176 MiB |
+| VRAM headroom at peak | 3016.3 MiB |
+
+The exact production process (pid 2515804, parent init, cwd `/home/ubuntu`) is saved at `/home/ubuntu/tiel-opt/prod-restore-026`, including the original null-separated argv and `restore.sh`. Port `:8099` is down and was not started again. With production holding the Vega, this same candidate measured pp20480 **39.79** tok/s and TG512 **4.61** tok/s. No sweep was started.
