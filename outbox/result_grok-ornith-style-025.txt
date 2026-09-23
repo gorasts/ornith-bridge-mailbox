@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-ornith-style-025
+source: GROK
+state: COMPLETE
+
+RESULT:
+I'll look through the workspace for the current Tiel bridge/runner issue and the next single test to run.The armed candidate is still the dry-024 fingerprint. I'll check the host and runner, then start that one bench.Production on port 8099 is still the same process, with about 470 MiB of VRAM free. I'll start one armed bench (`ngl=8`, `n-cpu-moe=35`) and leave that server alone.The armed dry-024 candidate ran once on GORAST. Production `llama-server` on `:8099` stayed up (pid 2515804).
+
+**Candidate:** `tiel-opt` `ngl=8` `n-cpu-moe=35` `threads=14` `batch=2048` `ubatch=2048` `kv=q4_1` `pp=20480` `tg=512`  
+**Binary:** `/opt/llama/llama-b11054/llama-bench` build `7d4b92bb9` (11054), Vulkan, flash attention on, one repetition, no warmup  
+**Exit:** 0 at 2026-09-23T10:45:01Z. The one-shot arm is now spent (`remaining=0`).
+
+| test | tok/s |
+| --- | ---: |
+| pp20480 | 39.79 ± 0.00 |
+| tg512 | 4.61 ± 0.00 |
+
+CPU baseline from the same file (`ngl=0`, `t=4`, `b/ub=512`) was pp20480 **23.33** tok/s and tg512 **5.83** tok/s. This pass is faster on prompt and slower on generation.
