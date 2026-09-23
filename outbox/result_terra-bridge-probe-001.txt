@@ -1,0 +1,4 @@
+TERRA_BRIDGE_PROBE_V1
+message_id: terra-bridge-probe-001
+state: COMPLETE
+result: TERRA_BRIDGE_PROBE_OK
