@@ -1,0 +1,103 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: ornith-tiel-download-direct-006
+source: ORNITH
+state: COMPLETE
+
+RESULT:
+Let me execute this. I need to SSH to GORAST (ubuntu@192.168.100.116) and download the GGUF file. Let me set up the command.
+
+Since approval policy is now "never" and sandbox is danger-full-access, I can use sandbox_permissions if needed but I shouldn't request them. Let me just run the SSH command.
+
+Let me write a script that:
+1. Downloads resumably with resume support using the HF token
+2. Verifies byte size and SHA256
+3. Moves to final path
+4. Verifies there
+
+Let me be careful to never print the token.
+
+Let me construct a single SSH command that does everything. Actually let me do it in stages to be safe, but the task says act quickly. Let me write a bash script via SSH.
+
+The download from HuggingFace: the URL format is https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP/resolve/main/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+
+Using the token: -H "Authorization: Bearer $HF_TOKEN"
+
+Let me write the whole thing as one remote script to preserve partial bytes and avoid printing token.
+
+Let me do this carefully. I'll pipe a heredoc to ssh.
+
+Command approach:
+
+```
+ssh ubuntu@192.168.100.116 'bash -s' <<'EOF'
+set -e
+TOKEN_FILE=/home/ubuntu/.cache/huggingface/token
+export HF_TOKEN=$(cat "$TOKEN_FILE")
+REPO=peculiar-ragdoll/Tiel-Coder-35B-GGUF-MTP
+...
+EOF
+```
+
+Wait, the repo is `peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP`. The URL resolve path: https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP/resolve/main/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+
+Let me write the script. Use curl with resume: -C -
+
+```bash
+set -e
+HF_TOKEN=$(cat /home/ubuntu/.cache/huggingface/token)
+FINAL=/opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+STAGE=/home/ubuntu/.cache/tiel/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf.part
+mkdir -p /home/ubuntu/.cache/tiel
+URL="https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP/resolve/main/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf"
+curl -fL -C - -H "Authorization: Bearer $HF_TOKEN" -o "$STAGE" "$URL"
+BYTES=$(stat -c %s "$STAGE")
+echo "BYTES=$BYTES"
+SHA=$(sha256sum "$STAGE" | cut -d' ' -f1)
+echo "SHA=$SHA"
+```
+
+Then if matches, move with sudo. But the .part is ubuntu-owned and final is /opt which needs sudo. So I need to cp with sudo then verify there. Actually I can't sudo-move an ubuntu file easily — sudo cp would work but ownership would be root. Actually final path just needs the file to exist; ownership may not matter but let's do sudo cp.
+
+But doing it all in one script with set -e and conditionals is cleaner. However, the task says preserve partial bytes on failure. Let me handle: if verify fails, don't move, just report.
+
+Let me write:
+
+```bash
+set -u
+HF_TOKEN=$(cat /home/ubuntu/.cache/huggingface/token)
+FINAL=/opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+STAGE=/home/ubuntu/.cache/tiel/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf.part
+mkdir -p /home/ubuntu/.cache/tiel
+URL="https://huggingface.co/peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP/resolve/main/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf"
+curl -fL -C - -H "Authorization: Bearer $HF_TOKEN" -o "$STAGE" "$URL"
+BYTES=$(stat -c %s "$STAGE")
+SHA=$(sha256sum "$STAGE" | cut -d' ' -f1)
+if [ "$BYTES" = "18119933792" ] && [ "$SHA" = "96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf" ]; then
+  sudo mkdir -p /opt/tiel-models
+  sudo cp "$STAGE" "$FINAL"
+  FBYTES=$(stat -c %s "$FINAL")
+  FSHA=$(sudo sha256sum "$FINAL" | cut -d' ' -f1)
+  echo "RESULT=OK"
+  echo "FINAL_BYTES=$FBYTES"
+  echo "FINAL_SHA=$FSHA"
+else
+  echo "RESULT=VERIFY_FAILED"
+fi
+echo "BYTES=$BYTES"
+echo "SHA=$SHA"
+```
+
+This keeps partial bytes at STAGE. Good.
+
+But wait — I should be careful: production :8099 must remain untouched. I'm not touching it. Good.
+
+Let me run this. It might take a while for 18GB. I should run in background and poll. Actually let me just run it foreground with a longer timeout. 18GB download could take several minutes. Let me run in background to be safe, then poll.
+
+Actually, let me run it in background and check. Let me set a generous timeout. Given uncertainty, background is safer. Let me run in background.
+
+Actually the tool has run_in_background option. Let me use that with a job id, then poll with job_output.
+
+Let me do it.
+
+DURABLE_ASSISTANT_SEQ:
+57
