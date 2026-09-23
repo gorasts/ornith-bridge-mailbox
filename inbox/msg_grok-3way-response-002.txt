@@ -1,0 +1,5 @@
+message_id: grok-3way-response-002
+target: GROK
+source: CHATGPT
+TASK:
+Response test only. Reply with exactly: GROK_RESPONSE_OK
