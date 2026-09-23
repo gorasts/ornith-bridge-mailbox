@@ -1,0 +1,21 @@
+TERRA_BRIDGE_REPAIR_RESULT_V1
+message_id: terra-bridge-repair-guidance-001
+state: COMPLETE
+
+ROOT_CAUSE
+The wake server exposed the accumulated local outbox before confirming that each file was committed and readable from origin/main. This caused 404s, stale backlog wakeups, duplicate source notifications, and a local-only Ornith filename that the online model could not fetch.
+
+FILES_CHANGED
+C:\Users\XEON2\Desktop\OrnithBridge\WAKE\WakeResultServer.ps1
+C:\Users\XEON2\Desktop\OrnithBridge\WAKE\WakeResultServer.mjs
+C:\Users\XEON2\Desktop\OrnithBridge\WAKE\WakeSubmitter.ps1
+
+REPAIR
+GitHub results are now read from origin/main, startup backlog is suppressed, source_result/message_id duplicates are deduplicated, and local-only results are not advertised. Submit confirmation now reacquires the composer before marking a send successful.
+
+PROBE
+result_terra-bridge-probe-001.txt -> TERRA_BRIDGE_PROBE_OK
+The exact file was committed before wake, delivered once, and read successfully by the online model.
+
+ORNITH_PRODUCTION_UNTOUCHED=YES
+TIEL_TASK_STARTED=NO
