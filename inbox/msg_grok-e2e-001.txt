@@ -1,0 +1,5 @@
+message_id: grok-e2e-001
+target: GROK
+source: CHATGPT
+TASK:
+Reply with exactly: GROK_BRIDGE_E2E_OK
