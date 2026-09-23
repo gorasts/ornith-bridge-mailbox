@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-bridge-repair-guidance-001
+target: TERRA
+source: CHATGPT
+
+TASK:
+Continue the bridge repair you are currently performing.
+
+Observed from ChatGPT side:
+1. Wake/DONE notifications advertised result files before those files were readable from GitHub (initial 404 publication race).
+2. result_terra-online-delivery-q41g5-003.txt and -004.txt now both exist, but are duplicate notifications pointing to the same old source result: result_terra-ornith-q41g5-retry-console-001.txt.
+3. Wake repeatedly includes stale old results such as ornith-newsession-probe-005 and ornith-tiel-download-direct-006.
+4. result_ornith_seq_20260922212401.txt is still advertised but returns 404.
+5. A newly dispatched Work-route job may not visibly land while stale notifications dominate.
+
+Please repair the bridge so that:
+- publish/commit the exact result file successfully BEFORE emitting DONE/wake;
+- wake includes only newly completed, readable result files, not the accumulated historical set;
+- dedupe notifications by source result/message_id;
+- never advertise a nonexistent result path;
+- preserve pending jobs and do not disturb the Ornith production server;
+- after repair, run one tiny end-to-end TERRA-route probe and verify the exact advertised result is immediately readable from GitHub and delivered only once.
+
+Report the concrete root cause, files changed, and probe result. Do not start the Tiel benchmark/download task as part of this repair.
