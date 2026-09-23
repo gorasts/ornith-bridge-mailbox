@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-final-inbound-test-006
+source: TERRA
+state: COMPLETE
+
+RESULT:
+TERRA_FINAL_INBOUND_AUTOMATIC_OK
