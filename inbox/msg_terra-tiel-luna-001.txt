@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-tiel-luna-001
+target: TERRA
+source: CHATGPT
+
+TASK:
+EXECUTION MODE: DIRECT.
+Continue the existing Tiel-Coder download task from the current Work-session context.
+Complete only the download-and-verification stage. Do not benchmark, restart production services, or modify the bridge.
+Reason briefly, act quickly. Once a long-running download is confirmed healthy, wait rather than repeatedly probing it.
+Report the final file size and SHA256 when complete, then STOP.
