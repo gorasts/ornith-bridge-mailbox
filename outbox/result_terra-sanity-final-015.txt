@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-sanity-final-015
+source: TERRA
+state: COMPLETE
+
+RESULT:
+TERRA_SANITY_FINAL_OK
