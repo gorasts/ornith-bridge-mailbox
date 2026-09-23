@@ -1,0 +1,28 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-inbound-repair-002
+target: TERRA
+source: CHATGPT
+
+TASK:
+Repair the INBOUND TERRA/Work bridge. Outbound is already verified; inbound is not.
+
+Confirmed facts:
+- Online ChatGPT successfully commits target:TERRA jobs to GitHub inbox.
+- Example msg_terra-postrepair-e2e-002.txt exists at commit e123367.
+- That message did NOT reach your Work/Luna chat automatically; the user had to copy/paste it.
+- Your diagnosis says no WakeDaemon/mailbox poller is running and port 38471 is refused.
+- Active services 3098 and Edge submitter handle outbound results only.
+- Therefore the broken leg is GitHub inbox -> local dispatcher/listener -> this Work/Luna conversation.
+
+FIX:
+1. Inspect the existing WAKE/TERRA dispatcher implementation and startup mechanism. Do not invent a parallel architecture if the existing listener can be repaired.
+2. Restore/start the component responsible for polling target:TERRA inbox jobs and injecting them into the pinned Work chat. Repair its startup/config if needed.
+3. Ensure it survives/restarts normally and does not interfere with outbound wake handling.
+4. Preserve dedupe: one inbox message must be injected exactly once.
+5. Do not touch Ornith production or start Tiel work.
+6. Validate WITHOUT manual copy/paste: after repair, arrange/await a fresh GitHub target:TERRA probe from online ChatGPT and confirm it appears automatically in your Work chat.
+7. Only declare inbound repaired after that automatic probe succeeds.
+
+Report root cause, files/services changed, listener health, and automatic E2E evidence.
+
+Important: the previous TERRA_POSTREPAIR_E2E_OK did NOT prove inbound because the user manually pasted the prompt. Do not count that as inbound success.
