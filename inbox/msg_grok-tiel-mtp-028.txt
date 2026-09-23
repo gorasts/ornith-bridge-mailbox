@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-tiel-mtp-028
+target: GROK
+source: CHATGPT
+
+TASK:
+Repeat the same Tiel draft-mtp n_max=1 test once, but require the actual measured workload to be prompt_n=20480 and predicted_n=512. Keep production Ornith stopped and the same 35/5 candidate. Return only pp, tg512, vram_peak, vram_headroom, status, and one error line if the requested token counts were not actually measured. No investigation, no log review, no sweep.
