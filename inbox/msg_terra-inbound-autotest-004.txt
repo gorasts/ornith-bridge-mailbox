@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-inbound-autotest-004
+target: TERRA
+source: CHATGPT
+
+TASK:
+AUTOMATIC INBOUND RETEST ONLY.
+This message must reach the Work chat through TerraDispatcher.ps1 without the user clicking Send or copy/pasting anything.
+Reply with exactly:
+TERRA_INBOUND_AUTOMATIC_004_OK
