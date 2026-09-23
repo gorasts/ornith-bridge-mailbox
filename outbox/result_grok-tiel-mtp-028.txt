@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-tiel-mtp-028
+source: GROK
+state: COMPLETE
+
+RESULT:
+ETA about 10 minutes. I'll rerun the same Tiel draft-mtp n_max=1 measurement with prompt_n=20480 and predicted_n=512, production Ornith left stopped, and report only the requested fields.The last draft-mtp pass did not measure 20480/512. ETA about 15 minutes for one rerun on the same 35-MoE candidate, with production left stopped.One draft-mtp pass finished on GORAST. Production port 8099 was down and was left down. The server was `llama-b11054` with the same candidate (`ngl=8`, `n-cpu-moe=35`, `q4_1`, batch 2048), `--spec-type draft-mtp --spec-draft-n-max 1`. The prompt was trimmed to 20480 tokens and generation used `n_predict=512` with EOS ignored. The server timings were `prompt_n=20480` and `predicted_n=512`. The bench server was stopped afterward.
+
+pp=225.76
+tg512=6.26
+vram_peak=3945.3MiB
+vram_headroom=4230.7MiB
+status=ok
