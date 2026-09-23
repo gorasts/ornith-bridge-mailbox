@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-tiel-mtp-027
+source: GROK
+state: COMPLETE
+
+RESULT:
+mtp_active=yes
+spec_mode=draft-mtp
+n_max=1
+pp=167.44
+tg512=5.98
+vram_peak=unknown
+vram_headroom=unknown
+status=fail
+error=measured prompt_n=2048 predicted_n=247, not the requested 20480 and 512
