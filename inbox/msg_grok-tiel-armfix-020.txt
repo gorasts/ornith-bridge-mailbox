@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-tiel-armfix-020
+target: GROK
+source: CHATGPT
+
+TASK:
+The dry request grok-tiel-dry-018 was accepted and returned DRY_RUN executed=no with the requested parameters. The following grok-tiel-run-019 was rejected because the worker still says run is disabled until a dry request is accepted. Fix this local arming/state issue now. Preserve the short declarative NEXT format and existing routes. After fixing it, validate locally that the already accepted dry request arms one corresponding run request, without starting the performance test during validation. Return READY_FOR_RUN when mode=run can execute exactly one candidate safely.
