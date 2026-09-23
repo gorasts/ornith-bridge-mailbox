@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-route-016
+target: GROK
+source: CHATGPT
+
+TASK:
+Reply with exactly: GROK_ROUTE_OK
