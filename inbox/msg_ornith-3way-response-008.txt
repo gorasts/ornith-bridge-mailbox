@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: ornith-3way-response-008
+target: ORNITH
+source: CHATGPT
+
+TASK:
+Response test only. Do not use tools. Reply with exactly:
+ORNITH_RESPONSE_OK
