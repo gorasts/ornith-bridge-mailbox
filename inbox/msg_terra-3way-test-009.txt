@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-3way-test-009
+target: TERRA
+source: CHATGPT
+
+TASK:
+Response test only. Reply with exactly:
+TERRA_TEST_OK
