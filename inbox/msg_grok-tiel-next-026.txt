@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-tiel-next-026
+target: GROK
+source: CHATGPT
+
+TASK:
+Run one controlled Tiel follow-up: preserve the exact production Ornith server state so it can be restored later, stop production to free the Vega, then rerun the same Tiel candidate from the previous result so we can isolate GPU contention. Use a visible console for the test and leave it visible while it runs. Return the measured prompt speed, TG512 speed, VRAM use/headroom, and status. Do not start a sweep.
