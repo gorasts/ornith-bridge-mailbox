@@ -1,0 +1,5 @@
+message_id: grok-sanity-final-010
+target: GROK
+source: CHATGPT
+TASK:
+Final sanity response test only. Reply with exactly: GROK_SANITY_FINAL_OK
