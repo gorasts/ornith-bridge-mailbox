@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-ornith-style-025
+target: GROK
+source: CHATGPT
+
+TASK:
+Continue the Tiel optimization work autonomously using your local tools and environment. Resolve the current bridge/runner issue, run the next appropriate single test, and return the measured result so I can choose the following test. Do not wait for further instructions if you can resolve an implementation detail locally.
