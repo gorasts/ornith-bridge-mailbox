@@ -1,0 +1,25 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-tiel-download-test-011
+source: GROK
+state: COMPLETE
+
+RESULT:
+I'll take the Tiel download and benchmark on GORAST without touching the production Ornith server, and keep a visible console on this machine for live status. First I'll check whether the exact file is already present and which llama.cpp binaries are available.A resume download is already running on GORAST (about half of 18.1 GB). I'll attach a visible console to it and let that job finish hash verification before any benchmark. Production on port 8099 stays untouched.Hash matches and the CPU baseline finished. Production on port 8099 is still the original process. I'll write the measurements to the bridge outbox.The Tiel file is hash-verified on GORAST, and a real 20K-prompt plus TG512 baseline finished. Production Ornith on port 8099 was left running (pid 2515804, same `llama-b10919` command).
+
+**Model**
+- Path: `/opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf`
+- Size: `18119933792` bytes
+- SHA256: `96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf`
+- GGUF: qwen35moe 35.51B IQ4_XS, context 262144, 41 blocks, 256 experts / 8 used, `nextn_predict_layers=1` (4 MTP tensors on `blk.40.nextn`)
+- Metadata `general.name` is `Ornith-1.5-35B`. Filename, size, and SHA256 still match the requested Tiel file.
+
+**Baseline** (CPU only; the only Vega had 338 MiB free of 8192 MiB while Ornith held ~7708 MiB, so GPU offload was not started)
+- Binary: `/opt/llama/llama-b11054/llama-bench` build `7d4b92bb9` (11054), Vulkan+CPU backends loaded, `ngl 0`
+- Command: `nice -n 19 llama-bench -m <file> -p 20480 -n 512 -r 1 -ngl 0 -fa on -ctk q4_1 -ctv q4_1 -b 512 -ub 512 -t 4 --no-warmup --progress -o md`
+- **PP20480: 23.33 tok/s**
+- **TG512: 5.83 tok/s**
+- Exit 0. No crash, no abort. VRAM stayed at the production footprint (max ~7713 MiB). MemAvailable stayed above ~15.3 GiB.
+
+**Comparison:** the Ornith reference (PP ~102.4 tok/s, TG512 ~14.5 tok/s) used GPU offload (`ngl 99`, `n-cpu-moe 35`, draft MTP) on that same Vega. This Tiel run is 4 CPU threads with no GPU layers, so it is not a like-for-like GPU comparison. `lspci` shows one Vega, not a multi-GPU set.
+
+The visible console **GROK - TIEL DOWNLOAD & BENCH** is still open. Bridge result: `OUTBOX/result_tiel-coder-baseline.txt`. Detailed logs: `/home/ubuntu/tiel-job/` on GORAST.
