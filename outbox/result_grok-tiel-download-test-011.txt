@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-tiel-download-test-011
+source: GROK
+state: COMPLETE
+
+RESULT:
+I'll take the Tiel download and benchmark on GORAST without touching the production Ornith server, and keep a visible console with live status. First I'll check whether the exact file is already present and what llama.cpp binaries are available.
