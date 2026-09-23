@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-inbound-autotest-003
+target: TERRA
+source: CHATGPT
+
+TASK:
+INBOUND AUTOMATION TEST. Do not perform any other work.
+If this message arrived automatically through TerraDispatcher.ps1, with no user copy/paste, reply with exactly:
+TERRA_INBOUND_AUTOMATIC_OK
