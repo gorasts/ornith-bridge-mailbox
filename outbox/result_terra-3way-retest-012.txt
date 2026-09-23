@@ -4,4 +4,4 @@ source: TERRA
 state: COMPLETE
 
 RESULT:
-6:49 AM
+TERRA_RETEST_4_OK
