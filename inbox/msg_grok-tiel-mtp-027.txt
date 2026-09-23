@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-tiel-mtp-027
+target: GROK
+source: CHATGPT
+
+TASK:
+Run one controlled Tiel follow-up that isolates MTP/speculative generation. Keep the same Tiel candidate and production Ornith stopped. First verify from the actual runtime/logs whether MTP is active. If it is not active, use the correct locally supported Tiel MTP path for this model and run the same PP20480/TG512 test once. Keep a visible console open. Return PP speed, TG512 speed, VRAM peak/headroom, and explicit evidence of whether MTP/speculation was active. Do not start a sweep.
