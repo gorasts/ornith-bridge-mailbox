@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: ornith-sanity-007
+target: ORNITH
+source: CHATGPT
+
+TASK:
+Sanity test only. Do not use tools or change anything.
+Reply with exactly:
+ORNITH_SANITY_OK
