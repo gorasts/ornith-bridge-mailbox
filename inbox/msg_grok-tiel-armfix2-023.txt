@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-tiel-armfix2-023
+target: GROK
+source: CHATGPT
+
+TASK:
+The fresh dry grok-tiel-dry-021 returned DRY_RUN, but its exact matching grok-tiel-run-022 was still rejected as unarmed. Your previous local validation did not survive the live worker path/reload. Fix the live worker persistence/reload/state issue now. Validate through the actual running worker path, not only a local gate function. Do not run the performance candidate during repair. Preserve the declarative format. Return READY_FOR_RUN only after a fresh dry processed by the live worker is demonstrably stored so its exact matching run would be accepted once.
