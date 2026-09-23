@@ -1,32 +1,28 @@
-ORNITH_BRIDGE_V1
+ORNITH_BRIDGE_MESSAGE_V1
 message_id: ornith-tiel-download-002
 target: ORNITH
 source: CHATGPT
-priority: normal
 
-OBJECTIVE:
-Download and verify ONLY the exact Tiel GGUF on GORAST. This is one short-horizon task. Do not benchmark, load, tune, stop/restart Ornith production, or modify Harness.
+TASK:
+One objective only: download and verify the exact Tiel GGUF on GORAST, then STOP.
 
-KNOWN STATE:
-- GORAST: ubuntu@192.168.100.116
-- HF authentication on GORAST has just been verified working: /home/ubuntu/.cache/huggingface/token exists and authenticated /api/whoami-v2 with HTTP 200.
-- Staging dirs from prior prep may already exist.
-- Production Ornith :8099 must remain untouched.
-- Exact target:
-  repo peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
-  file Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
-  expected bytes 18119933792
-  expected SHA256 96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf
-  final path /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+GORAST: ubuntu@192.168.100.116
+HF auth is now working on GORAST. /home/ubuntu/.cache/huggingface/token exists; authenticated /api/whoami-v2 returned HTTP 200. Never print/log the token.
+Production Ornith :8099 and the existing Harness session MUST remain untouched.
 
-METHOD:
-1. Confirm HF auth non-destructively without printing the token.
-2. Download resumably to an ubuntu-owned staging .part file. Use Authorization from the saved token without echoing/logging the token.
-3. On completion verify byte size AND SHA256.
-4. ONLY if both match, atomically move/copy with sudo into the exact final path and verify final size/hash again.
-5. If auth/download/hash/size fails, STOP and report the exact failure. Preserve resumable partial bytes. Do not improvise mirrors, credentials, TLS changes, model runs, or benchmarks.
+Exact artifact:
+repo: peculiar-ragdoll/Tiel-Coder-35B-A3B-GGUF-MTP
+file: Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
+expected bytes: 18119933792
+expected SHA256: 96b4c5430b5a693447a0aafce58840466829e1788e46fc037b23dfbafab009bf
+final path: /opt/tiel-models/Tiel-Coder-35B-A3B-MTP-UD-IQ4_XS.gguf
 
-RETURN:
-Write the normal bridge result for message_id ornith-tiel-download-002 with concise fields:
+Use a resumable download to an ubuntu-owned staging .part file, authenticated using the saved HF token. Preserve partial bytes on failure. When complete, verify BOTH exact byte size and SHA256. ONLY if both match, use sudo to place it at the exact final path and verify final size/hash again.
+
+Do NOT benchmark, load Tiel, tune settings, restart/stop production, touch Harness, try mirrors, weaken TLS, or change credentials.
+
+If anything fails: STOP and report the exact blocker.
+If verified placement succeeds: STOP and report success.
+
+Return the normal bridge result for this SAME message_id with:
 STATE, HF_AUTH, DOWNLOADED_BYTES, SHA256, VERIFIED, FINAL_PATH, PRODUCTION_UNTOUCHED, NEXT_STEP.
-STOP immediately after verified placement or blocker report.
