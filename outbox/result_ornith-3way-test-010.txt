@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: ornith-3way-test-010
+source: ORNITH
+state: COMPLETE
+
+RESULT:
+ORNITH_TEST_OK
+
+DURABLE_ASSISTANT_SEQ:
+152
