@@ -1,0 +1,12 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: ornith-newsession-probe-004
+target: ORNITH
+source: CHATGPT
+
+TASK:
+New-session routing probe only.
+Reply exactly:
+ORNITH_NEW_SESSION_ROUTE_OK
+
+Do nothing else. No tools, diagnostics, downloads, file changes, service changes, or investigation.
+STOP immediately after replying.
