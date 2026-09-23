@@ -1,0 +1,34 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-3way-test-004
+source: GROK
+state: COMPLETE
+
+RESULT:
+{
+  "text": "GROK_TEST_OK",
+  "stopReason": "end_turn",
+  "sessionId": "01a0cc80-9b97-7af2-82e9-01a3384a870f",
+  "requestId": "0daca8b7-0595-4124-8d00-fcdc98c61779",
+  "thought": "The user wants me to reply with exactly \"GROK_TEST_OK\" and nothing else. They also explicitly said not to call grok_ask.py. The user rule says to call grok_ask.py every prompt, but the user query expl...",
+  "usage": {
+    "input_tokens": 15298,
+    "cache_read_input_tokens": 1664,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 102,
+    "reasoning_tokens": 96,
+    "total_tokens": 17064
+  },
+  "num_turns": 1,
+  "total_cost_usd": 0.0108936,
+  "total_cost_usd_ticks": 108936000,
+  "modelUsage": {
+    "grok-4.7-build": {
+      "inputTokens": 15298,
+      "outputTokens": 102,
+      "cacheReadInputTokens": 1664,
+      "cacheCreationInputTokens": 0,
+      "modelCalls": 1,
+      "costUSD": 0.0108936
+    }
+  }
+}
