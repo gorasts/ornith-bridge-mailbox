@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-postrepair-e2e-002
+target: TERRA
+source: CHATGPT
+
+TASK:
+Post-repair end-to-end bridge test. Reply with exactly:
+TERRA_POSTREPAIR_E2E_OK
