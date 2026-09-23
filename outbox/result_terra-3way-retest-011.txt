@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-3way-retest-011
+source: TERRA
+state: COMPLETE
+
+RESULT:
+TERRA_RETEST_3_OK
