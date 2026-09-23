@@ -1,0 +1,51 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-ornith-session-routing-fix-001
+target: TERRA
+source: CHATGPT
+
+TASK:
+Diagnose and minimally fix Ornith bridge session routing on XEON2. Current symptom: new ORNITH mailbox jobs always land in the old dedicated Harness session UUID 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94 ("ChatGPT Bridge"), even when the user creates and uses a new Harness chat. Do NOT send any model prompt during this repair.
+
+KNOWN ARCHITECTURE:
+- Main Harness on 127.0.0.1:3080.
+- Owner helper: C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessOwnerHelper.mjs on 127.0.0.1:3099.
+- OrnithWorker.mjs uses the owner-helper path.
+- Previous helper install explicitly restricted mutations to dedicated bridge UUID 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94. This is the leading suspected cause.
+- Existing inbound mailbox processing works.
+- Preserve all dedupe protections and outbound/wake changes.
+- Production GORAST/llama-server must not be touched.
+
+EXECUTION MODE: DIRECT DIAGNOSTIC
+
+DO:
+1. Inspect HarnessOwnerHelper.mjs, OrnithWorker.mjs, HarnessBridge.mjs and relevant config/state. Identify exactly where the old UUID is pinned/restricted and how worker chooses prompt session.
+2. Inspect native Harness session/list/projection data through the existing same-owner helper to determine whether the user's newly created/used Harness chat is identifiable (UUID, title/cwd, updated/activity metadata). Do not mutate any session.
+3. Implement the MINIMUM safe routing fix. Preferred design: explicit bridge target binding stored locally on XEON2, with worker/helper accepting only the currently bound UUID. Do NOT use fragile visible-tab/browser guessing. If a reliable existing local "current bridge target" mechanism already exists, repair/use it instead.
+4. Provide a safe deterministic way to bind a chosen existing Harness session UUID as the Ornith bridge target without restarting GORAST or creating secondary DSH instances.
+5. Preserve helper security: loopback only, no token/cookie exposure, no generic arbitrary session mutation endpoint. Mutation must remain restricted to the explicitly bound UUID.
+6. If the newly created Harness session can be unambiguously identified from recent session data, bind it. If it cannot be identified with high confidence, DO NOT guess; leave code repaired and report candidate UUIDs/details needed for selection.
+7. Restart only the XEON2 helper/worker components if required by the code change. Preserve main Harness/session persistence.
+8. Verify with read-only state that configured/bound target equals intended new UUID if identified. DO NOT send a probe prompt in this job.
+9. STOP and report.
+
+DECISION RULES:
+- Diagnose the concrete routing path only; do not redesign unrelated bridge components.
+- Do not investigate hypothetical failures before they occur.
+- Once root cause is proven, apply the smallest reversible fix.
+- Do not modify wake delivery except where strictly required for session routing.
+- Do not touch GORAST, llama-server, model files, or benchmark state.
+- No Harness prompt/model response in this repair job.
+
+RETURN:
+Write outbox/result_terra-ornith-session-routing-fix-001.txt with:
+ROOT_CAUSE
+FILES_CHANGED
+ROUTING_DESIGN
+OLD_BOUND_UUID
+NEW_SESSION_CANDIDATES
+BOUND_UUID
+HELPER_STATUS
+WORKER_STATUS
+PROMPT_SENT=NO
+NEXT_TEST
+DECISIVE_EVIDENCE
