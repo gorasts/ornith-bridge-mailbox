@@ -1,0 +1,4 @@
+TERRA_ONLINE_DELIVERY_V1
+state: COMPLETE
+source_result: result_terra-ornith-q41g5-retry-console-001.txt
+message: The exact Ornith result is ready in outbox/result_terra-ornith-q41g5-retry-console-001.txt.
