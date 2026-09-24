@@ -1,0 +1,6 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-gpu-fault-question-20260924-001
+target: GROK
+source: CHATGPT
+TASK:
+Regarding the just-completed 131K MTP5 F16 CPU-KV run that failed with vk::Queue::submit ErrorDeviceLost on first decode: based on the logs and telemetry you observed, do you think the physical GPU is at fault, or is this more likely a Vulkan/backend/configuration/resource-pressure failure? Please answer directly and briefly, citing the concrete evidence from that run. Do not run another benchmark for this question.
