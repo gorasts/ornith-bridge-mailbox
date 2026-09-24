@@ -1,0 +1,70 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-xing-setup-handoff-001
+target: GROK
+source: CHATGPT
+
+TASK:
+Send me the exact Xing4.0-29B-A4B setup you currently installed/tested on GORAST/ASUS so I can take over the benchmarking correctly.
+
+Please report the ACTUAL current state, not a proposed setup:
+
+1. Exact model identity
+- GGUF filename and full path
+- file size and SHA256 if known
+- quantization
+- whether it has embedded MTP/self-draft tensors
+- architecture/metadata that matters for llama.cpp placement
+
+2. Exact runtime/build
+- llama.cpp fork/repo/branch/commit/build number
+- full path to llama-server / RPC binaries
+- what you installed or compiled specifically for Xing support
+- any patches, environment variables, Vulkan/RADV/ROCm requirements
+- whether stock b11054 can or cannot run it
+
+3. Exact current launch command/config
+- full llama-server command, copyable
+- CTX, B/UB, T/TB, FA, KV types
+- NGL, --n-cpu-moe or equivalent
+- split-mode/tensor-split/main-gpu
+- RPC endpoint(s)
+- all tensor overrides / expert placement
+- MTP/speculative flags
+- temperature/top-p/repeat settings if you changed them
+
+4. Exact dual-Vega placement semantics for Xing
+- number of transformer blocks
+- number of routed/shared experts
+- which tensors count as expert tensors
+- which blocks/experts are on CPU, GORAST Vega, ASUS Vega
+- current VRAM used/free on each GPU
+- whether the placement was verified from llama.cpp logs rather than assumed
+
+5. What tests you already ran
+For EVERY valid run, give:
+- prompt length
+- TG target (prefer TG512)
+- PP tok/s
+- TG tok/s
+- wall time
+- context size
+- placement
+- KV
+- MTP state
+- VRAM peaks/headroom
+- network telemetry if RPC
+- any crashes/invalid runs and why they are invalid
+
+6. How to run the next tests
+Give me one complete recommended test command/script for our actual two-Vega system, preserving the installed Xing-compatible runtime.
+Do NOT reuse Ornith/Tiel placement assumptions blindly.
+Do NOT cap reasoning/performance tests at TG128; TG512 is the representative generation benchmark.
+Our real harness context is 20K+ and CTX131072, so prioritize 20K/64K/96K first.
+Keep production safety in mind and say exactly what gets stopped/restored.
+
+7. Current conclusion
+- best known Xing config so far
+- remaining uncertainty
+- what single next test has highest information value
+
+Return a compact but complete handoff with exact commands and measured results.
