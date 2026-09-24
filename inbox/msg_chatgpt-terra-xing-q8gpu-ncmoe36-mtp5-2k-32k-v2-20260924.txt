@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-xing-q8gpu-ncmoe36-mtp5-2k-32k-v2-20260924
+target: TERRA
+source: CHATGPT
+
+TASK:
+Read and execute the exact prepared task file:
+prepared/chatgpt-terra-xing-q8gpu-ncmoe36-mtp5-2k-32k-v2-20260924.txt
+
+Do not use or infer instructions from any earlier benchmark message. Treat that prepared file as the complete authoritative task. Do not change benchmark parameters. Return the consolidated result through the normal outbox path.
