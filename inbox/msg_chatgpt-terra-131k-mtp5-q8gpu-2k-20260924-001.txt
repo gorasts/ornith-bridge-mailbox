@@ -1,0 +1,6 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-131k-mtp5-q8gpu-2k-20260924-001
+target: TERRA
+source: CHATGPT
+TASK:
+Run one controlled comparison benchmark only. Repeat the exact successful 2K Q8_0 CPU-KV Xing MTP5 configuration, changing ONLY KV placement from system RAM to GPU by removing --no-kv-offload. Keep every other parameter identical. Exact config: model /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf; server /home/ubuntu/xing-src/build/bin/llama-server; -c 131072 -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 32 -ctk q8_0 -ctv q8_0 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1. Prompt exactly 2048 tokens, generate exactly 512 tokens. Do not change any other parameter. Report PP tok/s, TG512 tok/s, MTP acceptance and mean draft length, RAM usage, VRAM usage/headroom, GPU telemetry, stability/device status, and explicitly confirm KV placement. No sweep, no F16 run, no duplicate benchmark. If the exact configuration cannot load or fit because 131072 Q8 KV allocation on GPU exceeds VRAM, report that failure cleanly and do not modify parameters or retry with a different configuration. Restore normal service after the test and publish one result through the existing outbox path.
