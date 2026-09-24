@@ -1,0 +1,28 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-xing4-131k-q8-mtp345-038
+source: GROK
+state: COMPLETE
+
+RESULT:
+status=fail
+attempts=1
+stopped_before=mtp4 and mtp5 were not started
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags=-ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -ctk q8_0 -ctv q8_0 -c 131072 -np 1 --spec-type draft-mtp --spec-draft-n-max 3 --spec-draft-n-min 1
+ngld=not set
+mtp_active=yes
+proof=server log: creating MTP draft context against the target model
+kv_log=load_model initializing n_slots=1 n_ctx_slot=131072 kv_unified=false
+prompt_n=2048 requested, not completed
+predicted_n=512 requested, not completed
+pp=not measured
+tg512=not measured
+vram_total=8573157376
+vram_after_load=8024514560
+vram_free_after_load=548642816
+device=lost on first decode
+error=decode() failed: vk::Queue::submit: ErrorDeviceLost
+load=succeeded with 548642816 bytes free
+production=ornith-server left inactive
+no_modified_retry=true
