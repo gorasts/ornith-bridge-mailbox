@@ -1,0 +1,74 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-xing-setup-handoff-001
+source: GROK
+state: COMPLETE
+
+RESULT:
+GROK result for grok-xing-setup-handoff-001
+GORAST is unreachable from this PC (ping and SSH timeout) after the Vulkan device loss. Numbers below are from the runs that finished or from the server log written before the host died. SHA256, git commit, and live VRAM were not collected. ASUS was not used.
+
+1. Model
+- Path: /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+- Size: 20104012544 bytes
+- Source: XingChen-AGI/Xing4.0-29B-A4B-GGUF, file xing4_0-29b-IQ4_NL.gguf
+- Quant: IQ4_NL
+- SHA256: not measured
+- Architecture reported by the GGUF host page: xing4_0
+- Published shape, not read back from the local file: 40 layers, hidden 3584, expert intermediate 1024, 64 routed experts, top-4, 1 shared expert, MLA
+- Embedded MTP: the Xing server log said "creating MTP draft context against the target model" for this same file. No separate draft GGUF was passed. Tensor list was not dumped.
+
+2. Runtime
+- Fork: https://github.com/shuxiaoqiong/llama.cpp.git branch xing4_0-port, depth-1 clone
+- Source: /home/ubuntu/xing-src
+- Built here: cmake -S . -B build -DGGML_VULKAN=ON -DGGML_NATIVE=ON -DCMAKE_BUILD_TYPE=Release
+- Binaries: /home/ubuntu/xing-src/build/bin/llama-server and llama-bench
+- Commit and build number: not recorded
+- Stock /opt/llama/llama-b11054 and b10919: no xing/telechat strings. They cannot load this architecture.
+- Backend used: Vulkan, device 0 AMD Radeon RX Vega (RADV VEGA10). GGML_VK_VISIBLE_DEVICES=0
+- No ROCm build of this fork. No extra patches. No RPC binary was built.
+
+3. Last launch that actually started
+/home/ubuntu/xing-src/build/bin/llama-server \
+  -m /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf \
+  -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 30 \
+  -ctk f16 -ctv f16 -c 4096 \
+  --host 127.0.0.1 --port 8119 -np 1 --no-webui \
+  --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1
+- No tensor overrides, no split-mode, no tensor-split, no RPC
+- Temperature 0 was set only on the one HTTP request, not as a server default
+- llama-bench has no --spec-type, so every bench row is MTP off
+
+4. Placement
+- --n-cpu-moe 30 keeps 30 MoE layers on CPU. It is not "10 experts".
+- Each layer is 64 routed experts plus 1 shared. 10 layers on the GPU is 650 experts.
+- Which exact blocks landed on the GPU was not verified from a layer log.
+- ASUS Vega was never attached. No RPC.
+- Only VRAM sample, taken during llama-bench ncm 28, no MTP: 8342700032 bytes used of 8573157376. About 7.95 GB of 8.17 GB. Free memory was not read before the MTP launch. Expert byte size was not measured from the GGUF.
+
+5. Valid bench rows
+All of these: llama-bench, Vulkan, -ngl 99, -fa on, -t 14, -b 2048, -ub 2048, -ctk f16, -ctv f16, depth 0, context default for the bench, MTP off, one GPU, no RPC. TG target 512. VRAM was not sampled per row. Wall time was about 3 minutes per row including load. No network telemetry.
+
+ncm 38: PP2048 128.735 tok/s, PP8192 108.547, TG512 5.974
+ncm 36: PP2048 129.427, PP8192 109.280, TG512 6.065
+ncm 34: PP2048 131.305, PP8192 110.396, TG512 5.974
+ncm 32: PP2048 132.547, PP8192 109.877, TG512 6.140
+ncm 30: PP2048 133.687, PP8192 112.236, TG512 6.066
+
+Invalid or unfinished:
+- TG256 arms: discarded. Not the harness length.
+- ncm 28: started, killed, no number. That was the run where VRAM was already full.
+- KV sweep at depth 8192: killed before a number.
+- ub 512, fa off, ncm 26: started or never reached, no number.
+- MTP 1 first attempt: server was listening, script looked for the wrong ready string and killed it. No speed.
+- MTP 1 second attempt, command in section 3: PP2048 completed at 60.17 tok/s in 34.04 s, then radv "context is lost", ggml_vulkan device lost, vk::Queue::submit ErrorDeviceLost. No TG512. MTP 2, 3, 4 never started. Host then stopped answering ping and SSH.
+
+6. Next test
+Do not run 20K yet. This config lost the GPU on the first decode at 2K with MTP. Highest-value next test, after the host is back and the GPU is idle: one 2K/TG512 server run with MTP depth 1, and a much higher --n-cpu-moe so VRAM used is read before decode and is not near 8 GB. Record rocm-smi before and after load. Do not add ASUS until that single GPU run survives TG512.
+
+Production: I disabled ornith-server.service so the reboot would not start it. It was inactive before the host died. Re-enable only when this test is finished:
+sudo systemctl enable --now ornith-server.service
+The previous production command was the b10919 server on port 8099 with Ornith-1.5 Q4_K-IQ4_XS, shisa MTP draft, ncm 37, F16 KV, ctx 131072, draft max 1.
+
+7. Conclusion
+No Xing config is fast, and none survived MTP decode. Best measured point without MTP is ncm 30, F16 KV, batch 2048, 14 threads, FA on: PP2048 133.7 tok/s, TG512 6.07 tok/s. That is under Ornith 2K 187.5 / 17.60 and under Tiel 2K about 176 / 12.8. Remaining uncertainty is the real per-layer expert bytes and whether any ncm leaves enough free VRAM for MTP1 to finish TG512.
+
