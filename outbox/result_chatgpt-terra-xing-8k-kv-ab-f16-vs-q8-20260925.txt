@@ -1,0 +1,66 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-xing-8k-kv-ab-f16-vs-q8-20260925
+source: TERRA
+state: COMPLETE
+
+RESULT:
+One controlled Xing4.0 8K A/B completed on GORAST. Q8_0 GPU KV reproduced the severe prefill regression against F16 GPU KV with the same prompt token IDs and all other benchmark settings held fixed. Both cases completed prompt_n=8192 and predicted_n=512. No modified retry or additional point was run.
+
+CONTROL:
+Server=/home/ubuntu/xing-src/build/bin/llama-server
+Model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+Device=Vulkan0 AMD/RADV; GGML_VK_VISIBLE_DEVICES=0
+Common=-c 33792 -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+KV placement=GPU; --no-kv-offload absent; -ngld absent. The F16 versus Q8_0 VRAM allocation difference is consistent with GPU-side KV allocation.
+Request=/completion with exact same saved 8192-token integer ID array, n_predict=512, temperature=0, cache_prompt=false, ignore_eos=true, stream=false. The IDs were generated once using case A's /tokenize endpoint and reused unchanged in case B.
+Prompt_ID_SHA256=fd5e29e0a985264c7d652587e0d66f11d94fe664351b123f522ce184e56cd609 (same in A and B)
+Both timings report cache_n=0 and stop_type=limit.
+
+EXACT SERVER COMMANDS:
+A: GGML_VK_VISIBLE_DEVICES=0 stdbuf -oL -eL /home/ubuntu/xing-src/build/bin/llama-server -m /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf --host 127.0.0.1 --port 8119 --no-webui -c 33792 -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -ctk f16 -ctv f16 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+B: GGML_VK_VISIBLE_DEVICES=0 stdbuf -oL -eL /home/ubuntu/xing-src/build/bin/llama-server -m /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf --host 127.0.0.1 --port 8119 --no-webui -c 33792 -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -ctk q8_0 -ctv q8_0 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+
+CASE A — F16/F16 GPU KV:
+prompt_n=8192; predicted_n=512; PP=162.18065832518536 tok/s; TG512=12.735358649132843 tok/s; wall=90.67832703400018 s.
+MTP draft generated=521; accepted=406; acceptance=77.927%; mean draft length=4.87.
+VRAM after load=8,564,711,424 bytes used / 8,573,157,376 total (8,445,952 bytes free); sampled peak used=8,564,768,768 bytes; free at peak=8,388,608 bytes (8.0 MiB).
+GPU busy max=100%; edge max=62 C; junction max=92 C; memory max=57 C; power max=221 W.
+System RAM used peak (MemTotal minus MemAvailable)=2,530,748 KiB; Xing server resident set peak=16,907,644 KiB (mmap/residency accounting differs from system used estimate).
+Samples=183 at approximately 0.5 s cadence. Completed normally; server A was fully stopped before B.
+
+CASE B — Q8_0/Q8_0 GPU KV:
+prompt_n=8192; predicted_n=512; PP=97.882813386249 tok/s; TG512=9.713456271474033 tok/s; wall=136.34414773099888 s.
+MTP draft generated=521; accepted=406; acceptance=77.927%; mean draft length=4.87.
+VRAM after load=7,836,516,352 bytes used / 8,573,157,376 total (736,641,024 bytes free); sampled peak used=7,974,952,960 bytes; free at peak=598,204,416 bytes (570.5 MiB).
+GPU busy max=100%; edge max=63 C; junction max=83 C; memory max=57 C; power max=177 W.
+System RAM used peak (MemTotal minus MemAvailable)=2,369,560 KiB; Xing server resident set peak=16,877,228 KiB (mmap/residency accounting differs from system used estimate).
+Samples=274 at approximately 0.5 s cadence. Completed normally.
+
+COMPARISON (B Q8_0 minus A F16):
+PP=-64.29784493893636 tok/s (-39.64581572360743%).
+TG512=-3.02190237765881 tok/s (-23.728443469195682%).
+Conclusion: the Q8_0 prefill collapse reproduces in this single controlled 8K A/B; Q8_0 also lowers TG despite freeing GPU memory. MTP generated/accepted counts and mean draft length are identical in the two responses.
+
+WARNINGS AND STABILITY:
+Both server logs contain: "common_fit_params: failed to fit params to free device memory: n_gpu_layers already set by user to 99, abort". This was the auto-fit warning; neither server aborted, and neither changed the locked -ngl 99 parameter.
+Both logs also warn that layer 0's fused Xing4_0 HC pre/comb/post operations were assigned to CPU while the layer is on Vulkan0, usually due to missing support. The same warnings occurred in A and B.
+No ErrorDeviceLost, OOM, server crash, or HTTP failure occurred. Both responses reached stop_type=limit with 512 predicted tokens. Benchmark exit_code=0.
+
+RAW EVIDENCE ON GORAST:
+/tmp/xing-8k-kv-ab-20260925/runner.log
+/tmp/xing-8k-kv-ab-20260925/prompt_ids.json
+/tmp/xing-8k-kv-ab-20260925/A_f16.server.log
+/tmp/xing-8k-kv-ab-20260925/A_f16.telemetry.tsv
+/tmp/xing-8k-kv-ab-20260925/A_f16.after_load.json
+/tmp/xing-8k-kv-ab-20260925/A_f16.client.json
+/tmp/xing-8k-kv-ab-20260925/A_f16.response.json
+/tmp/xing-8k-kv-ab-20260925/B_q8_0.server.log
+/tmp/xing-8k-kv-ab-20260925/B_q8_0.telemetry.tsv
+/tmp/xing-8k-kv-ab-20260925/B_q8_0.after_load.json
+/tmp/xing-8k-kv-ab-20260925/B_q8_0.client.json
+/tmp/xing-8k-kv-ab-20260925/B_q8_0.response.json
+Visible Windows PowerShell viewer: C:\Users\XEON2\Documents\Codex\2026-09-22\execute-the-attached-executor-packet-q5\bridge_ab\ab_view.ps1
+The viewer offered Ctrl+C cancellation that terminates the active test and verifies Ornith restoration. A replacement viewer streamed only the active native llama-server log, rendering carriage-return progress as stable lines.
+
+PRODUCTION RESTORATION:
+ornith-server.service=active after cleanup; production llama-server PID=391058 at verification; benchmark Xing server PID file cleared, and no Xing server remained. No unapproved benchmark parameter changed.
