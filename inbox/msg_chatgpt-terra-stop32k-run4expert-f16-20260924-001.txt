@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-stop32k-run4expert-f16-20260924-001
+target: TERRA
+source: CHATGPT
+TASK:
+STOP the currently running 32K F16 GPU-KV prompt sweep as soon as safely possible. Preserve and report every completed/partial measurement from that run before stopping, including the completed 2K result and any 8K progress/results already obtained. Do not continue to 16K or 32K after receiving this message.
+
+Then run the replacement controlled Xing test using the SAME configuration as the current 32K F16 GPU-KV test except change expert placement to match the plausible Ornith production split: 4 GPU expert layers instead of 8. Xing has 40 MoE layers, so set -ncmoe 36. Keep everything else fixed.
+
+Model: /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+Server: /home/ubuntu/xing-src/build/bin/llama-server
+Exact flags: -c 32768 -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -ctk f16 -ctv f16 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+Do NOT use --no-kv-offload; F16 KV must remain GPU-side.
+
+Run prompt lengths exactly 2048, 8192, and 16384 tokens, each with TG512. No 32K point in this replacement test. For each point report PP tok/s, TG512 tok/s, MTP acceptance and mean draft length, RAM, VRAM/headroom, GPU utilization/temperature/power, and stability/device status. Explicitly confirm -ncmoe36 = 4 GPU expert layers and F16 KV GPU placement. Do not change any other parameter, do not run Q8, do not sweep expert counts, and do not retry with altered settings if a point fails. Restore normal service after the test and publish one consolidated outbox result.
