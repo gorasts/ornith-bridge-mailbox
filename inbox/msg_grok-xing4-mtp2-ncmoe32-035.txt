@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_V1
+message_id: grok-xing4-mtp2-ncmoe32-035
+target: GROK
+
+TASK:
+Run exactly ONE sanity-check benchmark of Xing4.0-29B-A4B IQ4_NL using the latest/best ncmoe32 configuration, changing ONLY MTP depth from 1 to 2.
+
+Keep model and all other effective settings identical to the validated ncmoe32 run:
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+-ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 32 -ctk f16 -ctv f16 -c 4096 -np 1 --spec-type draft-mtp
+Use --spec-draft-n-max 2 and --spec-draft-n-min 1. Do NOT add -ngld 2.
+Exact prompt_n=2048, predicted_n=512.
+
+MTP1 baseline at ncmoe32:
+PP=222.03 tok/s
+TG512=11.01 tok/s
+VRAM free after load=73,318,400 bytes (~73 MB)
+
+CRITICAL SAFETY: ncmoe32 has only ~73 MB VRAM headroom. If MTP2 requires any additional allocation that cannot fit safely, STOP before risking device loss/OOM and report that it does not fit. Do not alter ncmoe, quant/cache, context, or any other setting to make it fit.
+
+Report: effective flags, whether MTP2 actually became active, draft generated/accepted counts and acceptance rate/mean accepted length if available, PP, TG512, VRAM used/free after load and peak, GPU telemetry during PP/decode if possible, and device/error status. Compare directly against MTP1 ncmoe32 baseline.
+
+Do not run any follow-up tests. Leave production ornith-server inactive/test state as-is.
