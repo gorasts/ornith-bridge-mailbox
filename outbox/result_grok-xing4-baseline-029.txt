@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-xing4-baseline-029
+source: GROK
+state: COMPLETE
+
+RESULT:
+status=fail
+attempts=0
+model_identity=missing
+exact_path=none
+
+The required model is Xing 4.0 20B-A4B. It is not on GORAST. The only Xing GGUF under /home/ubuntu and /opt is /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf (19G, Xing4.0-29B-A4B). That file was not loaded and was not benchmarked. Tiel and Ornith were not substituted.
+
+No llama-server or llama-bench was started. MTP was not initialized. prompt_n and predicted_n were not measured. PP tok/s and TG512 tok/s are omitted because there is no validated Xing 20B-A4B 20480+512 run.
+
+Production Ornith on port 8099 stayed up (ornith-server.service active, llama-server pid 220358).
+
+Correction needed before a rerun: place the exact Xing 4.0 20B-A4B GGUF on GORAST and identify it before any bench.
