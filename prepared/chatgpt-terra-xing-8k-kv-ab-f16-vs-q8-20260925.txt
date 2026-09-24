@@ -1,0 +1,111 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-xing-8k-kv-ab-f16-vs-q8-20260925
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+TASK:
+Run one controlled Xing4.0 8K A/B benchmark to isolate the severe prefill regression seen with Q8 GPU KV. The ONLY benchmark variable between A and B is KV precision.
+
+LOCKED MODEL / BUILD / DEVICE:
+SERVER=/home/ubuntu/xing-src/build/bin/llama-server
+MODEL=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+BACKEND=Vulkan0 AMD/RADV
+GGML_VK_VISIBLE_DEVICES=0
+
+LOCKED COMMON CONFIG FOR BOTH CASES:
+CTX=33792
+NGL=99
+FA=on
+T=14
+TB=14
+B=2048
+UB=2048
+NCMOE=36
+NP=1
+SPEC=draft-mtp
+DRAFT_MAX=5
+DRAFT_MIN=1
+KV_OFFLOAD=GPU
+NGLD=ABSENT
+PROMPT_N=8192
+TG=512
+TEMPERATURE=0
+CACHE_PROMPT=false
+IGNORE_EOS=true
+
+A:
+CTK=f16
+CTV=f16
+
+B:
+CTK=q8_0
+CTV=q8_0
+
+ABSOLUTE CONTROL RULE:
+Do not change any other benchmark parameter.
+Do not alter context, NCMOE, NGL, MTP depth, threads, batch/ubatch, model, build, backend, KV placement, request method, sampling, or prompt construction.
+No fallback and no modified retry.
+If any benchmark parameter appears wrong or a change seems useful, STOP and return a report so ChatGPT can ask the user first.
+
+REQUEST CONSTRUCTION:
+Use the target server /tokenize endpoint to create deterministic seed token IDs.
+Build ONE exact 8192-token ID array and use that exact same prompt token array for both A and B.
+Use /completion with n_predict=512, temperature=0, cache_prompt=false, ignore_eos=true.
+Do not use separate semantically different prompts.
+
+RUN ORDER:
+1) A = F16/F16 GPU KV, exact 8192 + TG512.
+2) Fully stop Xing server A.
+3) Start Xing server B with the identical common config except CTK/CTV=q8_0/q8_0.
+4) B = Q8_0/Q8_0 GPU KV, exact same 8192 token array + TG512.
+Do not run any additional points.
+
+MEASURE EACH CASE:
+- exact command/flags
+- prompt_n and predicted_n
+- PP tok/s
+- TG512 tok/s
+- wall time
+- MTP generated/accepted/acceptance/mean draft length
+- VRAM after load, sampled peak, free-at-peak
+- GPU utilization max
+- edge/junction/memory temperature maxima if available
+- power max if available
+- system RAM if available
+- exact warnings/errors
+- device/stability state
+
+COMPARE:
+Return absolute and percentage difference B(Q8) vs A(F16) for PP and TG.
+Clearly state whether the Q8 prefill collapse reproduces under an otherwise byte-for-byte-equivalent benchmark setup.
+
+LIVE POWERSHELL VIEW — REQUIRED:
+Open/provide a visible PowerShell live console for the user while the benchmark is running.
+It must stream native llama-server output line-by-line (prompt progress, timing, generation, warnings/errors), not only a synthetic summary.
+The viewer/control console must clearly state:
+  Ctrl+C TERMINATES THE ACTIVE TEST, STOPS XING, AND RESTORES ORNITH.
+Ctrl+C must not merely close a viewer.
+Implement explicit remote PID/control tracking so cancellation kills the active benchmark/client/server process tree and then verifies ornith-server.service is active before returning control.
+Preserve raw server logs for both A and B and include their paths in the result.
+
+FAILURE POLICY:
+- Explicit ErrorDeviceLost/OOM/server crash/unrecoverable HTTP failure => stop immediately.
+- drm_syncobj_array_wait* alone is NOT proof of a stall.
+- Do not kill a healthy run while log/token progress continues or GPU remains active.
+- If using a no-progress watchdog, require >=180 continuous seconds of no prompt/generation/token progress AND repeatedly idle GPU <=5% before declaring a stall.
+- On genuine failure, do not run a modified retry.
+- Preserve any completed A result and exact failure evidence.
+
+PRODUCTION:
+Stop Ornith only as needed before the A/B benchmark.
+Always restore and verify ornith-server.service after success, failure, or Ctrl+C cancellation.
+Do not leave Xing running afterward.
+
+KNOWN REFERENCE ONLY — DO NOT SUBSTITUTE FOR THE NEW A/B:
+Prior NCMOE36/MTP5 F16 GPU-KV at 8K: PP 171.02614580993563, TG512 13.458030368532755.
+Prior NCMOE36/MTP5 Q8 GPU-KV at 8K: PP 106.1807, TG512 10.4218.
+Purpose of this new run is to reproduce both under one identical 8K configuration with KV precision as the only variable.
+
+RETURN:
+Publish one compact consolidated outbox result with A row, B row, percentage deltas, telemetry, exact errors/warnings, live-view/log paths, confirmation no unapproved parameter changed, and confirmation Ornith was restored.
