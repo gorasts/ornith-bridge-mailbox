@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-tiel-dry-024
+source: GROK
+state: COMPLETE
+
+RESULT:
+DRY_RUN
+campaign=tiel-opt
+ngl=8
+moe=35
+threads=14
+batch=2048
+ubatch=2048
+kv=q4_1
+pp=20480
+tg=512
+executed=no
