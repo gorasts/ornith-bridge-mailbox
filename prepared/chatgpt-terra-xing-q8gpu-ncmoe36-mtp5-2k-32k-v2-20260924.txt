@@ -1,0 +1,115 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-xing-q8gpu-ncmoe36-mtp5-2k-32k-v2-20260924
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute this exact Xing4.0 benchmark. This is a retry of the aborted Q8 GPU-KV sweep. Benchmark parameters are LOCKED. Do not change any benchmark parameter, add fallback settings, or retry with modified settings. If a benchmark parameter appears wrong or a change seems desirable, STOP and report back to ChatGPT so the user can approve it first.
+
+MODEL=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+SERVER=/home/ubuntu/xing-src/build/bin/llama-server
+CTX=33792
+NGL=99
+FA=on
+T=14
+TB=14
+B=2048
+UB=2048
+NCMOE=36
+CTK=q8_0
+CTV=q8_0
+NP=1
+SPEC=draft-mtp
+DRAFT_MAX=5
+DRAFT_MIN=1
+KV_OFFLOAD=GPU
+NGLD=ABSENT
+PROMPTS=2048,8192,16384,32768
+TG=512
+TEMPERATURE=0
+CACHE_PROMPT=false
+IGNORE_EOS=true
+
+BASELINE BEING COMPARED:
+Previous exact NCMOE36 / GPU-KV / MTP5 F16 run:
+- 2K: PP 200.21041645526284, TG512 15.281982482840666
+- 8K: PP 171.02614580993563, TG512 13.458030368532755
+- 16K: reached 10240/16384 at PP 157.06, then stalled in drm_syncobj_array_wait; no TG512
+- 32K: not started
+This retry changes only KV precision F16/F16 -> Q8_0/Q8_0. CTX=33792 is only capacity expansion needed to fit 32768 prompt + TG512 with spare room.
+
+IMPORTANT WATCHDOG CORRECTION:
+The previous Q8 retry was incorrectly aborted because drm_syncobj_array_wait_timeout.constprop.0 was treated as a stall after 30 seconds even while generation was progressing and GPU utilization was 99-100%.
+DO NOT classify drm_syncobj_array_wait* by itself as a stall.
+DO NOT kill a run merely because the server process is sleeping/waiting in that kernel wait channel.
+A run is healthy if any of these continue:
+- server log token/generation progress advances,
+- HTTP request remains active and server is responsive,
+- GPU utilization remains materially active,
+- output token count increases.
+
+Only treat a point as genuinely stalled if ALL are true for at least 180 continuous seconds:
+1) no new prompt or generation progress in server log/output,
+2) no increase in returned token count,
+3) GPU utilization stays effectively idle (<=5%) across repeated samples,
+4) server process remains alive but no forward progress is observed.
+Immediate abort is allowed for explicit fatal conditions such as ErrorDeviceLost, OOM/allocation failure, server crash/exit, or unrecoverable HTTP failure.
+Do not alter benchmark settings after any failure.
+
+REQUEST CONSTRUCTION:
+Use target-server /tokenize to obtain seed token IDs and tile IDs to the exact requested prompt_n.
+Use /completion with:
+- n_predict=512
+- temperature=0
+- cache_prompt=false
+- ignore_eos=true
+Ensure exact prompt_n for each case.
+Run cases serially in this exact order:
+1) 2048 + TG512
+2) 8192 + TG512
+3) 16384 + TG512
+4) 32768 + TG512
+
+FOR EACH COMPLETED POINT CAPTURE:
+- exact prompt_n
+- exact predicted_n
+- PP tok/s
+- TG512 tok/s
+- wall time if available
+- MTP draft generated
+- MTP draft accepted
+- MTP acceptance ratio
+- mean draft length
+- VRAM after load
+- VRAM sampled peak
+- VRAM free at peak
+- GPU utilization max
+- GPU edge/junction/memory temperatures when available
+- GPU package power peak or representative max
+- system RAM if available
+- device/stability state
+- exact Vulkan/RADV/kernel error text if any
+
+FAILURE POLICY:
+- No modified retry.
+- No fallback to F16.
+- No CPU KV / --no-kv-offload.
+- No change to NCMOE, NGL, MTP depth, B, UB, T, TB, context, sampling, model, server build, or device.
+- If a case genuinely fails by the corrected criteria above, stop immediately and return all completed earlier rows plus exact failure evidence.
+- Do not continue to later prompt sizes after a genuine failure.
+
+PRODUCTION:
+Stop Ornith only as needed for the test.
+Always restore and verify normal ornith-server.service after the benchmark or any failure.
+Do not leave the Xing server running afterward.
+
+RETURN:
+Publish one compact consolidated result file to outbox with:
+- exact command/flags
+- all completed rows
+- telemetry
+- any failure point
+- explicit confirmation that no benchmark parameter changed
+- explicit confirmation that the old false-positive DRM wait-channel watchdog rule was NOT used
+- explicit confirmation that Ornith production was restored.
