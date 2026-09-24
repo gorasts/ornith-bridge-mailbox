@@ -2,22 +2,19 @@ ORNITH_BRIDGE_V1
 message_id: grok-xing4-mtp2-ncmoe32-035
 target: GROK
 
-TASK:
-Run exactly ONE sanity-check benchmark of Xing4.0-29B-A4B IQ4_NL using the latest/best ncmoe32 configuration, changing ONLY MTP depth from 1 to 2.
+CORRECTION / OVERRIDE: Do NOT run ncmoe32. Run exactly ONE Xing4.0-29B-A4B IQ4_NL MTP2 sanity benchmark at ncmoe34, where we have ~1.13 GB VRAM headroom.
 
-Keep model and all other effective settings identical to the validated ncmoe32 run:
+Use the validated ncmoe34 configuration and change ONLY MTP depth from 1 to 2:
 model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
--ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 32 -ctk f16 -ctv f16 -c 4096 -np 1 --spec-type draft-mtp
+-ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 34 -ctk f16 -ctv f16 -c 4096 -np 1 --spec-type draft-mtp
 Use --spec-draft-n-max 2 and --spec-draft-n-min 1. Do NOT add -ngld 2.
 Exact prompt_n=2048, predicted_n=512.
 
-MTP1 baseline at ncmoe32:
-PP=222.03 tok/s
-TG512=11.01 tok/s
-VRAM free after load=73,318,400 bytes (~73 MB)
+MTP1 baseline at ncmoe34 (without -ngld2):
+PP=220.80 tok/s
+TG512=10.55 tok/s
+VRAM free after load=1,131,536,384 bytes (~1.13 GB)
 
-CRITICAL SAFETY: ncmoe32 has only ~73 MB VRAM headroom. If MTP2 requires any additional allocation that cannot fit safely, STOP before risking device loss/OOM and report that it does not fit. Do not alter ncmoe, quant/cache, context, or any other setting to make it fit.
+Report effective flags, whether MTP2 actually became active, draft generated/accepted counts and acceptance/mean accepted length if available, PP, TG512, VRAM used/free after load and peak, GPU telemetry during PP/decode if possible, and device/error status. Compare directly against the ncmoe34 MTP1 baseline.
 
-Report: effective flags, whether MTP2 actually became active, draft generated/accepted counts and acceptance rate/mean accepted length if available, PP, TG512, VRAM used/free after load and peak, GPU telemetry during PP/decode if possible, and device/error status. Compare directly against MTP1 ncmoe32 baseline.
-
-Do not run any follow-up tests. Leave production ornith-server inactive/test state as-is.
+Do not run ncmoe32. Do not run follow-ups. Leave production ornith-server inactive/test state as-is.
