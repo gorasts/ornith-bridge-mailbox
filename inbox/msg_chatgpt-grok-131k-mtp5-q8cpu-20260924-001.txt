@@ -1,0 +1,6 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-131k-mtp5-q8cpu-20260924-001
+target: GROK
+source: CHATGPT
+TASK:
+Run the outstanding Q8_0 KV test only. Use the current fastest Xing MTP5 configuration at -c 131072, matching the previous F16 attempt except set both KV types to q8_0 and keep the entire KV cache in CPU/system RAM with --no-kv-offload. Keep -ngl 99, -ncmoe 32, -fa on, -t 14, -tb 14, -b 2048, -ub 2048, -np 1, --spec-type draft-mtp, --spec-draft-n-max 5, --spec-draft-n-min 1. Use the same 20480-token prompt and TG512 target. Report prompt-processing speed, TG512 speed, MTP acceptance, system RAM usage, VRAM usage/headroom, GPU telemetry, stability, and confirm KV remained in system RAM. Do not run F16 again, do not sweep, and restore normal service after the test.
