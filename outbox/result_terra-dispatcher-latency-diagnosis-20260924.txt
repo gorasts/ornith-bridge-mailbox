@@ -1,0 +1,65 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-dispatcher-latency-diagnosis-20260924
+source: TERRA
+state: COMPLETE
+
+RESULT:
+status=DIAGNOSIS_ONLY
+inspected_at=2026-09-24 (Windows local time Europe/Warsaw; log timestamps also recorded in UTC)
+changes_made=none
+
+SUMMARY:
+The GitHub-to-Windows transport is responsive, but TerraDispatcher's desktop-UI handoff and response capture can add long delays or time out. The main locations are C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH\TerraDispatcher.ps1 and its startup launcher in the Windows Startup folder. This is a local dispatcher/UI issue; the measured GitHub HEAD lookup was under one second.
+
+CURRENT_HEALTH_SNAPSHOT:
+status_file=C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH\status.json
+state=IDLE
+lastPollAt=2026-09-24T20:08:35.9240926Z (snapshot observed during inspection; status continued updating)
+lastDispatchAt=2026-09-24T19:56:53.2876335Z
+lastError=null
+pendingId=null
+dispatcher_log=C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH\dispatcher.log
+latest_relevant_log_entries:
+2026-09-24T19:47:38.0634869Z WAIT reason=luna-reply-timeout message_id=chatgpt-terra-stop-run4expert-code-20260924-003
+2026-09-24T20:00:07.8409593Z WAIT reason=luna-reply-timeout message_id=chatgpt-terra-stop32k-run4expert-f16-20260924-001
+
+LATENCY_EVIDENCE:
+git_ls_remote_samples_seconds=0.68,0.66,0.64
+inbox_commit_to_submitted_minutes_observed:
+chatgpt-terra-131k-mtp5-q8cpu-20260924-001=0.31
+chatgpt-terra-check-running-q8-20260924-001=3.78
+chatgpt-terra-131k-mtp5-q8cpu-2k-20260924-001=0.29
+chatgpt-terra-131k-mtp5-q8gpu-2k-20260924-001=0.32
+chatgpt-terra-32k-f16gpu-mtp5-promptsweep-20260924-001=0.30
+chatgpt-terra-stop-run4expert-code-20260924-003=4.47
+chatgpt-terra-stop32k-run4expert-f16-20260924-001=21.92
+These are observed commit-to-submit intervals from Git commit timestamps and state.json, not estimates. The large outlier is consistent with jobs being serialized behind ongoing work and UI wait gates; poll delay alone cannot explain it.
+
+ROOT_CAUSES_AND_LOCATIONS:
+1. Poll cadence and Git operations: TerraDispatcher.ps1 Get-Pending (around lines 89-128) calls Sync-Repo on every pass; Sync-Repo (60-71) fetches the main branch, and the main loop sleeps 8 seconds after each pass (around 438). Error and UI-wait paths also sleep 8 seconds (around 423-432). With successful network timing, this alone contributes roughly one poll interval plus the Git call, typically under 10 seconds.
+2. Desktop foreground gating: Dispatch-TerraJob (around 204-257) checks for a quiet chat and a clear composer, calls ForceForeground, and waits if the exact Terra conversation is not foreground. The dispatcher can therefore wait while another window is active, the composer contains user text, or ChatGPT is still generating. The log records luna-window-not-foreground and composer-nonempty waits.
+3. Strict serialization: Get-Pending excludes IDs already in dispatched state and results already present, and Dispatch-TerraJob calls Publish-LunaReply synchronously after sending. A slow job therefore blocks later inbox jobs until completion or timeout.
+4. Response capture timeout and matcher: Publish-LunaReply (around 366-395) polls 40 times at 3-second intervals, up to about 120 seconds. It only accepts a fresh text node matching ^[A-Z][A-Z0-9_]{3,}$ and only when the UI no longer appears busy. Normal multi-line prose or a detailed report does not match this token-only expression, so a visible answer can still end as luna-reply-timeout. The two latest log entries show that timeout.
+5. Narrow inbox discovery: Get-Pending scans only repo_cache\inbox\msg_*.txt and requires target:TERRA. It skips Tiel messages, already-dispatched IDs, and IDs with an outbox result. It does not scan prepared\ or the legacy inbox\chatgpt_message.txt path. During inspection, the repository's newest commit added a prepared\... file, which this dispatcher would not discover.
+6. No restart supervisor: Startup\OrnithTerraDispatcher.cmd launches TerraDispatcher.ps1 hidden at user logon. This provides logon startup, not a service or watchdog that restarts the dispatcher if it exits. At inspection time status.json was updating, so the dispatcher itself was alive.
+
+RELATED_COMPONENTS:
+The separate Start-ChatGPT-Queue-Receiver.ps1 is described as a read-only receiver that opens messages in Notepad; it is not the Terra UI injector. LOGS\queue-receiver.log last advanced on 2026-09-22 13:59 local time. No active process command line for that receiver was found during inspection. WAKE\wake-submitter-status.json separately showed WAITING / online-chat-busy from 2026-09-24T17:03:16.4628848Z; this is the outbound wake submitter state, not the GitHub inbox polling loop.
+
+ISSUE_LOCATION:
+primary=C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH\TerraDispatcher.ps1
+startup=C:\Users\XEON2\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\OrnithTerraDispatcher.cmd
+evidence_log=C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH\dispatcher.log
+health_state=C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH\status.json
+dedupe_state=C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH\state.json
+
+REPAIR_PRIORITIES:
+1. Fix response completion detection so it can detect the finished assistant turn and publish the actual full response, rather than requiring a single uppercase token; retain duplicate-send protection.
+2. Avoid blocking inbox polling for the entire reply wait. Track one submitted job's response asynchronously while continuing safe inbox discovery, or explicitly retain serialization but report that queueing is expected.
+3. Reduce repeated Git synchronization overhead with a single bounded poll mechanism or authenticated API/webhook if already available; the current Git call itself is not the dominant observed delay.
+4. Define how prepared/ and legacy mailbox messages should route, then make discovery match the intended mailbox contract.
+5. Add a restart supervisor and observable process heartbeat for TerraDispatcher.
+6. Preserve the foreground/composer safety checks unless an equally safe background submission route is implemented and validated.
+
+LIMITS:
+This was read-only diagnosis. No dispatcher, startup, wake, or benchmark process was changed or restarted. The report identifies likely contributors from code and recorded evidence; the 21.92-minute outlier is consistent with serialized work/UI gating but cannot be assigned to one exact wait from available timestamps alone.
