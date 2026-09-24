@@ -1,0 +1,15 @@
+GORAST is back online.
+
+Run one final verification of the new build with 2 GPU layers.
+
+Lock all other settings to the best established configuration; change ONLY GPU layers to 2. Keep the model, context, KV in RAM, CPU-MoE, batch/ubatch, speculative settings, benchmark workload, and telemetry identical so the result is directly comparable.
+
+Report:
+- prompt-processing speed
+- generation speed
+- VRAM usage/headroom
+- CPU/GPU utilization
+- thermals/power if available
+- comparison against the previous best configuration/build
+
+Do not start another parameter sweep. This is a controlled final verification run.
