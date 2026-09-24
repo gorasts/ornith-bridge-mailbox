@@ -121,8 +121,9 @@ For every local-model benchmark from now on, provide a live read-only console vi
 - Redirect native llama-server stdout/stderr line-buffered to a dedicated log file with stdbuf -oL -eL and preserve it for the run.
 - The Windows/PowerShell viewer must tail that log line-by-line over SSH, equivalent to:
   ssh -t -i "$env:USERPROFILE\.ssh\gorast_ed25519" ubuntu@192.168.100.116 'tail -n 80 -F <SERVER_LOG>'
-- Before live output starts, print exactly that this viewer is read-only and that Ctrl+C closes ONLY the viewer; the benchmark continues.
+- Before live output starts, print that Ctrl+C TERMINATES the active benchmark and triggers production restoration.
 - Prefer native llama-server lines (prompt progress, timing, decode/generation progress, warnings/errors) rather than a synthetic summary-only dashboard.
-- Keep the benchmark process detached (nohup/systemd-run/tmux or equivalent) and never make its lifetime depend on the PowerShell viewer.
+- The benchmark may run in a remote process, but the PowerShell live viewer is the user's control console. Ctrl+C in that viewer MUST terminate the active benchmark process tree, stop the Xing test server, and restore ornith-server.service before returning control to PowerShell.
 - Also maintain a compact progress/result log if useful, but do not replace the raw native server console view with it.
+- Implement explicit PID/control files so the Ctrl+C handler knows the remote runner/server PID(s) and can kill the whole test cleanly. Verify Ornith is active after cancellation.
 - On completion or failure, preserve the server log and result log paths in the returned outbox result.
