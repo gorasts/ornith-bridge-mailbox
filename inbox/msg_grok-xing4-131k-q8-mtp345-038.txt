@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_V1
+message_id: grok-xing4-131k-q8-mtp345-038
+target: GROK
+
+Run Xing4.0-29B-A4B IQ4_NL benchmark with production-realistic context/KV baseline.
+Model: /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+Server: /home/ubuntu/xing-src/build/bin/llama-server
+
+Use: -c 131072 -ctk q8_0 -ctv q8_0 -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -np 1 --spec-type draft-mtp --spec-draft-n-min 1. Do not set -ngld.
+Prompt 2048 tokens, generation 512 tokens.
+
+First load and report actual VRAM allocation/headroom. If allocation fails, stop without changing configuration.
+If load is healthy, run MTP max depths 3, then 4, then 5, sequentially, with all other settings identical.
+
+For each depth report PP, TG512, draft generated/accepted, acceptance, mean speculative length, VRAM total/used/free/peak, GPU utilization/temp/power, and device status. Also report KV allocation size from llama.cpp logs if available.
+Stop on allocation or GPU/device error. Do not alter settings or run follow-up tests.
+Leave production ornith-server inactive/test state as-is.
