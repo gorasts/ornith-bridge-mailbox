@@ -1,0 +1,89 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-step1-safe-8k-20260925
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+AUTONOMOUS QWEN3.6 PLAN — STEP 1 OF 3 ONLY
+Do not execute step 2 or step 3. Return step-1 results to ChatGPT first so ChatGPT can choose and issue the next step.
+
+OBJECTIVE:
+Re-establish the proven dual-Vega Qwen3.6 path with a conservative 8K real-work benchmark and full safety telemetry before any longer-context attempt.
+
+MODEL:
+/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+
+KNOWN PRIOR REFERENCE:
+A prior 8K synthetic controlled run on this topology with MTP2 passed at PP=186.65209662344716 tok/s, TG512=17.813397445760994 tok/s, GORAST free=909.2 MiB, ASUS free=155.3 MiB, GORAST Tmax=60C, ASUS Tmax=88C.
+This reference is context only; do not substitute it for the new run.
+
+LOCKED STEP-1 CONFIG:
+TOPOLOGY=dual Vega GORAST + ASUS RPC
+TARGET_WEIGHTS=GPU/GPU
+CPU_EXPERTS=0
+SPLIT=0.500,0.500
+CTX=12288
+PROMPT=8192
+TG=512
+B=512
+UB=256
+KV=f16/f16 GPU KV
+FA=ON
+MTP=integrated draft-mtp
+DRAFT_MAX=2
+DRAFT_MIN=1
+WORKAROUNDS=--no-spec-draft-backend-sampling --fit off
+LOAD_MODE=the exact known-good mode used by the prior Qwen3.6 dual-GPU passes; do not invent or substitute a different load mode.
+REQUEST_TEMP=0
+CACHE_PROMPT=false
+IGNORE_EOS=true
+
+PROMPT:
+Use the same real HANDOFF.md corpus and deterministic shuffle/token-slicing methodology used by the existing Ornith real-work benchmarks.
+Build one exact 8192-token prompt.
+Do NOT use repeated filler/synthetic engineering text.
+If the exact real-work source/method cannot be identified unambiguously from the existing benchmark assets on GORAST, STOP and report instead of substituting another prompt.
+
+SAFETY — HARD RULES:
+1. Cool both GPUs to <=65C before starting the benchmark.
+2. Start ASUS RPC and verify it is healthy before loading Qwen.
+3. Record baseline VRAM, temperatures, power, utilization, clocks, and network link telemetry.
+4. Load the server and perform a headroom check BEFORE the 8K request.
+5. REQUIRE >=128 MiB free VRAM on EACH GPU after load/warmup. If either GPU is below 128 MiB, DO NOT RUN INFERENCE; stop cleanly and report.
+6. HARD THERMAL ABORT=100C on either GPU/hotspot/junction sensor being used by the established telemetry. If temperature reaches 100C, terminate immediately and restore production.
+7. Any GPU kernel fault, ROCm/Vulkan fault, Xid-equivalent, RPC crash/death, server crash, OOM/allocation error, or device loss => terminate immediately. NO automatic retry.
+8. Never reset, rebind, power-cycle, flash, unload drivers, alter clocks/voltages/power limits, or perform any recovery action that could endanger the VGA. On fault, stop and leave hardware alone.
+9. Do not alter split, batch, ubatch, KV, MTP, context, prompt size, CPU-expert placement, model, backend, or runtime flags.
+10. No fallback configuration and no second benchmark arm in this step.
+
+LIVE USER VIEW — REQUIRED:
+Provide the established Windows PowerShell live console streaming native llama-server output line-by-line while the model runs.
+The console must say:
+  Ctrl+C TERMINATES THE ACTIVE TEST, STOPS QWEN, AND RESTORES ORNITH.
+Ctrl+C must terminate the active benchmark/client/server process tree and restore/verify ornith-server.service before returning control.
+Do not make Ctrl+C viewer-only.
+
+MEASURE:
+- exact server command and RPC command
+- PP tok/s and TG512 tok/s
+- wall time
+- prompt_n / predicted_n
+- MTP generated, accepted, acceptance, mean draft length
+- GORAST and ASUS VRAM after load, peak, and minimum free
+- both GPUs temperature maxima, power, utilization, clocks
+- network RX/TX average/peak during PP and TG
+- RPC state
+- kernel/device fault scan on both hosts
+- server/client exit status
+- exact prompt source/path/method and prompt hash if available
+
+CLEANUP:
+Always stop the Qwen test processes after completion/failure/cancellation.
+Always restore and verify ornith-server.service on GORAST.
+Do not leave ASUS RPC or other temporary test processes running unless they were already running before this test; restore pre-test state where practical without driver/device resets.
+
+RETURN:
+Publish one compact outbox result for STEP 1 only.
+Explicitly state PASS / SAFE_ABORT / FAILURE.
+Explicitly state whether BOTH GPUs met the >=128 MiB headroom rule and stayed <100C.
+Explicitly confirm no unapproved parameter changes or retries occurred.
