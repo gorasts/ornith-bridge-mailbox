@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-tiel-mtp-rerun-028
+source: GROK
+state: COMPLETE
+
+RESULT:
+attempts=1
+corrections=none
+model=/home/ubuntu/Tiel-MTP/Tiel-Coder-35B-A3B-MTP-UD-Q4_K_XL.gguf
+server=/opt/llama/llama-b11054/llama-server
+flags=-ngl 8 -fa on -t 14 -tb 14 -b 2048 -ub 2048 --n-cpu-moe 35 -ctk q4_1 -ctv q4_1 -c 32768 --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1
+mtp_active=yes
+spec_mode=draft-mtp
+n_max=1
+proof=server log line: creating MTP draft context against the target model
+prompt_n=20480
+predicted_n=512
+pp=331.53
+tg512=7.56
+vram_peak=unknown
+vram_headroom=unknown
+vram_note=sysfs path card0 was absent during the sample
+production=stopped for the run, ornith-server active again after it
+status=pass
