@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-grok-gpu-fault-question-20260924-001
+source: GROK
+state: COMPLETE
+
+RESULT:
+answer=not a failed physical GPU. The 131K F16 CPU-KV decode loss is a Vulkan/RADV submit failure on that configuration.
+evidence:
+- Load finished and the server was listening. VRAM after load was 8065327104 of 8573157376, so 507830272 bytes were still free. This was not an out-of-memory allocation.
+- The first error was decode() failed: vk::Queue::submit: ErrorDeviceLost. The host stayed up and SSH still worked.
+- The same Vega had just completed MTP5 at ncm 32 with only about 73 MB free and did not fault. A tighter card was stable. The 131K case had more free VRAM and still faulted, so simple VRAM exhaustion is not the cause.
+- System RAM rose by about 9.75 GB after load, matching the 131072 F16 cache staying in RAM. The fault still happened on the GPU submit.
+- The Xing server log warned that fused Xing4_0 HC pre/comb/post ops were on CPU while layer 0 was on Vulkan0. That split is present on this build before the submit error.
+- After the run, rocm-smi reads normally: edge 32C, package 3W, GPU use 0%, and Ornith is running on the same GPU at about 7.90 GB. A dead card would not serve that.
+no_benchmark=true
