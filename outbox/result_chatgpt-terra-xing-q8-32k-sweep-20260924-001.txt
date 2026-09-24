@@ -1,0 +1,31 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-xing-q8-32k-sweep-20260924-001
+source: TERRA
+state: PARTIAL_ABORTED_BY_WATCHDOG
+
+MODEL: /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+SERVER: /home/ubuntu/xing-src/build/bin/llama-server (0.4.1-dev, commit 63c16fb)
+DEVICE: Vulkan0 AMD/RADV; GGML_VK_VISIBLE_DEVICES=0
+EXACT_FLAGS: -c 33792 -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -ctk q8_0 -ctv q8_0 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+KV: GPU placement requested; --no-kv-offload absent; -ngld absent.
+
+REQUEST METHOD:
+Target-server /tokenize was used to create 5,600 seed token IDs; IDs were tiled to each exact requested prompt length. /completion request fields: n_predict=512, temperature=0, cache_prompt=false, ignore_eos=true. No parameter was changed.
+
+RUN:
+The server loaded with n_ctx_slot=33792. Only point 1 began: prompt_n=2048, requested predicted_n=512. The server entered generation and its log reached n_gen=395/512 at approximately 13.49 tok/s. PP tok/s, final predicted count, full TG512 timing, MTP acceptance/draft counts, and a completed result row were unavailable because the client was interrupted.
+
+STOP REASON / LIMITATION:
+My watchdog incorrectly treated the process wait channel drm_syncobj_array_wait_timeout.constprop.0 as a stall after 30 seconds. At that time the server process was state S and GPU utilization remained active; the server log continued generation through 395 tokens before termination. This is not evidence of a confirmed GPU/device stall. I caused the incomplete point by aborting too early. Per the no-duplicate/no-retry rule, points 2K completion, 8K, 16K, and 32K were not retried or started. No approved benchmark parameters were changed.
+
+TELEMETRY DURING PARTIAL 2K:
+VRAM after load approx 7.837 GB; sampled peak 7.975 GB / 8.573 GB total, approx 0.598 GB free at peak.
+GPU busy sampled 99-100% during generation (56% in last sample).
+Temperatures sampled: edge 34-44 C, junction 35-60 C, memory 33-41 C.
+Power sampled: 7-148 W.
+System memory available approx 31.19-31.39 GB; server RSS approx 16.4-16.8 GB.
+No OOM, device-lost, or explicit Vulkan/RADV failure was logged. Startup warned that Xing4_0 HC fused pre/comb/post ops were unsupported and assigned those ops to CPU. An initial free-device-memory fit warning was logged, but the model loaded and generated tokens.
+
+RESTORATION:
+Ornith production service restored and verified active (MainPID 210262 at check). Xing test server was stopped.
+Evidence logs on GORAST: /tmp/xing-q8gpu-ncmoe36-mtp5-20260924.server.log, .bench.log, .telemetry.tsv, .results.txt.
