@@ -1,0 +1,33 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-xing4-mtp2-ncmoe32-035
+source: GROK
+state: COMPLETE
+
+RESULT:
+status=pass
+attempts=1
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags=-ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 32 -ctk f16 -ctv f16 -c 4096 -np 1 --spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-n-min 1
+ngld=not set
+mtp_active=yes
+proof=server log: creating MTP draft context against the target model
+draft_generated=362
+draft_accepted=330
+draft_acceptance=0.91160
+draft_mean_len=2.82
+prompt_n=2048
+predicted_n=512
+pp=221.13
+tg512=13.11
+vram_total=8573157376
+vram_after_load=8499838976
+vram_free_after_load=73318400
+vram_peak=8499838976
+vram_free_at_peak=73318400
+gpu_use_max=100
+telemetry_during=edge 44C package 50W
+device=ok
+compare_mtp1_ncmoe32=PP 222.03 TG512 11.01 free 73318400 bytes
+production=ornith-server left inactive
+no_followup=true
