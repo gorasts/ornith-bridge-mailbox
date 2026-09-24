@@ -1,0 +1,30 @@
+ORNITH_BRIDGE_V1
+message_id: grok-xing4-mtp4-ncmoe32-037
+target: GROK
+
+TASK:
+Run exactly ONE controlled Xing4.0-29B-A4B IQ4_NL benchmark on the SAME validated ncmoe32 configuration, changing ONLY MTP depth from 3 to 4.
+
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags fixed: -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 32 -ctk f16 -ctv f16 -c 4096 -np 1 --spec-type draft-mtp
+Set --spec-draft-n-max 4 and --spec-draft-n-min 1. Do NOT set -ngld.
+Exact prompt_n=2048, predicted_n=512.
+
+MTP3 baseline exact config:
+PP=221.88 tok/s
+TG512=13.99 tok/s
+draft_generated=436
+draft_accepted=365
+acceptance=83.716%
+mean_len=3.50
+VRAM after load/peak=8,499,838,976 bytes
+VRAM free=73,318,400 bytes
+
+MTP2 TG512=13.11; MTP1 TG512=11.01. MTP1/2/3 all showed byte-identical measured VRAM.
+
+SAFETY: ncmoe32 is near VRAM limit. Do not change any other parameter. If MTP4 produces allocation/OOM/device errors, stop immediately and report; do not retry or modify configuration.
+
+Report effective flags, proof MTP4 active, draft generated/accepted, acceptance and mean speculative length, PP, TG512, VRAM after load/free/peak, GPU utilization/temp/power, device status/errors, and direct comparison against MTP3.
+
+No follow-up tests. Leave production ornith-server inactive/test state as-is.
