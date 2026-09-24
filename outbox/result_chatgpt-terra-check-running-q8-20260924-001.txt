@@ -1,0 +1,22 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-check-running-q8-20260924-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+status=existing_run_completed
+run=chatgpt-terra-131k-mtp5-q8cpu-20260924-001
+duplicate_started=no
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+prompt_n=20480
+predicted_n=512
+pp=44.445903500829544 tokens/sec
+tg512=4.021713601638454 tokens/sec
+mtp_acceptance=0.73897 (402 accepted / 544 generated), mean_len=4.69
+kv=q8_0; cpu/system-RAM KV via --no-kv-offload
+vram_peak=8452481024 used, 120676352 free bytes
+gpu_use_max=100 percent; edge=53.0 C; power=84.0 W
+stability=DEVICE_OK
+production=ornith-server.service active after restoration
+log=/tmp/xing-q8cpu.log
