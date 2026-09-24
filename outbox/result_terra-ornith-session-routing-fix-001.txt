@@ -1,0 +1,44 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-ornith-session-routing-fix-001
+source: TERRA
+state: COMPLETE
+
+ROOT_CAUSE:
+The owner helper and OrnithWorker each had a compiled-in session UUID and ignored the existing local HARNESS/bridge-session.json for routing. Creating or opening another Harness chat therefore could not change the mailbox target. The exact UUID hard-coded in the files immediately before this repair was session-8db23e1d-97e3-484b-aeb5-ce85b40174bc, not the older dedicated 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94. Native session/list does not corroborate a current claim that jobs still land in 4b0b: its lastPromptAt is 2026-09-23T00:59:41Z, while the used 8db session was prompted as recently as 2026-09-23T17:07:51Z. The newest session, cf8330, is blank, so the intended next target cannot be selected with high confidence from activity data alone.
+
+FILES_CHANGED:
+C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessOwnerHelper.mjs
+C:\Users\XEON2\Desktop\OrnithBridge\ORNITH_WORKER\OrnithWorker.mjs
+C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridge.mjs
+C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\bridge-session.json (atomically rewritten as BOM-free UTF-8, same UUID)
+The worker STOP marker was used only during maintenance and removed. No wake component, GORAST service, model file, or benchmark file was changed.
+
+ROUTING_DESIGN:
+HARNESS/bridge-session.json is the single explicit local target binding. The worker reads and validates it for each job, compares it with helper /health, passes the same UUID to /follow, and sends session/prompt only to that UUID. The helper reads the binding for /follow and permits session/prompt or session/selectModel only when the requested UUID equals the bound UUID; its listener remains 127.0.0.1:3099. No arbitrary-session mutation endpoint was added. HarnessBridge.mjs now provides local `bind <existing-session-uuid>`, which verifies the exact UUID through native session/list and atomically writes the binding; a rebind requires no helper/worker restart. Existing mailbox dedupe, result publication, and wake code remain unchanged.
+
+OLD_BOUND_UUID:
+Historical dedicated ChatGPT Bridge session: 4b0b7cb2-ed4e-4339-bb20-3b688cc09f94. Immediately pre-repair helper/worker code and bridge-session.json were actually pinned to session-8db23e1d-97e3-484b-aeb5-ce85b40174bc.
+
+NEW_SESSION_CANDIDATES:
+session-8db23e1d-97e3-484b-aeb5-ce85b40174bc | title=hi | cwd=C:\Users\GG\Desktop\Ornith | 17 turns | lastPromptAt=2026-09-23T17:07:51Z | already bound before repair and still bound.
+session-cf8330bc-be2b-48e3-be36-221706995463 | title=null | same cwd | 0 turns | lastPromptAt=null | updatedAt=2026-09-24T12:24:03Z | newest created session, but native data does not show that the user used it for a prompt.
+4b0b7cb2-ed4e-4339-bb20-3b688cc09f94 | title=ChatGPT Bridge | 18 turns | lastPromptAt=2026-09-23T00:59:41Z | historical dedicated session, not selected now.
+
+BOUND_UUID:
+session-8db23e1d-97e3-484b-aeb5-ce85b40174bc. No speculative switch to the blank cf8330 session was made. To choose an existing session after confirming its UUID, run on XEON2:
+& 'C:\Users\XEON2\AppData\Local\hermes\node\node.exe' 'C:\Users\XEON2\Desktop\OrnithBridge\HARNESS\HarnessBridge.mjs' bind <existing-session-uuid>
+
+HELPER_STATUS:
+ready=true, boundSessionId=session-8db23e1d-97e3-484b-aeb5-ce85b40174bc; helper PID 4088 listening on 127.0.0.1:3099; its one current main Harness child PID 30460 listening on 127.0.0.1:3080. Native session/list remained available with the existing 14 sessions after restart. The helper's launch-token wait was extended from 15 to 120 seconds because the 15-second timeout occurred during the actual restart. A pre-existing UTF-8 BOM in bridge-session.json initially prevented JSON parsing; the validated bind command rewrote the same binding without BOM. During diagnosis an extra short-lived helper/DSH startup attempt was made, then terminated; it never owned the 3080/3099 listeners. Final state has one helper and one main Harness instance.
+
+WORKER_STATUS:
+PID 10120 running; STOP absent; state.boundSessionId=session-8db23e1d-97e3-484b-aeb5-ce85b40174bc; lastError empty; polling resumed. No locally pending ORNITH inbox job was found before resume. No post-restart ACCEPTED event appeared during verification.
+
+PROMPT_SENT=NO
+No session/prompt or model response was requested as part of this repair. No new Harness turn was recorded in the three candidate sessions during verification. Session projection sequence counters changed during Harness restart, but turn counts did not.
+
+NEXT_TEST:
+The user or online ChatGPT should identify which existing Harness chat is intended. If it is the blank cf8330 session, run the `bind` command above with that full UUID. Then, as a separate explicitly authorized job, send one ORNITH mailbox probe and check both the target session and outbox result. No probe was sent here.
+
+DECISIVE_EVIDENCE:
+Pre-repair source inspection found static session-8db23e1d-97e3-484b-aeb5-ce85b40174bc in both HarnessOwnerHelper.mjs and OrnithWorker.mjs; bridge-session.json contained the same UUID but neither component read it. Native same-owner session/list returned 14 sessions with 8db used, 4b0b older, and cf8330 blank. Post-repair /health reports the exact bound UUID, worker state reports the same UUID, ports 3080/3099 are healthy, all three modified .mjs files passed `node --check`, worker polling resumed without an ACCEPTED prompt, and no GORAST component was touched.
