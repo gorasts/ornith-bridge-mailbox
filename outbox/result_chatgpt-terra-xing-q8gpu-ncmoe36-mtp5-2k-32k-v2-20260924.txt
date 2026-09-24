@@ -1,0 +1,48 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-xing-q8gpu-ncmoe36-mtp5-2k-32k-v2-20260924
+source: TERRA
+state: PARTIAL_FAILURE_DEVICE_LOST
+
+CONFIGURATION
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+server_version=0.4.1-dev commit 63c16fb
+backend=Vulkan0 AMD/RADV, GGML_VK_VISIBLE_DEVICES=0
+flags=-c 33792 -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -ctk q8_0 -ctv q8_0 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+placement=ncmoe36 (4 GPU expert layers); Q8_0 KV on GPU; --no-kv-offload absent; -ngld absent.
+request=/completion, n_predict=512, temperature=0, cache_prompt=false, ignore_eos=true.
+prompt_construction=target server /tokenize over repeated deterministic seed text; tiled token IDs to exact requested lengths.
+
+COMPLETED POINTS
+prompt_n  predicted_n  PP_tok_s   TG_tok_s   wall_s   draft_generated  draft_accepted  acceptance  mean_draft_len
+2048      512          201.8669   13.3339    48.471   546               401             73.443%     4.919
+8192      512          106.1807   10.4218    126.189  515               407             79.029%     4.905
+16384     512          59.1346    7.7749     342.797  467               417             89.293%     4.916
+Mean draft length is draft_generated / (predicted_n - draft_accepted), i.e. proposed tokens per target-verification round.
+
+32K FAILURE POINT
+requested=prompt_n 32768, predicted_n 512
+prompt reached full length; latest server prompt checkpoint was 30720/32768 at 32.96 tok/s. The server later reported n_tokens=33022 and generation reached n_gen=255/512 at approximately 4.07 tok/s.
+HTTP completion returned 500. No completed PP/TG512 timing or MTP acceptance row was returned.
+exact failure:
+radv/amdgpu: The CS has been cancelled because the context is lost. This context is innocent.
+radv: GPUVM fault detected at address 0x8002d4b71000.
+VM_CONTEXT1_PROTECTION_FAULT_STATUS: 0x101031
+ggml_vulkan: device fault on Vulkan0: A GPUVM fault has been detected
+ggml_vulkan: device lost on Vulkan0
+update_slots: pre_decode() failed: vk::Queue::submit: ErrorDeviceLost
+send_error: task id = 324, error: pre_decode() failed: vk::Queue::submit: ErrorDeviceLost
+stability=explicit Vulkan GPUVM fault / ErrorDeviceLost during 32K generation; no retry or later points.
+
+TELEMETRY (whole run)
+VRAM after load=7,836,516,352 / 8,573,157,376 bytes (736,641,024 free).
+sampled VRAM peak=7,974,957,056 / 8,573,157,376 bytes (598,200,320 free).
+GPU utilization max=100%; temperature maxima edge=68 C, junction=99 C, memory=63 C; power max=221 W.
+system MemAvailable range=31,066,775,552 to 31,351,169,024 bytes; benchmark server RSS range=16,756,908 to 16,934,008 KiB.
+startup logged a free-device-memory fit warning despite explicit -ngl 99, and warned Xing4_0 HC fused pre/comb/post ops were unsupported and assigned to CPU. Model loaded and completed the first three points. Fatal runtime evidence is the exact Vulkan/RADV fault above.
+
+CONTROL AND RESTORATION
+Only the parameters listed above were used; no fallback or modified retry was run. The previous false-positive DRM wait-channel watchdog rule was NOT used; the 32K task was stopped on explicit ErrorDeviceLost/HTTP 500.
+Ornith production was restored and verified active (MainPID 309362). Xing server exited; no benchmark process remains.
+Raw evidence on GORAST: /tmp/xing-q8gpu-ncmoe36-mtp5-v2-20260924.server.log, .bench.log, .telemetry.tsv, .results.txt.
+The UI dispatcher and wake submitter remain paused per the user's subsequent instruction; this did not affect the benchmark or outbox publication.
