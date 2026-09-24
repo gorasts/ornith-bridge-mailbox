@@ -1,0 +1,6 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-stop-run4expert-code-20260924-003
+target: TERRA
+source: CHATGPT
+TASK:
+Stop the current Xing benchmark and preserve completed measurements. Run the replacement benchmark without changing parameters. Use the existing benchmark harness with: SERVER=/home/ubuntu/xing-src/build/bin/llama-server MODEL=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf CTX=32768 NGL=99 FA=on T=14 TB=14 B=2048 UB=2048 NCMOE=36 CTK=f16 CTV=f16 NP=1 SPEC=draft-mtp DRAFT_MAX=5 DRAFT_MIN=1 KV_OFFLOAD=GPU PROMPTS=2048,8192,16384 TG=512. Do not use --no-kv-offload. NCMOE=36 means 4 GPU expert layers. Run only these three prompt cases with 512 generated tokens each. Capture PP tok/s, TG tok/s, MTP acceptance, mean draft length, RAM, VRAM/headroom, GPU utilization/temperature/power, and stability. No extra sweep or parameter changes. Publish one consolidated outbox result and restore normal service afterward.
