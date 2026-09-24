@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-grok-2layer-final-20260924-001
+source: GROK
+state: COMPLETE
+
+RESULT:
+status=pass
+runs=3
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags=-ngl 2 --no-kv-offload -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 32 -ctk f16 -ctv f16 -c 16384 -np 1 --spec-type draft-mtp --spec-draft-n-max 3 --spec-draft-n-min 1
+context_note=best prior successful context was 4096. An 8192 prompt plus 512 generated tokens cannot fit there, and -c 8192 already failed for that reason. This verification used -c 16384.
+kv=F16 tensors, not offloaded, so the cache stayed in system RAM
+gpu_layers=2
+mtp_active=yes all three
+prompt_n=8192 all three
+predicted_n=512 all three
+device=ok all three
+
+run1: pp=101.10 tg512=4.135 vram_after_load=2467266560 vram_free_after_load=6105890816 vram_peak=2602119168 gpu_use_max=100 edge=35C power=24W draft=364/437 mean_len=3.49
+run2: pp=100.52 tg512=4.147 vram_after_load=2467266560 vram_free_after_load=6105890816 vram_peak=2602119168 gpu_use_max=100 edge=35C power=7W draft=364/437 mean_len=3.49
+run3: pp=100.78 tg512=4.133 vram_after_load=2467266560 vram_free_after_load=6105890816 vram_peak=2603171840 gpu_use_max=100 edge=35C power=7W draft=364/437 mean_len=3.49
+
+compare_best_2k_mtp3_ncmoe32_ngl99=PP 221.88 TG512 13.99 at prompt 2048, about 73 MB VRAM free. This 8K two-layer run is about 101 tok/s prefill and 4.14 tok/s TG512, with about 6.11 GB VRAM free.
+production=stopped for the runs, ornith-server active again after
+no_sweep=true
