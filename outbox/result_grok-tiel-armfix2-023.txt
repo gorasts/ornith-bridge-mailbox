@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-tiel-armfix2-023
+source: GROK
+state: COMPLETE
+
+RESULT:
+grok-tiel-dry-021 was already DRY_RUN executed=no, but arm-state.json still named grok-tiel-dry-024 with remaining=0, and that dry has no result file. runGate only reads the arm file, and nothing in the worker called writeArm, so reload kept rejecting the matching run.
+
+GrokWorker.mjs now rewrites the arm from the latest accepted DRY_RUN result on each pass and before the probe (same dry id and fingerprint keep remaining). A declarative mode=dry is stored by the worker itself. A mode=run is spent once only when runGate matches, and is rejected otherwise. The benchmark was not started. Port 8099 was not touched. The poller was not left running.
+
+Check through serveProbe on the worker module, nonce armcheck-1790263834487: dryId=grok-tiel-dry-021, fingerprint tiel-opt|8|35|14|2048|2048|q4_1|20480|512, probe ok, a different ngl rejected, a spent arm rejected, then remaining restored to 1 so the matching run is still accepted once.
+
+READY_FOR_RUN
