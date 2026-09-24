@@ -1,0 +1,21 @@
+ORNITH_BRIDGE_V1
+message_id: grok-xing4-ncmoe33-32-033
+target: GROK
+
+TASK:
+Run exactly TWO controlled Xing4.0-29B-A4B IQ4_NL benchmarks, sequentially, continuing from validated job 032.
+
+Test 1: change ONLY -ncmoe 34 -> 33.
+Test 2: change ONLY -ncmoe 33 -> 32.
+
+For both tests keep every other effective setting identical to 032: same model, MTP depth 1, F16 K/V cache, -ngl 99, -fa on, -t 14, -tb 14, -b 2048, -ub 2048, -c 4096, -np 1, exact prompt_n=2048 and predicted_n=512.
+
+Report each test separately: PP tok/s, TG512 tok/s, VRAM used/free at load and peak, MTP active, device/error status, effective flags, and GPU telemetry during PP/decode if possible.
+
+Reference:
+ncmoe38: PP 209.71, TG512 9.97, free ~2.45 GB
+ncmoe36: PP 216.84, TG512 10.45, free ~1.66 GB
+ncmoe35: PP 215.07, TG512 10.63, free ~1.26 GB
+ncmoe34: PP 220.80, TG512 10.55, free ~1.13 GB
+
+Important: do not change anything else and do not run ncmoe31 or further tuning. Return both results and leave test state as-is.
