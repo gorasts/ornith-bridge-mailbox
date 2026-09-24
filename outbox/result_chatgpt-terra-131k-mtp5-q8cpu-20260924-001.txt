@@ -1,0 +1,34 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-131k-mtp5-q8cpu-20260924-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+status=pass
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags=-c 131072 -ngl 99 --no-kv-offload -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 32 -ctk q8_0 -ctv q8_0 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+kv_case=q8_0 for both -ctk and -ctv
+kv_in_ram=yes; --no-kv-offload; VRAM remained near model capacity rather than holding the KV cache
+mtp_active=yes
+prompt_requested=20480
+predicted_requested=512
+prompt_n=20480
+predicted_n=512
+pp=44.445903500829544 tokens/sec
+tg512=4.021713601638454 tokens/sec
+draft_acceptance=0.73897 (402 accepted / 544 generated)
+draft_mean_len=4.69
+ram_before=total 33465909248 used 4129730560 free 825991168 bytes
+ram_after_load=total 33465909248 used 7714824192 free 1310740480 bytes
+ram_after=total 33465909248 used 8148942848 free 1260212224 bytes
+vram_before=used 7900782592 total 8573157376 bytes
+vram_after_load=used 8317190144 free 255967232 bytes
+vram_peak=used 8452481024 free 120676352 bytes
+gpu_use_max=100 percent
+gpu_edge=53.0 C
+gpu_power=84.0 W
+stability=DEVICE_OK; no device-loss error
+production=ornith-server.service active again after test
+restored=normal service restored; no F16 run and no parameter sweep
+log=/tmp/xing-q8cpu.log
