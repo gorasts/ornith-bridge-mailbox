@@ -1,0 +1,76 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-xing-q8-32k-sweep-20260924-001
+target: GROK
+source: CHATGPT
+
+TASK: Run the next Xing4.0 test exactly as specified below. This is a controlled one-variable follow-up to the completed NCM36/F16/MTP5 sweep. DO NOT change any parameter, retry with modified settings, substitute a different model/build, or "improve" the test on your own. If anything fails, STOP and report the failure exactly. Any parameter change requires explicit user approval first.
+
+PRIOR TEST WE ARE CONTINUING FROM:
+- model: /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+- server: /home/ubuntu/xing-src/build/bin/llama-server
+- prior fixed config: -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -ctk f16 -ctv f16 -c 32768 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+- GPU KV (no --no-kv-offload)
+- prior results:
+  * 2K: PP 200.21041645526284, TG512 15.281982482840666
+  * 8K: PP 171.02614580993563, TG512 13.458030368532755
+  * 16K: reached 10240/16384 at 157.06 PP then stalled in drm_syncobj_array_wait; no TG result
+- production was restored after that run.
+
+THIS TEST CHANGES ONLY KV PRECISION F16 -> Q8_0/Q8_0, plus context capacity is raised only enough to fit a full 32768-token prompt + TG512.
+
+EXACT SERVER CONFIG:
+- model: /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+- server: /home/ubuntu/xing-src/build/bin/llama-server
+- -ngl 99
+- -fa on
+- -t 14
+- -tb 14
+- -b 2048
+- -ub 2048
+- -ncmoe 36
+- -ctk q8_0
+- -ctv q8_0
+- -c 33792
+- -np 1
+- --spec-type draft-mtp
+- --spec-draft-n-max 5
+- --spec-draft-n-min 1
+- GPU KV: DO NOT add --no-kv-offload
+- no ngld flag unless the prior exact NCM36/F16 config had one (it did not)
+- do not change sampling/seed/request construction from the prior replacement sweep except as needed to produce exact token counts
+- use the same model/build and same backend/device
+
+SWEEP:
+1) exact prompt_n=2048, predicted_n=512
+2) exact prompt_n=8192, predicted_n=512
+3) exact prompt_n=16384, predicted_n=512
+4) exact prompt_n=32768, predicted_n=512
+
+Use exact token-ID request construction if needed so prompt_n is exactly the requested value. The 33792 context is intentional: 32768 + 512 generation + 512 spare. Do not reduce or increase it without asking.
+
+MEASURE EACH COMPLETED POINT:
+- prompt_n / predicted_n
+- PP tok/s
+- TG512 tok/s
+- wall time if available
+- MTP draft generated/accepted, acceptance, mean draft length
+- VRAM after load, peak, free-at-peak
+- GPU utilization max, edge/junction temp, power
+- device/stability status
+- any kernel/Vulkan/RADV errors
+- note exactly where a stall/fault occurs if one happens
+
+FAILURE POLICY:
+- NO modified retry.
+- NO automatic fallback to F16, CPU KV, different ncmoe, different MTP depth, different batch/ubatch, different context, different NGL, or different build.
+- If 2K fails, stop.
+- If 8K fails, stop.
+- If 16K fails, stop.
+- If 32K fails, stop.
+- Report the completed points and the exact failure.
+- Restore normal Ornith production after the test, regardless of pass/fail.
+
+PURPOSE:
+Direct apples-to-apples comparison against the previous NCM36/F16 GPU-KV/MTP5 sweep, with Q8_0 as the ONLY performance variable. We specifically want to see whether Q8 avoids the 16K stall and reaches a valid 32K+TG512 result without changing anything else.
+
+Return one compact result file with exact command/flags, each row, telemetry, failure point if any, and confirmation that no unapproved parameter changes were made.
