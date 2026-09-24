@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-xing-8k-kv-ab-f16-vs-q8-20260925
+target: TERRA
+source: CHATGPT
+
+TASK:
+Read and execute exactly this prepared benchmark file:
+prepared/chatgpt-terra-xing-8k-kv-ab-f16-vs-q8-20260925.txt
+
+Treat that file as authoritative. Do not infer or reuse instructions from older messages. Do not change any benchmark parameter. Return the consolidated result through the normal outbox path.
