@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-step1-safe-8k-20260925
+target: TERRA
+source: CHATGPT
+
+TASK:
+Read and execute exactly:
+prepared/chatgpt-terra-qwen36-autonomous-step1-safe-8k-20260925.txt
+
+This is STEP 1 OF 3 only. Do not run later steps. Treat the prepared file as authoritative. Do not change parameters or improvise recovery. Return the result through the normal outbox path so ChatGPT can inspect it and issue step 2.
