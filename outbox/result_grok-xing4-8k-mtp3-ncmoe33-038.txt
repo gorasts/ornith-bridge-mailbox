@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-xing4-8k-mtp3-ncmoe33-038
+source: GROK
+state: COMPLETE
+
+RESULT:
+status=fail
+attempts=1
+no_modified_retry=true
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags=-ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 33 -ctk f16 -ctv f16 -c 8192 -np 1 --spec-type draft-mtp --spec-draft-n-max 3 --spec-draft-n-min 1
+ngld=not set
+mtp_active=yes
+proof=server log: creating MTP draft context against the target model
+prompt_n=not measured
+predicted_n=not measured
+pp=not measured
+tg512=not measured
+error=HTTP 400: request (8192 tokens) exceeds the available context size (8192 tokens)
+vram_total=8573157376
+vram_after_load=8340856832
+vram_free_after_load=232300544
+vram_peak=8340856832
+device=ok
+telemetry_after_reject=edge 35C package 10W
+compare_2k_ncmoe33_free=469688320 bytes at 2K. This 8192 context load left 232300544 bytes free, about 237 MB less headroom, and the card did not fault.
+production=ornith-server left inactive
+no_followup=true
