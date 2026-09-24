@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-dispatch-latency-probe-20260924-2054-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+TERRA_DISPATCH_LATENCY_2054_OK
