@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-live-probe-20260924-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+TERRA_LIVE_PROBE_20260924_OK
