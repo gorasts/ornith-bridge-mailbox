@@ -1,0 +1,20 @@
+ORNITH_BRIDGE_V1
+message_id: grok-xing4-8k-mtp3-ncmoe33-038
+target: GROK
+
+TASK:
+Run exactly ONE controlled Xing4.0-29B-A4B IQ4_NL 8K-prompt safety/benchmark test at MTP3. This is the first step of an intended 8K MTP3/4/5 comparison; do NOT run MTP4/5 yet.
+
+Reason for ncmoe33 safety step: the 2K ncmoe32 configuration has only ~73 MB VRAM free, and increasing context/prompt to 8K requires additional KV/context memory. Use ncmoe33 to restore ~470 MB measured headroom rather than risk a device/OOM failure remotely.
+
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags: -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 33 -ctk f16 -ctv f16 -c 8192 -np 1 --spec-type draft-mtp --spec-draft-n-max 3 --spec-draft-n-min 1
+Do NOT set -ngld.
+Exact prompt_n=8192, predicted_n=512.
+
+2K reference: MTP3 ncmoe32 PP=221.88 TG512=13.99 acceptance=83.716% mean_len=3.50. MTP4 dropped to TG512=13.26 with acceptance=67.818%.
+
+SAFETY: If allocation/OOM/device errors occur, stop immediately and report; no modified retry.
+
+Report effective flags, proof MTP3 active, draft generated/accepted, acceptance, mean speculative length, PP, TG512, VRAM after load/free/peak, GPU utilization/temp/power, device status/errors. No follow-up tests. Leave production inactive/test state.
