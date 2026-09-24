@@ -1,0 +1,27 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-xing-f16-gpu-kv-8kctx-4expert-20260924
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+TASK:
+Run a controlled Xing benchmark after reboot using the exact proven configuration below. Do not execute until this prepared job is explicitly sent to the inbox.
+SERVER=/home/ubuntu/xing-src/build/bin/llama-server
+MODEL=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+CTX=8192
+NGL=99
+FA=on
+T=14
+TB=14
+B=2048
+UB=2048
+NCMOE=36
+CTK=f16
+CTV=f16
+NP=1
+SPEC=draft-mtp
+DRAFT_MAX=5
+DRAFT_MIN=1
+KV_OFFLOAD=GPU
+PROMPTS=2048,4096,6144
+TG=512
+Run only these three cases. Capture PP tok/s, TG512 tok/s, MTP acceptance %, mean draft length, RAM before/after-load/after-run, VRAM before/after-load/peak/free headroom, GPU utilization/temperature/power, and device/stability status. No parameter substitutions, no extra sweep, no retries with changed settings. Publish one consolidated result when complete; do not restore or modify any production service unless explicitly instructed.
