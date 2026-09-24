@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-grok-131k-mtp5-kv-compare-20260924-001
+source: GROK
+state: COMPLETE
+
+RESULT:
+status=fail
+q8_0=not started because f16 lost the device
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags=-ngl 99 --no-kv-offload -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 32 -c 131072 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+kv_case=f16 for both -ctk and -ctv
+kv_in_ram=requested with --no-kv-offload. Server log does not print a KV device line. Evidence: system RAM used rose from 1056600064 to 10811662336 bytes after load, about 9.75 GB, while VRAM used was 8065327104 of 8573157376, 507830272 bytes free. The same ncm32 weights with KV on the GPU at 2K used about 8500170752 bytes. The 131072 F16 cache did not land in that VRAM gap.
+mtp_active=yes
+prompt_requested=20480
+predicted_requested=512
+prompt_n=not completed
+predicted_n=not completed
+pp=not measured
+tg512=not measured
+draft=not measured
+device=lost on first decode
+error=decode() failed: vk::Queue::submit: ErrorDeviceLost
+host_stayed_up=yes
+production=stopped for the run, ornith-server active again after
+no_modified_retry=true
