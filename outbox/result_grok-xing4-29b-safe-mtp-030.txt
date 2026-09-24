@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-xing4-29b-safe-mtp-030
+source: GROK
+state: COMPLETE
+
+RESULT:
+status=pass
+attempts=2
+corrections=attempt 1 detokenized text measured prompt_n=2049 predicted_n=512 pp=205.60 tg=10.07. Attempt 2 sent the token-id array so prompt_n is exactly 2048. No device loss on either attempt. 20K was not run.
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+identity=Xing4.0-29B-A4B IQ4_NL
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags=-ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 38 -ctk f16 -ctv f16 -c 4096 -np 1 --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1
+mtp_active=yes
+proof=server log: creating MTP draft context against the target model '/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf'
+prompt_n=2048
+predicted_n=512
+pp=209.71
+tg512=9.97
+vram_total=8573157376
+vram_used_after_load_before_decode=6121213952
+vram_free_before_decode=2451943424
+vram_used_after_validated_run=6120169472
+vram_free_after_validated_run=2452987904
+vram_path=/sys/class/drm/card1/device/mem_info_vram_used and rocm-smi GPU[0]
+telemetry_after_attempt1=edge 43C junction 44C memory 41C package 19W gpu_use_sample 0 because rocm-smi was read after the run
+device=ok
+production=ornith-server stopped for the run and left inactive
+next=stable 2K MTP1 baseline with about 2.45 GB free. Do not go to 20K from this result.
