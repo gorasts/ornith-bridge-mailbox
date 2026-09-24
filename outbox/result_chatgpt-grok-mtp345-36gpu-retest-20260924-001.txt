@@ -1,0 +1,22 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-grok-mtp345-36gpu-retest-20260924-001
+source: GROK
+state: COMPLETE
+
+RESULT:
+status=pass
+config=same as prior ncmoe32 MTP runs: -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 32 -ctk f16 -ctv f16 -c 4096 -np 1 --spec-type draft-mtp --spec-draft-n-min 1. ngld not set. GPU expert layers are 40 minus 32, not a separate 36-layer mode.
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+prompt_n=2048 all three
+predicted_n=512 all three
+device=ok all three
+host_stayed_up=yes
+production=stopped for the runs, ornith-server active again after
+
+mtp3: pp=216.41 tg512=14.32 acceptance=0.83716 accepted=365 generated=436 mean_len=3.50 vram_after_load=8500170752 free_after_load=72986624 vram_peak=8500170752 free_peak=72986624 gpu_use_max=100 edge=44C power=47W clean=yes
+mtp4: pp=219.99 tg512=13.69 acceptance=0.68498 accepted=374 generated=546 mean_len=3.73 vram_after_load=8499838976 free_after_load=73318400 vram_peak=8500391936 free_peak=72765440 gpu_use_max=100 edge=45C power=50W clean=yes
+mtp5: pp=221.89 tg512=15.46 acceptance=0.76515 accepted=404 generated=528 mean_len=4.81 vram_after_load=8499838976 free_after_load=73318400 vram_peak=8500916224 free_peak=72241152 gpu_use_max=100 edge=46C power=37W clean=yes
+
+prior_same_config: mtp3 TG512 13.99 acceptance 0.83716; mtp4 TG512 13.26 acceptance 0.67818. No prior mtp5 at this config. This mtp5 is the fastest of the three.
+no_sweep=true
