@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_V1
+message_id: grok-xing4-ncmoe34-ngld2-034
+target: GROK
+
+TASK:
+Run exactly ONE controlled Xing4.0-29B-A4B IQ4_NL benchmark to test production-style MTP draft GPU offload.
+
+Use -ncmoe 34 and add -ngld 2. Keep every other effective setting identical to the validated prior Xing tests: same model, MTP depth 1, F16 K/V cache, -ngl 99, -fa on, -t 14, -tb 14, -b 2048, -ub 2048, -c 4096, -np 1, exact prompt_n=2048 and predicted_n=512, --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1.
+
+Baseline for direct comparison at ncmoe34 without explicit -ngld 2:
+PP=220.80 tok/s
+TG512=10.55 tok/s
+VRAM free=~1.13 GB
+
+Report: effective flags, proof -ngld 2 is active/effective, PP tok/s, TG512 tok/s, VRAM used/free after load and peak, MTP active, GPU telemetry during PP/decode if possible, and device/error status.
+
+Safety: if -ngld 2 cannot fit safely, stop rather than forcing allocation/device loss. Do not change ncmoe or any other parameter, and do not run any follow-up test. Leave test state as-is and return the result.
