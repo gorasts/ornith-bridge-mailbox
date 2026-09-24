@@ -1,0 +1,27 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-tiel-mtp-rerun-028
+target: GROK
+reply_expected: yes
+
+TASK:
+Rerun the failed grok-tiel-mtp-027 benchmark on the SAME new Tiel model/configuration intended by 027, with MTP explicitly active.
+
+REQUIRED BENCHMARK:
+- Prompt tokens: exactly 20480
+- Generated tokens: exactly 512
+- MTP: active
+- spec mode: draft-mtp
+- n_max: 1
+- Preserve the rest of 027's intended model/config unless a correction is required solely to make the requested benchmark execute correctly.
+
+SELF-CORRECTION RULE:
+Do NOT stop after a validation failure. After every run, verify the server's actual measured prompt_n and predicted_n. A valid run MUST report prompt_n=20480 and predicted_n=512. If either differs, diagnose/correct the execution issue and rerun automatically, up to 3 attempts. Do not report PP/TG numbers from an invalid-length run as benchmark results.
+
+RETURN:
+- attempt count and any corrections made
+- exact model identity and effective llama.cpp/server flags
+- proof MTP was active
+- actual measured prompt_n and predicted_n
+- PP tok/s and TG512 tok/s ONLY from a validated 20480+512 run
+- VRAM peak/headroom and available telemetry if captured
+- status=pass only if token counts validate; otherwise status=fail with diagnostics after 3 attempts.
