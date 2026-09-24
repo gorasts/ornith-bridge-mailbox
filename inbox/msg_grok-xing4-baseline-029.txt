@@ -1,0 +1,31 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: grok-xing4-baseline-029
+target: GROK
+reply_expected: yes
+
+TASK:
+Benchmark the NEW Xing 4.0 20B-A4B model. This is explicitly NOT Tiel, NOT Ornith, and NOT Bonsai. First verify the exact loaded model identity is Xing 4.0 20B-A4B before running. If the exact Xing model is not present or cannot be identified, STOP and report that rather than substituting another model.
+
+REQUIRED BASELINE:
+- Model: Xing 4.0 20B-A4B
+- Prompt tokens: exactly 20480
+- Generated tokens: exactly 512
+- MTP: explicitly enabled and active
+- Verify MTP initialization from server logs
+- After the run verify actual prompt_n=20480 and predicted_n=512
+- Measure PP tok/s and TG512 tok/s
+- Capture VRAM peak/headroom and available GPU/network/thermal/power telemetry
+- Return exact GGUF/model path, llama.cpp build, and all effective server flags
+
+SELF-CORRECTION:
+Do not accept or report benchmark numbers from the wrong model or wrong token lengths. If execution gives incorrect token counts or MTP is inactive, diagnose/correct and rerun automatically, up to 3 attempts. Never substitute Tiel or another model for Xing.
+
+RETURN:
+- exact model identity/path
+- attempt count and corrections
+- effective flags/build
+- proof MTP active
+- measured prompt_n and predicted_n
+- PP tok/s and TG512 tok/s from a validated Xing 20480+512 run only
+- VRAM peak/headroom and telemetry
+- status=pass only if model identity, MTP, and token counts all validate; otherwise status=fail with diagnostics.
