@@ -1,0 +1,6 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-131k-mtp5-q8cpu-20260924-001
+target: TERRA
+source: CHATGPT
+TASK:
+Run the same outstanding Q8_0 KV benchmark currently requested from Grok. Use Xing model /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf with server /home/ubuntu/xing-src/build/bin/llama-server. Configuration: -c 131072, -ngl 99, --no-kv-offload, -fa on, -t 14, -tb 14, -b 2048, -ub 2048, -ncmoe 32, -ctk q8_0, -ctv q8_0, -np 1, --spec-type draft-mtp, --spec-draft-n-max 5, --spec-draft-n-min 1. Use a 20480-token prompt and TG512 target. Report exact settings, actual prompt/predicted token counts, prompt-processing speed, TG512 speed, MTP acceptance statistics, system RAM usage, VRAM usage/headroom, GPU telemetry, stability, and confirm KV remained in CPU/system RAM. Q8_0 only; do not run F16 and do not sweep. Restore normal service after testing.
