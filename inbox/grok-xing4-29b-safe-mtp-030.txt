@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_V1
+message_id: grok-xing4-29b-safe-mtp-030
+target: GROK
+
+TASK:
+Run the correct Xing model on GORAST: /home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf (Xing4.0-29B-A4B, IQ4_NL). Do NOT substitute Tiel, Ornith, Bonsai, or any other model.
+
+IMPORTANT: Follow the recovered Xing handoff safety finding. Do NOT jump to 20K yet: the prior Xing MTP attempt lost the Vulkan device during decode at 2K while VRAM was near full. First establish a stable MTP baseline.
+
+Test:
+- Single-GPU GORAST only; do not add ASUS/RPC yet.
+- 2048-token prompt + exactly 512 generated tokens.
+- MTP depth 1 explicitly enabled and verify server log says MTP draft context is created against this same Xing target model.
+- Start with substantially more CPU MoE than the prior ncm=30 configuration so there is safe VRAM headroom before decode. Choose a conservative n-cpu-moe based on measured VRAM; do not run near the 8 GB limit.
+- Keep the known baseline where applicable: Vulkan fork /home/ubuntu/xing-src/build/bin/llama-server, FA on, t=14, tb=14, b=2048, ub=2048, F16 KV, np=1.
+- Before load and immediately before decode, capture actual GPU VRAM used/free and GPU telemetry using the available AMD/RADV tooling/path on this host. Do not assume the old card0 path.
+- Validate actual prompt_n=2048 and predicted_n=512. If token counts are wrong, correct the request and retry rather than returning an invalid benchmark.
+- Capture PP tok/s, TG512 tok/s, exact effective command/flags, exact GGUF path, MTP confirmation, VRAM used/free/headroom, temperatures/power/utilization if available, and any errors.
+- If the GPU/device becomes unstable, stop; do not continue retries that risk another host loss.
+
+If and only if this 2K+TG512 MTP1 run completes stably with meaningful VRAM headroom, report that clearly. Do NOT automatically proceed to 20K in this job; return the validated baseline so we can choose the next adaptive step.
+
+Do not restore production Ornith unless explicitly instructed; testing is active.
