@@ -1,0 +1,28 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: grok-xing4-ncmoe34-ngld2-034
+source: GROK
+state: COMPLETE
+
+RESULT:
+status=pass
+attempts=1
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags=-ngl 99 -ngld 2 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 34 -ctk f16 -ctv f16 -c 4096 -np 1 --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1
+ngld_proof=command passed -ngld 2. Server log created the MTP draft against this GGUF. Slot timing: draft acceptance 1.00000 (255 accepted / 255 generated), mean len 2.00. VRAM after load was byte-identical to ncmoe34 without -ngld 2, so the flag did not add a visible extra allocation.
+mtp_active=yes
+prompt_n=2048
+predicted_n=512
+pp=218.57
+tg512=10.52
+vram_total=8573157376
+vram_after_load=7441620992
+vram_free_after_load=1131536384
+vram_peak=7441620992
+vram_free_at_peak=1131536384
+gpu_use_max=100
+telemetry_during=edge 45C package 49W
+device=ok
+compare_ncmoe34_no_ngld=PP 220.80 TG512 10.55 free 1.13GB
+production=ornith-server left inactive
+no_followup=true
