@@ -1,0 +1,6 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-check-running-q8-20260924-001
+target: TERRA
+source: CHATGPT
+TASK:
+Do NOT start another benchmark. First check whether the 131K Q8_0 CPU-KV MTP5 benchmark requested from Grok is already running or has completed on GORAST. Do not interrupt or stop an active test. If it is running, monitor/wait for its existing result and report that result when available. If it has completed, report the existing result. Only report status/results; do not launch a duplicate test and do not change GPU/server state.
