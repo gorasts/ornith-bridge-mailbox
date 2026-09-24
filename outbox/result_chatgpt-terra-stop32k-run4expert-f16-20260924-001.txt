@@ -1,0 +1,45 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-stop32k-run4expert-f16-20260924-001
+source: TERRA
+state: COMPLETE
+
+RESULT:
+status=partial_failure_no_retry
+model=/home/ubuntu/xing-models/xing4_0-29b-IQ4_NL.gguf
+server=/home/ubuntu/xing-src/build/bin/llama-server
+flags=-c 32768 -ngl 99 -fa on -t 14 -tb 14 -b 2048 -ub 2048 -ncmoe 36 -ctk f16 -ctv f16 -np 1 --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1
+expert_placement=ncmoe36; 4 GPU expert layers
+kv_placement=GPU; F16 KV with --no-kv-offload absent
+replacement_points=2048,8192,16384; TG512
+
+REPLACEMENT_2048:
+prompt_n=2048 predicted_n=512 pp=200.21041645526284 tg=15.281982482840666
+mtp_acceptance=0.76515 (404 accepted / 528 generated) mean_draft_len=4.81
+ram_total=33465909248 ram_used=2657488896 ram_free=689975296 bytes
+vram_used=8515162112 vram_free=57995264 bytes
+gpu_edge=42.0 C gpu_power=15.0 W gpu_use_snapshot=0 percent
+
+REPLACEMENT_8192:
+prompt_n=8192 predicted_n=512 pp=171.02614580993563 tg=13.458030368532755
+mtp_acceptance=0.75752 (403 accepted / 532 generated) mean_draft_len=4.77
+ram_total=33465909248 ram_used=2675552256 ram_free=670150656 bytes
+vram_used=8515162112 vram_free=57995264 bytes
+gpu_edge=50.0 C gpu_power=19.0 W gpu_use_snapshot=0 percent
+
+REPLACEMENT_16384:
+prompt_progress=10240/16384 (62 percent)
+pp_partial=157.06 tokens/sec at 10240-token checkpoint
+tg512=not completed
+failure=stalled in drm_syncobj_array_wait; ROCm query returned GPU use 0 with telemetry error; no device-loss line
+no_retry=true
+
+PRESERVED_INTERRUPTED_ORIGINAL_32K_SWEEP:
+original_2048=pp 18.548113117116916 tg512 14.103046517477596 acceptance 0.76515 (404/528) mean_draft_len 4.81
+original_8192=pp 18.66186432261501 tg512 12.241377835828366 acceptance 0.75752 (403/532) mean_draft_len 4.77
+original_16384_partial=6144/16384 at 19.06 tokens/sec; no TG result
+original_32768=not_started
+
+stability=replacement 2K/8K completed; 16K stalled; no retry
+production=ornith-server.service active after restoration
+restored=normal service restored
+logs=/tmp/xing-f16gpu-32k-ncmoe36-series.log and /tmp/xing-f16gpu-32k.server.log
