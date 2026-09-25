@@ -1,19 +1,104 @@
+SUPERVISOR_UPDATE
+message_id: chatgpt-terra-qwen36-biglever10-20260925-007
+outcome: USER_DIRECTED_STOP_AFTER_STAGE_6
+directive: Finish the currently running stage, cancel the remaining stages, and submit this report.
+stage_6: COMPLETED; prompt=65536; N_CPU_MOE=35; MTP=1; B=1280; UB=1024; PP=37.946 tok/s; TG512=15.837 tok/s; wall=1759.404 s; inference min-free VRAM=841.8 MiB; max temperature=88C; MTP accepted=253/258 (98.06%); mean draft length=1.98.
+stages_1_to_6: COMPLETED and qualified; full per-stage measurements follow in the controller report.
+stage_7: The existing controller briefly started the model-load phase, then the cancellation marker was detected before an inference request; no Stage 7 benchmark inference completed.
+stages_8_to_10: NOT STARTED.
+cleanup: Controller reported cleanup complete; no later stages will be run. Ornith remains inactive per the prepared packet.
+interpretation: Controller state FAILURE is its cancellation-path label, not a GPU/kernel or benchmark fault. The partial result is intentional per the user's stop-after-stage-6 instruction.
+controller_live_tail:
+==
+===STATE===
+FAILURE
+
+ORIGINAL_CONTROLLER_REPORT_BEGIN
 ORNITH_BRIDGE_RETURN_V1
 message_id: chatgpt-terra-qwen36-biglever10-20260925-007
 source: TERRA
-state: COMPLETE
+state: FAILURE
+AUTONOMOUS_COMPLETION=NO
+LIVE_POWERSHELL_VIEWER=PASS
+LIVE_VIEWER_CTRL_C_WIRED=YES
+STAGES_ATTEMPTED=7
+STAGES_VALID=1,2,3,4,5,6
+STAGES_QUALIFIED=1,2,3,4,5,6
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+PROMPT_FINGERPRINTS={"20480": "a77724f7c7b882bb28d2b5f79ec6944535672bd56a832af87f4ee862ce6abc76", "32768": "51da1d892d2a0de41d9c95eb0bf5722c43cc42e548e44dfd1e790a9f1eea4a0a", "65536": "b80b37955cc5d33dce87d7525f324623a97e1a8a880ad92a683281b9678b19bc"}
+PREDICTED_N=512
+SERVER_CONTEXT=131072
+B=1280
+UB=1024
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
 
-RESULT:
-I’ll read the exact prepared packet and check the current Qwen/Ornith state before doing anything that could start a stage.
-The packet’s ten arms are fixed by its decision rules; I’ve prepared the runner to keep the baseline flags locked and stop on any GPU/kernel fault. I’m opening and verifying the separate visible PowerShell log viewer before Stage 1.
-Stopped command
-The visible live console is verified, and Stage 1 is running with the packet’s exact baseline and the 20K/NCMOE36/MTP1 arm. The model gate passed; stable-load free VRAM is 1,889.7 MiB.
-Stage 2 completed exactly at 32K+512 and qualified: PP 66.043 / TG 17.320 tok/s with 270.1 MiB minimum free VRAM. Stage 3 is measuring NCMOE35 at the same fixed batch and MTP1 settings.
-The 32K placement comparison is complete. NCMOE33 led TG512 at 17.320 tok/s (270.1 MiB free); NCMOE35 and 36 traded speed for more headroom. The packet’s ranking selected the top two qualified placements for the 64K tests, now underway.
-Optimized the conversation
-The 10-stage run is underway; stages 1–4 passed and stage 5 is running. I’m continuing that exact run and will publish its consolidated result when it finishes.
-Stage 5 is still processing the exact 64K prompt: the live server log shows 60,160 tokens of 65,536 processed. GPU use is 100% and telemetry temperature is about 74°C; the run remains within its stated thermal limit.
-Ran command
-Stage 5 completed successfully: 64K, NCMOE33, MTP1, PP 38.124 tok/s and TG 15.592 tok/s, with minimum free VRAM 267.5 MiB. Stage 6 is now running the same prompt at NCMOE35.
-Ran command
-what are the the next stages ?
+STAGE | PROMPT | N_CPU_MOE | MTP | B | UB | PP | TG512 | WALL | LOAD_FREE | MIN_FREE | TEMP | ACCEPTANCE | STABLE
+1 | 20480 | 36 | 1 | 1280 | 1024 | 87.672 | 18.101 | 261.840 | 1889.7MiB | 1117.9MiB | 77.0C | 84.78% | YES
+STAGE1_MTP=accepted 234/276; mean_draft_len=1.85
+STAGE1_GPU=max_busy=100%; edge=66.0C; junction=77.0C; memory=72.0C; power=not exposed by available sysfs sensor
+STAGE1_RAM=max_used=2.63GiB; min_available=28.54GiB; status=COMPLETED; fault=NO_FATAL_SERVER_FAULTS; dmesg unavailable
+2 | 32768 | 33 | 1 | 1280 | 1024 | 66.043 | 17.320 | 525.682 | 1042.1MiB | 270.1MiB | 88.0C | 88.19% | YES
+STAGE2_MTP=accepted 239/271; mean_draft_len=1.88
+STAGE2_GPU=max_busy=100%; edge=70.0C; junction=88.0C; memory=75.0C; power=not exposed by available sysfs sensor
+STAGE2_RAM=max_used=2.66GiB; min_available=28.51GiB; status=COMPLETED; fault=NO_FATAL_SERVER_FAULTS; dmesg unavailable
+3 | 32768 | 35 | 1 | 1280 | 1024 | 65.380 | 17.118 | 531.063 | 1615.7MiB | 842.2MiB | 90.0C | 93.92% | YES
+STAGE3_MTP=accepted 247/263; mean_draft_len=1.94
+STAGE3_GPU=max_busy=100%; edge=70.0C; junction=90.0C; memory=75.0C; power=not exposed by available sysfs sensor
+STAGE3_RAM=max_used=2.69GiB; min_available=28.48GiB; status=COMPLETED; fault=NO_FATAL_SERVER_FAULTS; dmesg unavailable
+4 | 32768 | 36 | 1 | 1280 | 1024 | 65.171 | 16.581 | 533.633 | 1889.7MiB | 1115.5MiB | 83.0C | 88.89% | YES
+STAGE4_MTP=accepted 240/270; mean_draft_len=1.89
+STAGE4_GPU=max_busy=100%; edge=70.0C; junction=83.0C; memory=74.0C; power=not exposed by available sysfs sensor
+STAGE4_RAM=max_used=2.68GiB; min_available=28.48GiB; status=COMPLETED; fault=NO_FATAL_SERVER_FAULTS; dmesg unavailable
+5 | 65536 | 33 | 1 | 1280 | 1024 | 38.124 | 15.592 | 1751.831 | 1040.4MiB | 267.5MiB | 87.0C | 98.06% | YES
+STAGE5_MTP=accepted 253/258; mean_draft_len=1.98
+STAGE5_GPU=max_busy=100%; edge=71.0C; junction=87.0C; memory=75.0C; power=not exposed by available sysfs sensor
+STAGE5_RAM=max_used=2.81GiB; min_available=28.35GiB; status=COMPLETED; fault=NO_FATAL_SERVER_FAULTS; dmesg unavailable
+6 | 65536 | 35 | 1 | 1280 | 1024 | 37.946 | 15.837 | 1759.404 | 1615.8MiB | 841.8MiB | 88.0C | 98.06% | YES
+STAGE6_MTP=accepted 253/258; mean_draft_len=1.98
+STAGE6_GPU=max_busy=100%; edge=71.0C; junction=88.0C; memory=75.0C; power=not exposed by available sysfs sensor
+STAGE6_RAM=max_used=2.82GiB; min_available=28.35GiB; status=COMPLETED; fault=NO_FATAL_SERVER_FAULTS; dmesg unavailable
+7 | 32768 | 33 | 2 | 1280 | 1024 | NA | NA | NA | NAMiB | NAMiB | NAC | NA% | NO
+STAGE7_MTP=accepted NA/NA; mean_draft_len=NA
+STAGE7_GPU=max_busy=NA%; edge=NAC; junction=NAC; memory=NAC; power=NA
+STAGE7_RAM=max_used=NAGiB; min_available=NAGiB; status=FAILURE; fault=viewer cancellation during model load
+
+ANALYSIS_A_PLACEMENT_EFFECT
+NCMOE33_32K=PP=66.043; TG=17.320; min_free=270.1MiB; delta_vs_NCM33_TG=0.00%; delta_PP=0.00%
+NCMOE35_32K=PP=65.380; TG=17.118; min_free=842.2MiB; delta_vs_NCM33_TG=-1.17%; delta_PP=-1.00%
+NCMOE36_32K=PP=65.171; TG=16.581; min_free=1115.5MiB; delta_vs_NCM33_TG=-4.27%; delta_PP=-1.32%
+STAGE5_64K_PLACEMENT=NCMOE33; PP=38.124; TG=15.592; min_free=267.5MiB
+STAGE6_64K_PLACEMENT=NCMOE35; PP=37.946; TG=15.837; min_free=841.8MiB
+
+ANALYSIS_B_CONTEXT_LOSS
+NCMOE33_20K_TO_32K=TG_loss=8.80%; PP_loss=25.68%
+NCMOE33_32K_TO_64K=TG_loss=9.98%; PP_loss=42.27%
+NCMOE35_20K_TO_32K=TG_loss=9.60%; PP_loss=25.72%
+NCMOE35_32K_TO_64K=TG_loss=7.48%; PP_loss=41.96%
+
+ANALYSIS_C_MTP_EFFECT
+LONGCTX_PLACEMENT=NCMOE33; source=Stage 5; min_free=267.5MiB
+MTP_STAGE7_32768_COMPARISON=NA
+MTP_STAGE9_32768_COMPARISON=NA
+MTP_STAGE8_65536_COMPARISON=NA
+MTP_STAGE10_65536_COMPARISON=NA
+
+ANALYSIS_D_WINNERS
+RAW_FASTEST_32K=STAGE 2 NCMOE33 MTP1 TG=17.32 PP=66.043 min_free=270.1MiB
+RAW_FASTEST_64K=STAGE 6 NCMOE35 MTP1 TG=15.837 PP=37.946 min_free=841.8MiB
+BEST_MTP_32K=NONE
+BEST_MTP_64K=NONE
+BEST_LONG_CONTEXT_CONFIG=STAGE 6 NCMOE35 MTP1 TG=15.837 PP=37.946 min_free=841.8MiB
+BEST_HEADROOM_CONFIG=STAGE 1 NCMOE36 MTP1 TG=18.101 PP=87.672 min_free=1117.9MiB
+STAGE5_6_PLACEMENT_SELECTION=rank1=Stage2/NCMOE33/qualified=True/free=270.1MiB; rank2=Stage3/NCMOE35/qualified=True/free=842.2MiB
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+FIXED_PARAMETERS=Same model/server/corpus/hash/GORAST ROCm0, -c 131072, B1280, UB1024, -ngl 99, threads14, FA on, Q8 KV, deterministic prompt construction, TG512; only prompt length, N_CPU_MOE, and MTP max depth varied.
+POWER=No GPU power sensor exposed by available sysfs; one-second GPU temperature/utilization/clocks/RAM/VRAM telemetry retained per stage.
+PREVIOUS_2K_MTP_DATA=Not used to infer long-context MTP effect.
+JOB_ERROR=viewer cancellation during model load
+DETAILS=Per-stage raw logs and telemetry retained in /tmp/terra-qwen36-biglever10-20260925-007
+ORIGINAL_CONTROLLER_REPORT_END
