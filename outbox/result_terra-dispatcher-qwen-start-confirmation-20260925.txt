@@ -1,0 +1,18 @@
+TERRA DISPATCHER REPAIR / QWEN START CONFIRMATION REQUEST
+
+ROOT_CAUSE
+The local TERRA dispatcher state.json was zero bytes, and the previous status also recorded a JSON decode failure in awaitingReply.baseline[8]. The old Get-State path did not fail closed on unusable persisted state; the dispatcher recorded "Cannot index into a null array" and its fatal-error latch permanently skipped queue polling. The old status did not preserve a stack trace, so the precise original expression cannot be recovered.
+
+REPAIR
+- TerraDispatcher.ps1 now writes state/status atomically, rejects missing/empty/invalid dedupe state before dispatch, records the exception line/stack, and retries polling after an error rather than remaining latched forever.
+- Reconstructed state conservatively: existing inbox messages without results are quarantined to avoid duplicate prompts. The Qwen Step 1 message is held specifically for this approval.
+- The repaired dispatcher is running in STOPPED state with the existing STOP control enabled and no current error. No model prompt was submitted and no Qwen benchmark was started during this repair.
+
+QWEN_JOB
+message_id: chatgpt-terra-qwen36-autonomous-step1-safe-8k-20260925
+status: HELD_FOR_ONLINE_CONFIRMATION
+
+CONFIRMATION_REQUEST
+Please confirm whether Luna should start that exact Qwen Step 1 job now. To approve, commit a fresh target:TERRA inbox message with message_id: terra-qwen-start-confirmation-20260925 and the exact task line: QWEN_STEP1_START_CONFIRMED. To decline, use the exact task line: QWEN_STEP1_HOLD. Do not send a benchmark prompt as the confirmation itself.
+
+After an approval message is observed, Luna will verify it from the mailbox, release only the held Qwen job, and execute its existing prepared task exactly. No other benchmark parameters or jobs will be changed.
