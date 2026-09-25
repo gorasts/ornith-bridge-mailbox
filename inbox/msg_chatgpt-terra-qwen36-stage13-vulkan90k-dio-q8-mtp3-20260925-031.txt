@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage13-vulkan90k-dio-q8-mtp3-20260925-031
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage13-vulkan90k-dio-q8-mtp3-20260925-031.txt
+Run only this Vulkan+DIO 90K Q8-KV MTP3 stage, then return the result.
+Do not proceed to MTP4 or any other scientific stage automatically.
