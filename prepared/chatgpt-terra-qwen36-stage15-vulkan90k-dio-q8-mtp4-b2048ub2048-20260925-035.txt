@@ -1,0 +1,164 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage15-vulkan90k-dio-q8-mtp4-b2048ub2048-20260925-035
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=50-70 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 15.
+Test whether larger B/UB changes MTP4 behavior at 90K.
+Do not run any later stage automatically.
+
+STAGE 14C MTP4 REFERENCE
+Backend=Vulkan
+Load mode=dio
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=4
+KV=q8_0/q8_0
+PROMPT=90000
+PREDICTED=512
+PP90K=169.874
+TG512=11.360
+MTP_ACCEPTANCE=364/584 (62.329%)
+MEAN_DRAFT_LEN=1.62
+VRAM_MIN_FREE=1649.9 MiB
+GTT_PEAK=10362.5 MiB
+MAX_JUNCTION=109C
+WALL_S=574.830
+No faults; viewer passed.
+
+STAGE 13 MTP3 REFERENCE
+B=1280
+UB=1024
+PP90K=167.199
+TG512=13.115
+MTP_ACCEPTANCE=81.166%
+MEAN_DRAFT_LEN=1.81
+
+HYPOTHESIS FROM GORAST
+MTP performance appears viable around >=75% acceptance.
+MTP4 at 62.3% acceptance lost TG.
+Test whether larger B/UB raises MTP acceptance/effective draft behavior enough to recover TG.
+
+LOCKED SCIENTIFIC CONFIG
+Use exactly Stage 14C:
+same Vulkan binary/model/backend/load mode/N_CPU_MOE/MTP4/Q8 KV/threads/FA/server context/corpus/hash/prompt construction/viewer/telemetry/cleanup.
+
+CHANGE ONLY
+-b 1280 -> 2048
+-ub 1024 -> 2048
+
+RULES
+- Exactly one benchmark arm.
+- No hidden retries.
+- No ROCm/ASUS/RPC.
+- No placement/MTP/KV/load-mode/thread/FA/context changes.
+- Prompt exactly 90000; predicted exactly 512.
+- No software temperature cutoff.
+- Do not disable or alter GPU/driver/SMU hardware thermal protections.
+- Stop only on actual GPU/device/kernel fault, reset, device lost, hang, loss of control, or hardware/driver shutdown.
+- Leave Ornith inactive after cleanup.
+
+LIVE VIEWER — HARD GATE
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Use the proven Stage13/14C process-level Start-Process PowerShell viewer method.
+Verify PID/title/parentage and Ctrl+C before inference.
+Do not use the ChatGPT/Codex embedded terminal as viewer.
+
+TELEMETRY
+Sample once per second:
+VRAM used/free
+GTT used
+GPU edge/junction/memory temp
+GPU utilization
+host RSS/RAM
+SCLK/MCLK/power if exposed
+HBM state if readable
+thermal-throttle evidence
+
+MEASURE
+PP90K
+TG512
+wall/load time
+MTP generated/accepted/acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS/RAM
+max edge/junction/memory temp
+fault scan
+prompt fingerprint
+
+COMPARE DIRECTLY TO STAGE14C B1280/UB1024 MTP4
+DELTA_PP_B2048_VS_B1280
+DELTA_TG_B2048_VS_B1280
+DELTA_ACCEPTANCE_B2048_VS_B1280
+DELTA_MEAN_DRAFT_B2048_VS_B1280
+DELTA_VRAM_MIN_FREE_B2048_VS_B1280
+DELTA_GTT_B2048_VS_B1280
+DELTA_WALL_B2048_VS_B1280
+
+IMPORTANT
+Report explicitly whether MTP acceptance crosses 75%.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage15-vulkan90k-dio-q8-mtp4-b2048ub2048-20260925-035.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage15-vulkan90k-dio-q8-mtp4-b2048ub2048-20260925-035
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=dio
+MTP_DEPTH=4
+KV_K=q8_0
+KV_V=q8_0
+PROMPT_N=90000
+PREDICTED_N=512
+N_CPU_MOE=33
+B=2048
+UB=2048
+PP90K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MTP_ACCEPTANCE_GE_75PCT=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+HOST_RAM_MAX_USED=
+MAX_EDGE_TEMP_C=
+MAX_JUNCTION_TEMP_C=
+MAX_MEMORY_TEMP_C=
+THERMAL_THROTTLE_EVIDENCE=
+FAULT_SCAN=
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_PID=
+LIVE_VIEWER_TITLE=
+LIVE_VIEWER_CTRL_C_WIRED=
+LIVE_VIEWER_PARENTAGE_CHECK=
+DELTA_PP_B2048_VS_B1280=
+DELTA_TG_B2048_VS_B1280=
+DELTA_ACCEPTANCE_B2048_VS_B1280=
+DELTA_MEAN_DRAFT_B2048_VS_B1280=
+DELTA_VRAM_MIN_FREE_B2048_VS_B1280=
+DELTA_GTT_B2048_VS_B1280=
+DELTA_WALL_B2048_VS_B1280=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
