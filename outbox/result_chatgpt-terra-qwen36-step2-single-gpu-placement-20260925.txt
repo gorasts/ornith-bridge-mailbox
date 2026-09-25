@@ -1,0 +1,52 @@
+STATE=PASS
+MESSAGE_ID=chatgpt-terra-qwen36-step2-single-gpu-placement-20260925
+SINGLE_GPU_GORAST_ONLY=YES
+ASUS_USED=NO
+RPC_USED=NO
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+SERVER=/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+
+PLACEMENT_SWEEP
+Method: one fresh server per --n-cpu-moe candidate, health wait, stable-load VRAM measurement, then unload. Stop descending on the first candidate below 128 MiB free.
+N_CPU_MOE\tVRAM_USED_BYTES\tVRAM_FREE_BYTES\tMAX_TEMP_C\tRESULT
+38\t6690844672\t1882312704\t29\tSAFE
+37\t6976643072\t1596514304\t30\tSAFE
+36\t7264747520\t1308409856\t30\tSAFE
+35\t7551483904\t1021673472\t30\tSAFE
+34\t7866556416\t706600960\t29\tSAFE
+33\t8153722880\t419434496\t30\tSAFE; MAX_SAFE
+32\t8441237504\t131919872\t31\tREJECT (<134217728-byte minimum)
+MAX_SAFE_N_CPU_MOE=33
+MAX_SAFE_GPU_EXPERTS=NA (model MoE-layer count was not unambiguously exposed in the captured startup log)
+
+BENCHMARK
+PROMPT_N=2048
+PREDICTED_N=512
+PP_TOK_S=255.24689403913752
+TG512_TOK_S=20.42610371312189
+WALL_TIME_S=33.04691219799861
+MTP_DRAFT_GENERATED=276
+MTP_DRAFT_ACCEPTED=235
+MTP_ACCEPTANCE=0.851449 (85.145%)
+MEAN_DRAFT_LENGTH=1.00 (MTP max/min both 1; runtime did not emit a separate mean-length field)
+PROMPT_TOKEN_IDS_SHA256=d3ecffe6cfb86c694693bbfdd7d19e55ff06461e7a8a6909274d513cd7085f57
+VRAM_AFTER_BENCH_LOAD_USED_BYTES=8153763840
+VRAM_AFTER_BENCH_LOAD_FREE_BYTES=419393536
+VRAM_PEAK_USED_BYTES=8572715008
+VRAM_MIN_FREE_BYTES_DURING_INFERENCE=442368
+GPU_MAX_TEMP_C=52
+GPU_MAX_UTILIZATION=100%
+GPU_POWER=unavailable through exposed sysfs telemetry
+GPU_CLOCKS=unavailable through exposed sysfs telemetry
+DEVICE_KERNEL_FAULT_SCAN=No matching GPU/kernel fault signatures during the monitored run
+STABILITY=PASS; completion returned exactly 2048 prompt tokens and 512 predicted tokens; no server crash or fatal GPU/kernel fault
+
+EXACT_SERVER_COMMAND
+env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama-mtp/build-hip/bin /opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device ROCm0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 2048 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+
+CLEANUP
+QWEN_SERVER=STOPPED
+QWEN_CLIENT=STOPPED
+ORNITH_RESTORED=NO (intentionally left stopped for Step 3)
+THERMAL_ABORT_C=105
+NO_GPU_RESET=YES
