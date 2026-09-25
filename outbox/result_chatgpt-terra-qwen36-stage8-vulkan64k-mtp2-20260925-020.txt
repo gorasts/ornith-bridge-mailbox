@@ -1,46 +1,51 @@
 ORNITH_BRIDGE_RETURN_V1
 message_id: chatgpt-terra-qwen36-stage8-vulkan64k-mtp2-20260925-020
 source: TERRA
-state: COMPLETE
+state: FAILURE
 AUTONOMOUS_COMPLETION=YES
 BACKEND=vulkan
 LOAD_MODE=mmap
-MTP_DEPTH=2
+MTP_DEPTH_REQUESTED=2
+MTP_DEPTH_EFFECTIVE=1
 PROMPT_N=65536
 PREDICTED_N=512
 N_CPU_MOE=33
-PP64K=NA
-TG512=NA
-WALL_S=NA
+PP64K=139.703
+TG512=16.458
+WALL_S=500.191
 LOAD_TIME_S=3.37221328199666
-MTP_ACCEPTANCE=NA
+MTP_ACCEPTANCE=253/258 (98.062%)
 MEAN_DRAFT_LEN=1.98
-VRAM_LOAD_FREE=1941549056
-VRAM_MIN_FREE=1935765504
+VRAM_LOAD_FREE=1,851.6 MiB
+VRAM_MIN_FREE=1,846.1 MiB
 GTT_BASELINE=13.8 MiB
 GTT_LOAD=1,221.0 MiB
 GTT_PREFILL_PEAK=1,344.3 MiB
 GTT_GENERATION=1,345.2 MiB
 GTT_PEAK=1,345.2 MiB
 HOST_RSS=13610.05078125 MiB
+HOST_RAM_MAX_USED_GIB=3.09209823608398
+HOST_RAM_MIN_AVAILABLE_GIB=28.0754623413086
 MAX_TEMP_C=93
-MAX_GPU_UTILIZATION=100
-FAULT_SCAN=UNAVAILABLE (dmesg access denied/unavailable)
+MAX_EDGE_C=67
+MAX_JUNCTION_C=93
+MAX_GPU_UTILIZATION=100%
+GPU_POWER=not exposed by available sysfs sensor
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; UNAVAILABLE (dmesg access denied/unavailable)
+DEVICE_STATUS=server completed and cleaned up; requested MTP2 configuration NOT achieved
 LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
-LIVE_VIEWER_WINDOW=SEPARATE; title=OpenSSH SSH client; pid=31980
-LIVE_VIEWER_CTRL_C_WIRED=YES
-DELTA_PP_MTP2_VS_MTP1=NA
-DELTA_TG_MTP2_VS_MTP1=NA
-DELTA_ACCEPTANCE_MTP2_VS_MTP1=NA
-DELTA_GTT_MTP2_VS_MTP1=NA
-DELTA_TEMP_MTP2_VS_MTP1=+1.000 C
-DELTA_MIN_FREE_MTP2_VS_MTP1=+1935763657.900 MiB
-PROMPT_PROGRESS_TOKENS=66047
+LIVE_VIEWER_WINDOW=SEPARATE; Ctrl+C cancellation wired=YES
+DELTA_PP_MTP2_VS_MTP1=NOT_COMPARABLE; effective draft max was 1
+DELTA_TG_MTP2_VS_MTP1=NOT_COMPARABLE; effective draft max was 1
+DELTA_ACCEPTANCE_MTP2_VS_MTP1=NOT_COMPARABLE; effective draft max was 1
+DELTA_GTT_MTP2_VS_MTP1=NOT_COMPARABLE; effective draft max was 1
+DELTA_TEMP_MTP2_VS_MTP1=NOT_COMPARABLE; effective draft max was 1
+DELTA_MIN_FREE_MTP2_VS_MTP1=NOT_COMPARABLE; effective draft max was 1
 PROMPT_FINGERPRINT=b80b37955cc5d33dce87d7525f324623a97e1a8a880ad92a683281b9678b19bc
 EXACT_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
-STAGE7_REFERENCE=PP64K=139.465; TG512=16.693; MTP_ACCEPTANCE=253/258 (98.06%); GTT_PEAK=1345.2 MiB; MAX_TEMP=92C; VRAM_MIN_FREE=1846.1 MiB
-CLEANUP=scoped server stopped; benchmark port free; no Qwen process remains; Ornith left inactive
+FAILURE_REASON=Runner labeled the arm stage=2 and logged MTP2, but generated command still had --spec-draft-n-max 1; requested MTP2 was not executed. No retry was performed.
+SETUP_NOTE=An unsupported preflight subcommand was corrected to prepare before inference; the failed setup attempt started no model.
+CLEANUP=scoped server stopped; port 8099 free; no Qwen process remains; Ornith left inactive
 NO_HIDDEN_RETRIES=YES
 NO_UNAPPROVED_PARAMETER_CHANGES=YES
-ERROR=
-RAW_EVIDENCE=/tmp/terra-qwen36-stage8-vulkan64k-mtp2-20260925-020 (logs, one-second GPU/GTT/RSS telemetry, result.json)
+RAW_EVIDENCE=/tmp/terra-qwen36-stage8-vulkan64k-mtp2-20260925-020/result.json and logs; one-second GPU/GTT/RSS telemetry
