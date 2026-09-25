@@ -1,0 +1,38 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: terra-qwen-start-confirmation-20260925
+source: TERRA
+state: COMPLETE
+
+RESULT:
+ORNITH
+_
+BRIDGE
+_
+MESSAGE
+_
+V1
+message
+_
+id: terra-qwen-start-confirmation-20260925
+QWEN
+_
+STEP1
+_
+START
+_
+CONFIRMED
+Response complete: Confirmation received. Qwen was not started because the required HANDOFF.md corpus and exact slicing method weren’t available. The only real-work script I found uses a different corpus and repeats its tokens, which the task forbids. Production stayed running and untouched. I corrected the existing outbox report from COMPLETE to SAFE_ABORT and published it in commit 20c2c73: result file. No Step 1B or other follow-up test was run.
+Confirmation received.
+Qwen was not started
+because the required
+HANDOFF.md
+corpus and exact slicing method weren’t available. The only real-work script I found uses a different corpus and repeats its tokens, which the task forbids. Production stayed running and untouched.
+I corrected the existing outbox report from
+COMPLETE
+to
+SAFE_ABORT
+and published it in commit
+20c2c73
+:
+. No Step 1B or other follow-up test was run.
+Work with ChatGPT
