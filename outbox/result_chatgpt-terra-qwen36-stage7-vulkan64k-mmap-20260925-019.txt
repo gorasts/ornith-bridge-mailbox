@@ -1,0 +1,46 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage7-vulkan64k-mmap-20260925-019
+source: TERRA
+state: COMPLETE
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan
+LOAD_MODE=mmap
+PROMPT_N=65536
+PREDICTED_N=512
+N_CPU_MOE=33
+PROMPT_PROGRESS=66047/65536
+PP64K=139.465
+TG512=16.693
+WALL_S=500.555
+LOAD_TIME_S=3.375
+MTP_ACCEPTANCE=253/258 (98.06%); mean_draft_len=1.98
+VRAM_LOAD_FREE=1851.6 MiB
+VRAM_MIN_FREE=1846.1 MiB
+GTT_BASELINE=13.8 MiB
+GTT_LOAD=1221.0 MiB
+GTT_PREFILL_PEAK=1344.3 MiB
+GTT_GENERATION=1345.2 MiB
+GTT_PEAK=1345.2 MiB
+HOST_RSS=13609.9 MiB peak server RSS
+MAX_TEMP_C=92.0
+MAX_GPU_UTILIZATION=100%
+MAX_SCLK_MHZ=NA
+MAX_MCLK_MHZ=NA
+MAX_POWER=not exposed
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; UNAVAILABLE (dmesg access denied/unavailable)
+DELTA_PP_32K_TO_64K=-27.298 tok/s (-16.37%)
+DELTA_TG_32K_TO_64K=-1.922 tok/s (-10.33%)
+DELTA_GTT_32K_TO_64K=+0.019 MiB
+DELTA_TEMP_32K_TO_64K=+13.000 C
+DELTA_PP_VS_HISTORICAL_ROCM64K=+101.341 tok/s (+265.82%; secondary, unpaired)
+DELTA_TG_VS_HISTORICAL_ROCM64K=+1.101 tok/s (+7.06%; secondary, unpaired)
+PROMPT_FINGERPRINT=b80b37955cc5d33dce87d7525f324623a97e1a8a880ad92a683281b9678b19bc; CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+EXACT_BINARY=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+BUILD_VERSION=0.2.0-dev build 10709 commit 9a9394a89; GNU 11.4.0
+THERMAL_ABORT_C=105
+EXACT_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+CLEANUP=client/server scoped cleanup; port free=YES; Ornith left inactive
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+RAW_EVIDENCE=/tmp/terra-qwen36-stage7-vulkan64k-mmap-20260925-019 (logs, per-second GPU/GTT/RSS telemetry)
+
