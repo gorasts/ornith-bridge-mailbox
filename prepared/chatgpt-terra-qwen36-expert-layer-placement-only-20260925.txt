@@ -1,0 +1,206 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-expert-layer-placement-only-20260925
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+QWEN3.6 SINGLE-GPU EXPERT-LAYER PLACEMENT TEST
+USER REQUEST: "try the layer placement change to see if it effects — experts only"
+
+RUN THIS ONE CONTROLLED TEST ONLY.
+NO ASUS. NO RPC. SINGLE GORAST VEGA / ROCm0 ONLY.
+
+OBJECTIVE
+Determine whether WHICH MoE expert layers are resident on the GPU affects Qwen3.6 performance when the NUMBER of GPU-resident expert blocks is held fixed.
+
+Change EXPERT TENSOR PLACEMENT ONLY.
+Do not move attention, norms, embeddings, KV, shared non-expert tensors, or MTP tensors as part of the placement variable.
+
+MODEL
+/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+
+SERVER
+/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+
+REFERENCE FROM STEP 2
+Single GORAST / ROCm0
+CTX=131072
+P=2048
+TG=512
+Q8_0/Q8_0 KV
+B/UB=2048/2048
+T/TB=14/14
+FA=ON
+MTP1
+--n-cpu-moe 33
+PP=255.24689403913752
+TG=20.42610371312189
+PROMPT_SHA256=d3ecffe6cfb86c694693bbfdd7d19e55ff06461e7a8a6909274d513cd7085f57
+No GPU/kernel fault.
+
+MODEL GEOMETRY TO VERIFY FIRST
+Prior Qwen3.6 logs show target blocks blk.0..blk.39 and MTP/nextn blk.40.
+Verify this from the local model/startup metadata before running.
+Do NOT include blk.40 in the expert-placement sweep.
+
+EXPERT-ONLY OVERRIDE METHOD
+We need exactly 7 target-layer sparse expert blocks on ROCm0 in every arm.
+
+Use:
+  --n-cpu-moe 40
+to keep target MoE weights CPU by default, then use -ot ONLY for these three sparse expert matrices of the selected blocks:
+  blk.<N>.ffn_down_exps.*
+  blk.<N>.ffn_gate_exps.*
+  blk.<N>.ffn_up_exps.*
+with buffer target ROCm0.
+
+Do NOT override:
+- attention tensors
+- norms
+- embeddings/output
+- ffn_gate_inp/router tensors
+- shared-expert shexp tensors
+- blk.40 / nextn / MTP tensors
+- KV buffers
+
+This is intentionally an EXPERTS-ONLY placement experiment.
+
+Before the long runs, validate that -ot actually places the selected sparse expert matrices on ROCm0 by checking startup allocation/log evidence. If this Prism build uses a slightly different exact sparse-expert tensor suffix/pattern, adapt the regex to match ONLY ffn_*_exps tensors. Do not broaden it to non-expert tensors.
+
+ARMS — EXACTLY 7 GPU EXPERT BLOCKS EACH
+
+A) TAIL CONTROL
+GPU sparse experts:
+  blk.33,34,35,36,37,38,39
+
+B) MIDDLE
+GPU sparse experts:
+  blk.16,17,18,19,20,21,22
+
+C) FRONT
+GPU sparse experts:
+  blk.0,1,2,3,4,5,6
+
+All other target sparse expert matrices remain CPU.
+
+RUN ORDER
+TAIL -> MIDDLE -> FRONT.
+Fresh server for each arm.
+
+SCIENTIFIC CONSTANTS — DO NOT CHANGE
+--device ROCm0
+-ngl 99
+-c 131072
+-b 2048
+-ub 2048
+-t 14
+-tb 14
+-fa on
+--cache-type-k q8_0
+--cache-type-v q8_0
+--load-mode mmap
+--spec-type draft-mtp
+--spec-draft-n-max 1
+--spec-draft-n-min 1
+--no-spec-draft-backend-sampling
+--fit off
+-np 1
+--prio 2
+--poll 100
+--cpu-strict 1
+--jinja
+--no-webui
+
+NO -ngld change.
+NO KV change.
+NO MTP-depth change.
+NO batch/thread/context change.
+NO backend change.
+NO RPC.
+NO ASUS.
+
+REQUEST
+Use the SAME deterministic 2048-token prompt as Step 2.
+Prefer exact saved token IDs.
+Required reference hash:
+d3ecffe6cfb86c694693bbfdd7d19e55ff06461e7a8a6909274d513cd7085f57
+
+If exact token IDs are not saved, reproduce the Step-2 deterministic construction and verify the resulting SHA256 equals the reference before benchmarking.
+If the hash cannot be matched, report the new hash prominently and use the SAME new prompt for all three arms.
+
+Completion:
+n_predict=512
+temperature=0
+cache_prompt=false
+ignore_eos=true if supported
+stream=false
+
+VALIDATION / MEMORY
+For each arm:
+1. fresh server
+2. verify selected 7 sparse expert blocks are on ROCm0 and no other sparse expert blocks are on ROCm0
+3. record stable-load VRAM
+4. require >=128 MiB free after stable load
+5. run P2048 + TG512
+6. record peak/min-free VRAM
+
+Because each arm moves the same number and type of expert matrices, stable-load VRAM should be broadly comparable. If one arm differs by >128 MiB from the others, inspect placement logs before interpreting performance.
+
+THERMAL / GPU RULES
+Hard thermal abort = 105C.
+Do not invent a lower abort.
+Normal throttling below 105C is not itself an abort.
+
+On GPU page fault, GPUVM fault, HIP/ROCm fatal error, device loss, amdgpu kernel fault, or server crash:
+- stop the experiment immediately
+- preserve evidence
+- do not retry after a GPU fault
+- never GPU reset
+- never PCI reset/unbind/rebind
+- never unload/reload amdgpu
+- never change clocks/voltage/fan/power limit
+
+PRODUCTION
+Ornith is currently production service.
+Stop ornith-server.service immediately before the first arm.
+DO NOT restore Ornith at the end of this expert-placement experiment; the user is still actively testing.
+Leave production stopped for the next decision.
+If a fatal test condition occurs, still leave production stopped unless the user explicitly asks for restore.
+
+MEASURE EACH ARM
+- exact GPU expert blocks
+- exact -ot patterns used
+- stable-load VRAM used/free
+- peak VRAM/min free
+- PP tok/s
+- TG512 tok/s
+- wall time
+- prompt/predicted token counts
+- MTP acceptance / generated / accepted if available
+- GPU max temp
+- utilization/power/clocks where available
+- kernel/device fault scan
+
+COMPARE
+Report deltas versus TAIL within this explicit experts-only scheme:
+- PP %
+- TG %
+Also show the historical Step-2 n-cpu-moe33 baseline separately, clearly labeled as a reference rather than assuming it is byte-for-byte placement-equivalent.
+
+OUTPUT
+Publish:
+outbox/result_chatgpt-terra-qwen36-expert-layer-placement-only-20260925.txt
+
+At end include:
+EXPERTS_ONLY_PLACEMENT_TEST=YES
+GPU_EXPERT_BLOCKS_PER_ARM=7
+TAIL_BLOCKS=33-39
+MIDDLE_BLOCKS=16-22
+FRONT_BLOCKS=0-6
+SINGLE_GPU_GORAST_ONLY=YES
+ASUS_USED=NO
+RPC_USED=NO
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=NO
+
+Stop after publishing. Do not start another test.
