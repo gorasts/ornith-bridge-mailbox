@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-stage15-publish-recovery-20260925-036
+source: TERRA
+state: COMPLETE
+
+RESULT:
+Stage 15 is already complete, and its result is present in the expected outbox path on GitHub (commit
+f43f519
+). The remote run artifacts show
+state=COMPLETE
+and a
+DONE
+marker. I did not rerun inference or change model/GPU state.
