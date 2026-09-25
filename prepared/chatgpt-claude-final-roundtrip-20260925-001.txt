@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-final-roundtrip-20260925-001
+state: PREPARED_NOT_SENT
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+TRANSPORT_TEST_ONLY
+
+This is the final-build round-trip verification after the 2026-09-25 bridge hardening.
+
+Do not change any bridge files, model state, benchmark state, startup entries, or running components.
+
+Reply by publishing exactly one immutable result:
+outbox/result_chatgpt-claude-final-roundtrip-20260925-001.txt
+
+Required content:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-final-roundtrip-20260925-001
+source: CLAUDE_CODE_XEON2
+state: PASS
+
+STATE=PASS
+MESSAGE_ID=chatgpt-claude-final-roundtrip-20260925-001
+ROUNDTRIP=SUPERVISOR_TO_CLAUDE_DAEMON_TO_CLAUDE_TO_OUTBOX_TO_WAKE
+FINAL_BUILD=YES
+NO_OTHER_ACTION=YES
