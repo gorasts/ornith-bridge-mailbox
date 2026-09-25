@@ -1,0 +1,119 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-bridge-finish-optimization-20260925
+state: PREPARED_NOT_SENT
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+FOLLOW-UP: FINISH THE BRIDGE OPTIMIZATION NOW THAT THE TERRA BENCHMARK IS NO LONGER IN FLIGHT.
+
+The exact TERRA result has arrived:
+outbox/result_chatgpt-terra-qwen36-expert-layer-placement-only-20260925.txt
+It aborted before inference at placement-validation and is finished.
+ORNITH is intentionally STOPPED and must remain stopped; do not touch model service state.
+
+Use your prior audit result:
+outbox/result_chatgpt-claude-bridge-audit-optimize-all-users-20260925.txt
+
+GOAL
+Complete every safe non-admin optimization you previously staged/identified, verify multi-agent routing, and prepare a precise admin cleanup helper for the one stale elevated TerraDispatcher that you cannot terminate from your current token.
+
+DO NOT change model/benchmark files or start Ornith.
+DO NOT disturb the currently bound Harness session.
+DO NOT kill arbitrary pwsh/node processes.
+
+A. LIVE TERRA DISPATCHER HARDENING
+1. Back up current:
+   C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH\TerraDispatcher.ps1
+   with timestamp + SHA256.
+2. Review your staged:
+   TerraDispatcher.staged-status-heartbeat-20260925.ps1
+   against the current live file to ensure the ONLY intended semantic changes are:
+   - status heartbeat while waiting for Luna
+   - schema/writer_role/writer_pid/writer_start_time metadata
+   - preserve existing mutex, atomic writes, target filtering and current dispatch logic.
+3. If clean, replace current script atomically.
+4. Restart ONLY the intended live dispatcher PID/process (the PS5.1 instance), not the stale elevated pwsh7 instance.
+5. Verify new intended dispatcher starts once, owns mutex, polls normally, and writes WAITING/IDLE heartbeat atomically with writer identity.
+6. Do not dispatch a model task.
+
+B. GROK HARDENING
+The audit found GrokInboxInject.ps1 uses an unanchored target regex and writes injected.json in-place.
+Back up first.
+Make only these low-risk changes if source inspection confirms them:
+- anchored target match exactly for GROK
+- atomic injected.json writes (temp + flush/close + replace)
+- singleton ownership guard if no guard exists and it can be added without changing message semantics
+- writer/schema metadata if useful
+Do NOT alter Grok prompts, UI destination, or result semantics.
+
+C. RETIRED STARTUP COLLISION PREVENTION
+Inspect the existing startup entries you flagged:
+- OrnithReturnWatcher.cmd
+- OrnithWakeResultServer.cmd (node version)
+- ChatGPT Queue Receiver.lnk
+For each, PROVE whether its target is retired and would conflict with the current active path on reboot.
+Only if proven retired/conflicting:
+- move/rename into a timestamped DISABLED_STARTUP backup folder rather than deleting.
+Do not disable a currently required component.
+
+D. CLAUDE BRIDGE
+Verify the newly created CLAUDE_BRIDGE files are syntactically valid and stable.
+Do not make Claude auto-start globally unless there is a clean, safe design; current session-bound watcher behavior is acceptable.
+Ensure its own state remains isolated from TERRA/GROK/WAKE.
+
+E. STALE ELEVATED TERRA DISPATCHER
+Do NOT guess its PID.
+Your prior audit proved the stale writer but could not identify/stop it due to elevation.
+
+Create a SAFE ADMIN HELPER at:
+C:\Users\XEON2\Desktop\OrnithBridge\TOOLS\Remove-Stale-TerraDispatcher-Admin.ps1
+
+Requirements:
+- intended for an Administrator PowerShell
+- enumerate ONLY pwsh.exe/powershell.exe processes whose full command line references:
+  C:\Users\XEON2\Desktop\OrnithBridge\TERRA_DISPATCH\TerraDispatcher.ps1
+- display PID, parent PID, creation time, executable, command line
+- identify current intended dispatcher using its actual current PID/version/writer identity from status/state after your restart
+- refuse to kill the intended live dispatcher
+- refuse to act if fewer than 2 matching dispatcher processes are visible
+- refuse to act if it cannot uniquely identify exactly ONE stale duplicate
+- print the exact stale candidate and ask for explicit Y confirmation
+- Stop-Process only that unique stale duplicate
+- then monitor status.json for at least 45 seconds and verify the old 24-Sep ERROR-format writes no longer recur
+- never stop Wake, Grok, Harness, OrnithWorker, or unrelated PowerShell/Node processes.
+
+Also create:
+C:\Users\XEON2\Desktop\OrnithBridge\TOOLS\Run-Remove-Stale-TerraDispatcher-Admin.cmd
+which launches the helper with UAC via powershell.exe -NoProfile -ExecutionPolicy Bypass -File ... using Start-Process -Verb RunAs or an equivalent transparent UAC prompt.
+Do NOT auto-launch it. The operator will choose when to approve UAC.
+
+F. TRANSPORT TESTS AFTER NON-ADMIN CHANGES
+Run non-destructive transport-only checks:
+- Claude target consumed only by Claude
+- TERRA target marker consumed only by TERRA, but NO model prompt / no benchmark
+- GROK target marker consumed only by Grok if Grok window/process is safely available; if UI injection would disrupt the user's foreground app, skip and explain
+- WAKE dedupe remains single delivery
+- cross-target markers do not enter other role state
+
+G. RETURN
+Publish:
+outbox/result_chatgpt-claude-bridge-finish-optimization-20260925.txt
+
+Include:
+STATE=
+LIVE_TERRA_PATCH_APPLIED=
+LIVE_TERRA_NEW_PID=
+STATUS_HEARTBEAT_VERIFIED=
+GROK_PATCH_APPLIED=
+STARTUP_ENTRIES_DISABLED=
+CLAUDE_BRIDGE_VERIFIED=
+ADMIN_HELPER_CREATED=
+STALE_ELEVATED_DISPATCHER_STILL_RUNNING=YES/NO/UNKNOWN
+FILES_CHANGED=
+BACKUPS=
+TRANSPORT_TESTS=
+CURRENT_COMPONENT_TABLE=
+REMAINING_OPERATOR_ACTION=
+ROLLBACK=
+
+Important: ORNITH_RESTORED must remain NO. This job is bridge-only.
