@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous6-20260925-006
+target: TERRA
+source: CHATGPT
+
+TASK:
+Using the same proven Qwen3.6 real-work setup and live-view workflow from the most recent successful autonomous run, perform six additional autonomous optimization stages focused on improving the speed-versus-memory-headroom tradeoff.
+
+Keep the benchmark method, model, corpus, safety limits, and hardware topology unchanged from that successful run. Vary only batch/ubatch and nearby safe expert-placement choices as justified by the existing results. Run exactly six stages, one at a time, choose each later stage from the earlier measured results, and return one final result with all six configurations, PP20K, TG512, memory headroom, temperatures, stability, raw fastest result, and best practical result.
+
+Do not ask for operator input between stages.
+Publish:
+outbox/result_chatgpt-terra-qwen36-autonomous6-20260925-006.txt
