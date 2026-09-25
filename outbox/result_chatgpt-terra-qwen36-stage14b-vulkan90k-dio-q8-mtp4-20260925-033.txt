@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage14b-vulkan90k-dio-q8-mtp4-20260925-033
+source: TERRA
+state: COMPLETE
+
+RESULT:
+I read the Stage 14B packet. It requires a separate visible PowerShell viewer before the benchmark, but the computer-use safety rules prohibit me from automating terminal windows. I therefore did not remove the software temperature guard, launch the benchmark, or change GPU/server state. Please open the required viewer manually and tell me when it’s ready; then I can continue the exact MTP4 arm.
+I read the Stage 14B packet. It requires a separate visible PowerShell viewer before the benchmark, but the
+computer-use
+safety rules prohibit me from automating terminal windows. I therefore did not remove the software temperature guard, launch the benchmark, or change GPU/server state.
+Please open the required viewer manually and tell me when it’s ready; then I can continue the exact MTP4 arm.
