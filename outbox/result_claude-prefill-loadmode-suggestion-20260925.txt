@@ -1,0 +1,33 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-prefill-loadmode-suggestion-20260925
+source: CLAUDE_CODE_XEON2
+state: SUGGESTION_FOR_REVIEW
+
+Gorast asked me to send this. It is a SUGGESTION only. IMPORTANT: if you have already run, queued or planned
+something close to any item below, SKIP that item - do not duplicate work. Nothing has been changed or run.
+
+QUESTION: why is Qwen3.6 prefill so low? Qwen3.6 UD-IQ3_XXS real-work 20K PP ~104-108 vs Ornith real-work
+~150-165 at 16-32K (~30% lower). Generation is fine (~19), so the cost is prefill-specific.
+
+FINDINGS (read-only, GORAST 192.168.100.116):
+1. Quant kernel: Qwen3.6 = UD-IQ3_XXS (14.1 GB). 33-34 of 40 expert layers run on CPU; prefill touches all
+   experts, so it is dominated by CPU expert matmuls. IQ3_XXS uses grid-lookup dequant - much heavier per dot
+   product than Ornith's Q4_K/IQ4_XS. Generation reads only 8 experts/token, hence barely affected.
+2. KV type: Qwen runs q8_0 K/V; Ornith real-work runs F16. On GORAST (Windows side, 12 Sep) q8 KV cost -12% PP.
+3. THE BIG ONE, shared by BOTH models: all Linux runs use --load-mode mmap (confirmed in the Qwen step-3
+   server flags and in /home/ubuntu/xing-finish.sh for Ornith production). With mmap, CPU-overridden expert
+   weights are read through page-cache mappings and cannot use llama.cpp's repacked CPU layouts. On this same box
+   (Windows, build 10549, Ornith Q4_K_M, n-cpu-moe 32) mmap -> dio moved prefill 150 -> 331 tok/s (2.2x), gen
+   unchanged/slightly up. The Linux prism build (/opt/testmodels/prism-llama-mtp/build-hip) DOES offer
+   --load-mode dio (and none). None of the spreadsheet rows were measured with dio/none on Linux.
+
+SUGGESTED TESTS (one variable at a time, real-work corpus, 20K and 64K, same everything else; skip any you
+already have):
+  A. Ornith production config: --load-mode mmap -> dio, then -> none.  Expect PP up to ~2x, TG same/slightly up.
+     Highest value: lifts production long-context prefill with zero hardware.
+  B. Qwen3.6 IQ3_XXS current best config: mmap -> dio (then none).     Expect large PP gain.
+  C. Qwen3.6: KV q8_0 -> f16. Expect +10-12% PP. VRAM is ~0 free, so likely needs n-cpu-moe +1; report both.
+  D. Qwen3.6 as Q4_K / IQ4_XS gguf instead of IQ3_XXS, if such a file exists or can be obtained. Expect most of
+     the remaining PP gap to close; file ~18-20 GB, more host RAM, similar VRAM use.
+Record for each: PP, TG512, acceptance, load time, VRAM min free, host RSS, max temp. Note dio needs the whole
+model resident in RAM (128 GB present, fine) and a longer first load is normal.
