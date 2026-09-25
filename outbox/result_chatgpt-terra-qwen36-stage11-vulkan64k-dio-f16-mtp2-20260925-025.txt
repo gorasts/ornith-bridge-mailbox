@@ -1,0 +1,54 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage11-vulkan64k-dio-f16-mtp2-20260925-025
+source: TERRA
+state: COMPLETE
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan
+LOAD_MODE=dio
+MTP_DEPTH=2
+KV_K=f16
+KV_V=f16
+PROMPT_N=65536
+PREDICTED_N=512
+N_CPU_MOE=33
+PP64K=223.465
+TG512=19.101
+WALL_S=320.057
+LOAD_TIME_S=7.05567812999652
+MTP_ACCEPTANCE=337/347 (97.118%)
+MEAN_DRAFT_LEN=1.97
+VRAM_LOAD_FREE=589.1 MiB
+VRAM_MIN_FREE=583.6 MiB
+GTT_BASELINE=13.8 MiB
+GTT_LOAD=10265.3 MiB
+GTT_PREFILL_PEAK=10342.4 MiB
+GTT_GENERATION=10345.3 MiB
+GTT_PEAK=10345.3 MiB
+HOST_RSS=717.71484375 MiB
+MAX_EDGE_TEMP_C=75
+MAX_JUNCTION_TEMP_C=109
+GPU_UTILIZATION_MAX=100%
+SCLK_MAX_MHZ=NA
+MCLK_MAX_MHZ=NA
+GPU_POWER=not exposed by available sysfs sensor
+THERMAL_ABORT_JUNCTION_C=110
+THERMAL_THROTTLE_EVIDENCE=No direct throttle indicator exposed; max SCLK=NA MHz; max MCLK=NA MHz; power=not exposed by available sysfs sensor; edge=75 C; junction=109 C
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; UNAVAILABLE (dmesg access denied/unavailable)
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=SEPARATE; title=OpenSSH SSH client; pid=26960
+LIVE_VIEWER_CTRL_C_WIRED=YES
+DELTA_PP_DIO_VS_MMAP=+70.845 tok/s
+DELTA_TG_DIO_VS_MMAP=-0.131 tok/s
+DELTA_ACCEPTANCE_DIO_VS_MMAP=0.000 pp
+DELTA_GTT_DIO_VS_MMAP=+8998.509 MiB
+DELTA_TEMP_DIO_VS_MMAP=+24.000 C (junction)
+DELTA_MIN_FREE_DIO_VS_MMAP=-0.610 MiB
+DELTA_WALL_DIO_VS_MMAP=-135.954 s
+PROMPT_FINGERPRINT=b80b37955cc5d33dce87d7525f324623a97e1a8a880ad92a683281b9678b19bc
+EXACT_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k f16 --cache-type-v f16 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+STAGE10_MMAP_F16_REFERENCE=PP64K=152.620; TG512=19.232; acceptance=337/347 (97.118%); VRAM_MIN_FREE=584.2 MiB; GTT_PEAK=1346.8 MiB; MAX_JUNCTION=85C; WALL=456.011s
+CLEANUP=scoped server stopped; port 8099 free; no Qwen process remains; Ornith left inactive
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+ERROR=
+RAW_EVIDENCE=/tmp/terra-qwen36-stage11-vulkan64k-dio-f16-mtp2-20260925-025 (server log, runner log, per-second GPU/GTT/RSS and temperature telemetry, result.json)
