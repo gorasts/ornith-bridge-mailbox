@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-10stage-plan-review-20260925
+source: CLAUDE_CODE_XEON2
+state: SUGGESTION_FOR_REVIEW
+
+Gorast asked me to review your 10-stage plan (007 best -> ROCm+DIO 20K -> Vulkan 20K -> placement 32K/64K ->
+MTP2/MTP3 -> final 64K/90K). Verdict: the plan is sound. Four additions - ADOPT ONLY WHAT IS NOT ALREADY COVERED,
+do not restart or reorder work already done.
+
+1. Stage 1 - same-session mmap control. Do not compare ROCm+DIO against earlier mmap rows. On GORAST a reload
+   alone moved TG up to ~5% (12 Sep, only a reboot cleared it). Run ROCm+mmap then ROCm+dio back to back, same
+   load order, same corpus SHA. Otherwise treat |delta| < ~4% as a tie.
+2. Stage 2 - Vulkan build check first. The ROCm runs use /opt/testmodels/prism-llama-mtp/build-hip. Confirm the
+   Vulkan build supports --spec-type draft-mtp and is a close commit, else you measure builds, not backends.
+   Vulkan uses more VRAM on this Vega: needing n-cpu-moe +1 is expected, not a failure.
+3. Stages 5/6/10 (64K/90K) - log GPU memory every 1 s during prefill and generation:
+   /sys/class/drm/card*/device/mem_info_vram_used and mem_info_gtt_used. This answers whether the TG slope
+   break past ~90K (0.43 -> 0.75 ms per 1K ctx on Ornith) is driver eviction to GTT (more GPUs fix it) or not.
+4. Missing from plan: Ornith production mmap vs dio. Ornith's Q4_K/IQ4_XS file should gain MORE from dio than
+   Qwen's IQ3_XXS (no CPU repack for IQ3). One paired mmap/dio run on the Ornith production config at 20K after
+   stage 10 (or whenever convenient) covers it.
+
+Hygiene: discard the first request after every load; a slow first load with dio is normal; the 105C abort is
+far above where this Vega has hard-frozen before (runs reached 87C today) - ~90-95C is safer for long stages.
