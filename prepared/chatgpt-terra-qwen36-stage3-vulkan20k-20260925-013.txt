@@ -1,0 +1,127 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage3-vulkan20k-20260925-013
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=20-25 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 3.
+Test the next major lever: Vulkan backend vs ROCm at 20K.
+Do not run any follow-up stage.
+
+CURRENT ROCm REFERENCE PAIR
+DIO:
+PP20K=95.371
+TG512=18.781
+VRAM_MIN_FREE=289.1 MiB
+LOAD_TIME=23.379 s
+
+MMAP:
+PP20K=89.099
+TG512=19.149
+VRAM_MIN_FREE=270.8 MiB
+LOAD_TIME=14.164 s
+
+INTERPRETATION
+DIO is the current prefill winner; TG difference is small enough to treat as effectively tied pending backend testing.
+
+LOCKED SCIENTIFIC CONFIG
+Model=Qwen3.6-35B-A3B-UD-IQ3_XXS
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=1
+KV=q8_0/q8_0
+PROMPT=20480
+PREDICTED=512
+Context=131072
+Load mode=dio
+Same exact real-work corpus/hash and deterministic prompt construction.
+
+CHANGE ONLY
+Backend: ROCm -> Vulkan
+
+PREFLIGHT / BUILD VALIDATION
+Before inference:
+1. Find the existing local Vulkan llama-server build already present on GORAST. Do not download or build anything.
+2. Report its exact binary path and commit/version if available.
+3. Verify it supports:
+   --spec-type draft-mtp
+   --spec-draft-n-max
+   --spec-draft-n-min
+   --load-mode dio
+   Q8 KV
+4. Compare build vintage/commit against the ROCm Prism build as far as locally observable.
+5. If the Vulkan build is clearly incompatible or too different to make the comparison meaningful, stop and report UNAVAILABLE/INCOMPARABLE.
+6. Attempt the exact locked NCM33/B1280/UB1024/MTP1/Q8/DIO arm.
+7. If this exact arm cannot load because Vulkan uses more VRAM, report that exact failure and stop. Do NOT silently change N_CPU_MOE in this stage.
+
+RULES
+- Exactly one benchmark arm maximum.
+- No retries.
+- No ASUS/RPC.
+- No ROCm benchmark in this stage.
+- No changes to N_CPU_MOE/B/UB/MTP/KV/load mode/threads/context/corpus/prompt.
+- Visible Windows PowerShell viewer required with working Ctrl+C.
+- Thermal abort=95C.
+- Leave Ornith inactive after cleanup.
+
+MEASURE
+Exact binary/build identification.
+PP20K.
+TG512.
+Wall time.
+Load time.
+MTP acceptance.
+Stable-load free VRAM.
+Inference minimum free VRAM.
+Host RSS.
+Max temperature/utilization/clocks/power if available.
+Fault scan.
+Prompt fingerprint.
+
+COMPARE TO ROCm+DIO
+DELTA_PP_VULKAN_VS_ROCM_DIO
+DELTA_TG_VULKAN_VS_ROCM_DIO
+DELTA_MIN_FREE_VULKAN_VS_ROCM_DIO
+DELTA_LOAD_TIME_VULKAN_VS_ROCM_DIO
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage3-vulkan20k-20260925-013.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage3-vulkan20k-20260925-013
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=dio
+EXACT_BINARY=
+BUILD_VERSION=
+BUILD_COMPARABILITY=
+MTP_SUPPORT=
+LIVE_POWERSHELL_VIEWER=
+LIVE_VIEWER_CTRL_C_WIRED=
+PROMPT_N=
+PREDICTED_N=
+PP20K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+DELTA_PP_VULKAN_VS_ROCM_DIO=
+DELTA_TG_VULKAN_VS_ROCM_DIO=
+DELTA_MIN_FREE_VULKAN_VS_ROCM_DIO=
+DELTA_LOAD_TIME_VULKAN_VS_ROCM_DIO=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
