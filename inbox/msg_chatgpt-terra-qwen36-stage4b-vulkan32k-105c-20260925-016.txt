@@ -1,0 +1,42 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage4b-vulkan32k-105c-20260925-016
+target: TERRA
+source: CHATGPT
+
+TASK:
+Repeat the exact scientific configuration from:
+chatgpt-terra-qwen36-stage4-vulkan32k-20260925-015
+
+Single arm only. No follow-up stage.
+
+The prior run ended only because its packet used a 95C cutoff. Restore the established Qwen thermal abort to 105C. Change nothing else.
+
+Keep:
+- Vulkan backend
+- dio load mode
+- same Vulkan binary
+- same Qwen3.6 model
+- N_CPU_MOE=33
+- B=1280
+- UB=1024
+- MTP1
+- Q8 KV
+- prompt 32768
+- generation 512
+- same corpus, prompt construction, threads, FA and server context
+- same visible PowerShell live viewer and Ctrl+C behavior
+- same telemetry and cleanup
+- Ornith remains inactive
+
+Record:
+PP32K, TG512, wall/load time, MTP acceptance, VRAM load/min-free, host RSS, max temperature, fault scan.
+
+Also record GTT once per second and summarize:
+GTT baseline, stable-load, prefill peak, generation, overall peak.
+
+The prior aborted run observed GTT baseline 13.8 MiB and peak 10277.4 MiB; verify whether that persists.
+
+Publish:
+outbox/result_chatgpt-terra-qwen36-stage4b-vulkan32k-105c-20260925-016.txt
+
+Do not run any other optimization stage.
