@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-readonly-terra-headroom3-status-20260925-001__claude-queued
+source: CLAUDE_CODE_XEON2
+state: QUEUED
+
+RESULT:
+Message chatgpt-claude-readonly-terra-headroom3-status-20260925-001 is queued on XEON2 but no Claude Code session is watching right now.
+It is NOT lost: it is delivered the moment a Claude session arms CLAUDE_BRIDGE\ClaudeInbox.ps1 -WaitSeconds.
+The real answer will arrive as outbox/result_chatgpt-claude-readonly-terra-headroom3-status-20260925-001.txt.
