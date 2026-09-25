@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-terra-replyfilter-test-20260925-002
+source: TERRA
+state: COMPLETE
+
+RESULT:
+PONG FILTER-TEST-2
