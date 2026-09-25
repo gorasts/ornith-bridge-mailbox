@@ -1,0 +1,143 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage9-vulkan64k-mtp3-20260925-023
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=40-55 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 9.
+Test whether MTP3 improves on the new MTP2 64K winner.
+Do not run any follow-up stage.
+
+STAGE 8B MTP2 REFERENCE
+Backend=Vulkan
+Load mode=mmap
+N_CPU_MOE=33
+B=1280
+UB=1024
+KV=q8_0/q8_0
+PROMPT=65536
+PREDICTED=512
+MTP2:
+PP64K=139.951
+TG512=17.968
+MTP_ACCEPTANCE=336/348 (96.552%)
+MEAN_DRAFT_LEN=1.97
+VRAM_MIN_FREE=1783.2 MiB
+GTT_PEAK=1347.2 MiB
+MAX_TEMP=95C
+
+MTP1 STAGE7 REFERENCE
+PP64K=139.465
+TG512=16.693
+MTP_ACCEPTANCE=253/258 (98.06%)
+VRAM_MIN_FREE=1846.1 MiB
+GTT_PEAK=1345.2 MiB
+MAX_TEMP=92C
+
+INTERPRETATION
+MTP2 improved TG by +1.275 tok/s (+7.64%) with flat PP, only ~62.9 MiB less free VRAM, ~2 MiB more GTT, and +3C.
+Therefore test the next depth directly.
+
+LOCKED SCIENTIFIC CONFIG
+Use exactly Stage 8B:
+same Vulkan binary/model/backend/load mode/N_CPU_MOE/B/UB/KV/threads/FA/server context/corpus/hash/prompt construction/viewer/telemetry/cleanup.
+
+CHANGE ONLY
+--spec-draft-n-max 2 -> 3
+Keep --spec-draft-n-min 1.
+
+RULES
+- Exactly one benchmark arm.
+- No retries.
+- No ROCm/ASUS/RPC.
+- No placement/B/UB/KV/load-mode/thread/context changes.
+- Prompt=65536, predicted=512.
+- Thermal abort=105C.
+- If allocation/device/kernel fault occurs, stop and report; no fallback.
+- Leave Ornith inactive after cleanup.
+
+LIVE VIEWER — HARD GATE
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Luna must open the live viewer in its own separate XEON2 PowerShell window using Start-Process powershell.exe -NoExit ...
+Never use the ChatGPT/Codex built-in terminal panel.
+If separate window cannot be verified, SAFE_ABORT before inference.
+Result must report:
+LIVE_VIEWER_WINDOW=SEPARATE
+LIVE_VIEWER_CTRL_C_WIRED=YES
+
+TELEMETRY
+Sample once per second:
+VRAM used/free
+GTT used
+GPU temp/utilization
+host RSS
+clocks/power if exposed
+
+MEASURE
+PP64K
+TG512
+wall/load time
+MTP generated/accepted/acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS
+max temp/utilization
+fault scan
+prompt fingerprint
+
+COMPARE DIRECTLY TO MTP2 STAGE8B
+DELTA_PP_MTP3_VS_MTP2
+DELTA_TG_MTP3_VS_MTP2
+DELTA_ACCEPTANCE_MTP3_VS_MTP2
+DELTA_GTT_MTP3_VS_MTP2
+DELTA_TEMP_MTP3_VS_MTP2
+DELTA_MIN_FREE_MTP3_VS_MTP2
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage9-vulkan64k-mtp3-20260925-023.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage9-vulkan64k-mtp3-20260925-023
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=mmap
+MTP_DEPTH=3
+PROMPT_N=65536
+PREDICTED_N=512
+N_CPU_MOE=33
+PP64K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_CTRL_C_WIRED=
+DELTA_PP_MTP3_VS_MTP2=
+DELTA_TG_MTP3_VS_MTP2=
+DELTA_ACCEPTANCE_MTP3_VS_MTP2=
+DELTA_GTT_MTP3_VS_MTP2=
+DELTA_TEMP_MTP3_VS_MTP2=
+DELTA_MIN_FREE_MTP3_VS_MTP2=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
