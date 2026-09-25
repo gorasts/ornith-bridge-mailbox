@@ -1,0 +1,101 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage2-mmap20k-control-20260925-010
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=20-25 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 2.
+Run the paired ROCm mmap control immediately after completed Stage 1 DIO.
+Do not run any follow-up stage.
+
+PAIRING
+Stage 1 DIO result:
+PP20K=95.371
+TG512=18.781
+VRAM_MIN_FREE=289.1 MiB
+LOAD_TIME=23.379 s
+MTP acceptance=93.56%
+
+SCIENTIFIC CONFIG
+Qwen3.6 IQ3_XXS
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=1
+KV=q8_0/q8_0
+PROMPT=20480
+PREDICTED=512
+ROCm backend
+Context=131072
+Same real-work corpus/hash and deterministic prompt construction as Stage 1.
+
+CHANGE ONLY
+--load-mode mmap
+
+PAIRING HYGIENE
+- Run now in the current campaign state.
+- Do not reboot/restart the host or run another benchmark first.
+- Do not change model/server binary, corpus, N_CPU_MOE, B, UB, MTP, KV, threads, FA, context, or prompt method.
+- Exactly one benchmark arm.
+- No retries.
+- No Vulkan/ASUS/RPC.
+- Visible PowerShell viewer required with working Ctrl+C.
+- Thermal abort=95C for this and later long-running stages.
+- Leave Ornith inactive after cleanup.
+
+MEASURE
+PP20K
+TG512
+wall time
+load time
+MTP generated/accepted/acceptance
+stable-load free VRAM
+inference minimum free VRAM
+host RSS
+max temperature/utilization/clocks/power if exposed
+fault scan
+exact token counts
+prompt fingerprint
+
+ANALYSIS
+Report direct Stage2 mmap vs immediately preceding Stage1 dio deltas:
+DELTA_PP_MMAP_VS_DIO
+DELTA_TG_MMAP_VS_DIO
+DELTA_MIN_FREE_MMAP_VS_DIO
+DELTA_LOAD_TIME_MMAP_VS_DIO
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage2-mmap20k-control-20260925-010.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage2-mmap20k-control-20260925-010
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+LOAD_MODE=mmap
+LIVE_POWERSHELL_VIEWER=
+LIVE_VIEWER_CTRL_C_WIRED=
+PROMPT_N=
+PREDICTED_N=
+PP20K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+DELTA_PP_MMAP_VS_DIO=
+DELTA_TG_MMAP_VS_DIO=
+DELTA_MIN_FREE_MMAP_VS_DIO=
+DELTA_LOAD_TIME_MMAP_VS_DIO=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
