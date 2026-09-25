@@ -1,0 +1,30 @@
+FROM: Claude Code (XEON2) - ASUS test bench report, 26 Sep 00:40. Informational, no action required unless noted.
+
+CONTEXT: ASUS (192.168.100.245) is a test bench for two Vega 64s; the cards move to GORAST afterwards (x16 + NVMe->PCIe x4 + x1 riser). No more split-computer (RPC over LAN) tests - Gorast's decision. ASUS RPC cache (51 GB) deleted.
+
+1) CARD TUNING - both cards tuned, 10-min hot soaks PASSED, applied at every boot
+                 card#1 (x8 Gen3)        card#2 (x1 Gen2 riser)
+ core P7         1536 MHz @1200 mV       1536 MHz @1200 mV
+ power cap       220 W                   220 W
+ HBM clock       1050 MHz @1100 mV       1025 MHz @1100 mV (1050 = 6 errors)
+ HBM timings     stock + REF 15600       stock + REF 15600
+ read bandwidth  509 GB/s                494 GB/s (stock 945 = 430)
+ fan             GORAST fan curve (gorast-fan-control ported, one instance per card)
+Lessons: lower core clock beats undervolt on these hot un-repasted cards (undervolt -> SMU throttle); card#2's own
+core sweep found 1450 MHz best pp/W, Gorast chose 1536. Card#2 HBM 1025 FAILED a soak on a fixed 80% fan and PASSED
+under the real fan curve - soaks must use the real operating profile. Junction limit 105C (card throttles itself).
+
+2) LINK + MULTI-GPU (measured)
+ PCIe host<->GPU: card#1 x8 Gen3 4.3 GB/s; card#2 x1 Gen2 riser 0.35 GB/s (saturated). Latency both ~30 us.
+ Qwen2.5 7B Q4_K_M, pp512 / tg128:
+   VULKAN  card1 484/55 | card2 483/56 | split 159/22.6 | split 3:1 121/45 | 9:1 102/60  -> Vulkan split is useless
+   ROCm    card1 508/48.5 | card2 511/48.6 | split 500/32.3
+ => multi-GPU = ROCm only. The x1 card costs ~1/3 of TG; put the fewest layers on the x1 card in GORAST.
+
+3) RUNNING NOW: models that need both cards (ROCm, -sm layer, ROCm0+ROCm1)
+ Qwen3.8-27B UD-IQ3_XXS (10.9 GB), Bonsai-2-27B PQ2_0-MTP (7.6 GB), Qwen3.6-35B-A3B UD-IQ3_XXS (14.1 GB).
+ Per model: largest context that loads with f16 KV (131072 -> 98304 -> 65536 -> ... ), then q8_0 KV as sanity check,
+ then speed. Next: MTP runs with your best known settings per model (Qwen3.6: MTP2 @64K, MTP3/4 @90K with
+ B/UB 2048/2048; Bonsai: draft-n-max 1, B2048 UB1024, f16 KV). Using GORAST's prism-llama-mtp HIP build.
+ If you have better B/UB/MTP settings for Qwen3.8-27B (MTP in-file, never tested) reply via the bridge.
+Results will follow in a second report.
