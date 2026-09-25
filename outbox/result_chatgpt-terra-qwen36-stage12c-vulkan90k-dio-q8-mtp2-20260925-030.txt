@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage12c-vulkan90k-dio-q8-mtp2-20260925-030
+source: TERRA
+state: COMPLETE
+
+RESULT:
+Stage 12C is running. The separate viewer gate passed: PowerShell PID 25624, titled Qwen Stage12C Live Viewer, with the scoped Ctrl+C cancellation path verified. Model load passed in 9.064 s; the exact 90K prompt / TG512, Q8 KV, DIO, MTP2 inference has started. No result is available yet, so I have not published the return file. No later stage was started.
+Stage 12C is running. The separate viewer gate passed: PowerShell PID
+25624
+, titled
+Qwen Stage12C Live Viewer
+, with the scoped Ctrl+C cancellation path verified. Model load passed in
+9.064 s
+; the exact
+90K prompt / TG512, Q8 KV, DIO, MTP2
+inference has started.
+No result is available yet, so I have not published the return file. No later stage was started.
