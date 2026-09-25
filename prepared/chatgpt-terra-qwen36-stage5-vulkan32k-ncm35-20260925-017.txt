@@ -1,0 +1,115 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage5-vulkan32k-ncm35-20260925-017
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=30-40 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 5.
+Test Vulkan expert placement at 32K to reduce thermal/GTT pressure while preserving speed.
+Do not run any follow-up stage.
+
+STAGE 4B REFERENCE
+Backend=Vulkan
+Load mode=dio
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=1
+KV=q8_0/q8_0
+PROMPT=32768
+PREDICTED=512
+PP32K=265.187
+TG512=18.370
+VRAM_MIN_FREE=1846.0 MiB
+GTT_PEAK=10310.3 MiB
+MAX_TEMP=104C
+
+RATIONALE
+Prior 20K ROCm placement data at B1280/UB1024:
+NCM33 TG=18.991
+NCM35 TG=18.935
+NCM35 had far more memory headroom.
+Therefore NCM35 is the strongest adjacent placement candidate to test before risking 64K Vulkan at 104C.
+
+LOCKED CONFIG
+Use exactly the Stage 4B Vulkan binary, model, load mode, B/UB, MTP1, Q8 KV, threads, FA, server context, corpus/hash, deterministic prompt construction, visible viewer, telemetry, and cleanup.
+
+CHANGE ONLY
+N_CPU_MOE: 33 -> 35
+
+RULES
+- Exactly one benchmark arm.
+- No retries.
+- No ROCm/ASUS/RPC.
+- No B/UB/MTP/KV/load-mode/thread/context changes.
+- Prompt remains exactly 32768, generation exactly 512.
+- Thermal abort=105C.
+- Leave Ornith inactive after cleanup.
+- If 105C is reached, stop safely and report thermal abort.
+
+TELEMETRY
+Sample once per second:
+VRAM used/free
+GTT used
+GPU temperature/utilization
+host RSS
+clocks/power if exposed
+
+MEASURE
+PP32K
+TG512
+wall/load time
+MTP acceptance
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS
+max temp/utilization
+fault scan
+prompt fingerprint
+
+COMPARE DIRECTLY TO NCM33 STAGE4B
+DELTA_PP_NCM35_VS_NCM33
+DELTA_TG_NCM35_VS_NCM33
+DELTA_TEMP_NCM35_VS_NCM33
+DELTA_GTT_NCM35_VS_NCM33
+DELTA_MIN_FREE_NCM35_VS_NCM33
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage5-vulkan32k-ncm35-20260925-017.txt
+
+Required fields:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage5-vulkan32k-ncm35-20260925-017
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+PROMPT_N=32768
+PREDICTED_N=512
+N_CPU_MOE=35
+PP32K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+DELTA_PP_NCM35_VS_NCM33=
+DELTA_TG_NCM35_VS_NCM33=
+DELTA_TEMP_NCM35_VS_NCM33=
+DELTA_GTT_NCM35_VS_NCM33=
+DELTA_MIN_FREE_NCM35_VS_NCM33=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
