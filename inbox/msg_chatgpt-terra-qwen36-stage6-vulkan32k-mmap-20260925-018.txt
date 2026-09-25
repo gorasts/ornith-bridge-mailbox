@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage6-vulkan32k-mmap-20260925-018
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage6-vulkan32k-mmap-20260925-018.txt
+Run only this Vulkan+mmap 32K NCM33 test, then return the result. Do not proceed to another optimization stage.
