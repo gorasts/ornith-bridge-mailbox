@@ -5,32 +5,33 @@ state: FAILURE
 AUTONOMOUS_COMPLETION=YES
 BACKEND=vulkan
 LOAD_MODE=dio
-PROMPT_N=NA
-PREDICTED_N=NA
+PROMPT_N=32768 (requested; thermal abort at 23040)
+PREDICTED_N=512 (generation not reached)
+PROMPT_PROGRESS=23040/32768 tokens (70.31%); rolling PP=286.84 tok/s, not a completed PP32K result
 PP32K=NA
 TG512=NA
-WALL_S=NA
+WALL_S=94.250 (partial, through thermal abort)
 LOAD_TIME_S=8.057
 MTP_ACCEPTANCE=NA
-VRAM_LOAD_FREE=NA
-VRAM_MIN_FREE=NA
+VRAM_LOAD_FREE=1851.5 MiB
+VRAM_MIN_FREE=1845.9 MiB (inference samples before abort)
 GTT_BASELINE=13.8 MiB
 GTT_PEAK=10277.4 MiB
 GTT_DELTA=10263.6 MiB
-HOST_RSS=0.0 MiB peak server RSS
-MAX_TEMP_C=NA
-MAX_GPU_UTILIZATION=NA%
+HOST_RSS=323.6 MiB peak server RSS
+MAX_TEMP_C=96.0 (junction; 95C thermal guard tripped)
+MAX_GPU_UTILIZATION=100%
 MAX_SCLK_MHZ=NA
 MAX_MCLK_MHZ=NA
 MAX_POWER=NA
-FAULT_SCAN=JobFailure: THERMAL_ABORT: temperature reached 95C
+FAULT_SCAN=THERMAL_ABORT at 23040/32768; no fatal Vulkan/server signature in server log; kernel dmesg scan not run after abort
 DELTA_PP_20K_TO_32K=NA
 DELTA_TG_20K_TO_32K=NA
 DELTA_PP_VS_HISTORICAL_ROCM32K=NA
 DELTA_TG_VS_HISTORICAL_ROCM32K=NA
 EXACT_BINARY=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
 BUILD_VERSION=0.2.0-dev build 10709 commit 9a9394a89; GNU 11.4.0
-PROMPT_FINGERPRINT=NA; CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+PROMPT_FINGERPRINT=not emitted after thermal-aborted partial arm; exact deterministic token-ID construction; CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
 EXACT_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
 CLEANUP=client/server scoped cleanup; port free=YES; Ornith left inactive
 NO_HIDDEN_RETRIES=YES
