@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage2-mmap20k-control-20260925-010
+source: TERRA
+state: COMPLETE
+AUTONOMOUS_COMPLETION=YES
+LOAD_MODE=mmap
+LIVE_POWERSHELL_VIEWER=PASS
+LIVE_VIEWER_CTRL_C_WIRED=YES
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=a77724f7c7b882bb28d2b5f79ec6944535672bd56a832af87f4ee862ce6abc76
+PP20K=89.099
+TG512=19.149
+WALL_S=256.555
+LOAD_TIME_S=14.164
+MTP_ACCEPTANCE=250/260 (96.15%); mean_draft_len=1.96
+VRAM_LOAD_FREE=1040.3 MiB
+VRAM_MIN_FREE=270.8 MiB
+HOST_RSS=13854.2 MiB (peak server RSS; PID 2390439)
+MAX_TEMP_C=79.0
+MAX_GPU_UTILIZATION=100%
+GPU_CLOCKS_AND_POWER=See stage1-telemetry.tsv; not exposed by available sysfs sensor
+FAULT_SCAN=dmesg unavailable; server/client logs scanned; stage server scan=NO_FATAL_SERVER_LOG_MATCH; stage kernel scan=UNAVAILABLE (dmesg access denied/unavailable)
+DELTA_PP_MMAP_VS_DIO=-6.58% (DIO PP=95.371 tok/s)
+DELTA_TG_MMAP_VS_DIO=1.96% (DIO TG=18.781 tok/s)
+DELTA_MIN_FREE_MMAP_VS_DIO=-18.3 MiB (DIO baseline=289.1 MiB)
+DELTA_LOAD_TIME_MMAP_VS_DIO=-9.215 s (DIO load=23.379 s)
+THERMAL_ABORT_C=95
+CLEANUP=Qwen server/client stopped; port 8099 free; Ornith left inactive
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+EXACT_COMMAND=env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama-mtp/build-hip/bin /opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device ROCm0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+NO_FOLLOW_UP_STAGE=YES
+DETAILS=Raw logs, command, and one-second telemetry: /tmp/terra-qwen36-stage2-mmap20k-control-20260925-010
