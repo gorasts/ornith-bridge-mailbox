@@ -1,0 +1,132 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-biglever10-20260925-007
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=75-105 minutes.
+
+OBJECTIVE
+Run 10 autonomous Qwen3.6 real-work stages focused on the BIG levers we have not mapped yet:
+1) expert placement,
+2) context scaling at 32K and 64K,
+3) MTP depth 1/2/3.
+Do not spend this suite micro-tuning batch/ubatch.
+
+BASELINE
+Reuse the exact proven model, server build, real-work corpus/hash, GORAST single-GPU topology, Q8 KV, 131072 server context, thread settings, deterministic methodology, telemetry, 105C thermal limit, cleanup rules, and visible PowerShell live-view workflow from:
+chatgpt-terra-qwen36-autonomous6-20260925-006
+
+LOCK FOR ALL 10 STAGES
+B=1280
+UB=1024
+TG=512
+No ASUS.
+No RPC.
+No -ngld.
+No hidden retries.
+Ornith remains inactive through the suite.
+Visible PowerShell viewer is mandatory and must show stage transitions and native benchmark/server output.
+
+KNOWN PRIOR DATA — DO NOT RERUN
+20K real-work MTP1:
+NCM33 B1280 UB1024: PP=88.869 TG=18.991 minfree=269.9MiB
+NCM34 B1280 UB1024: PP=88.554 TG=17.619 minfree=542.4MiB
+NCM35 B1280 UB1024: PP=88.016 TG=18.935 minfree=842.2MiB
+
+2K single-GPU:
+NCM33 MTP1 TG=20.426
+NCM33 MTP3 TG=18.533
+NCM33 MTP4=OOM
+MTP2 single-GPU is a missing datapoint.
+
+STAGES
+1) 20K, NCM36, MTP1
+
+2) 32K, NCM33, MTP1
+3) 32K, NCM35, MTP1
+4) 32K, NCM36, MTP1
+
+After Stage4 rank Stages2-4 by:
+- stable exact 32768+512 completion required
+- >=128MiB minimum free VRAM required for qualification
+- highest TG512
+- if TG within 2%, higher PP32K
+Select the top TWO qualified placements for 64K.
+If fewer than two qualify, use the qualified placement(s) and then the most stable/highest-headroom remaining placement.
+
+5) 64K, best 32K placement, MTP1
+6) 64K, second-best 32K placement, MTP1
+
+After Stage6 choose LONGCTX_PLACEMENT:
+- stable exact 65536+512 required
+- >=128MiB minimum free VRAM preferred
+- highest TG512
+- if TG within 2%, higher PP64K
+- if only one stable arm exists, use it.
+
+7) 32K, LONGCTX_PLACEMENT, MTP2
+8) 64K, LONGCTX_PLACEMENT, MTP2
+9) 32K, LONGCTX_PLACEMENT, MTP3
+10) 64K, LONGCTX_PLACEMENT, MTP3
+
+MTP RULE
+MTP max depth is the stage value (1/2/3), minimum depth remains 1.
+Keep every other scientific parameter fixed.
+If an MTP arm has a plain memory allocation failure, mark that arm invalid and continue only if GPU/server health is normal.
+Any device/kernel GPU fault ends the suite.
+
+MEASURE EVERY STAGE
+Exact prompt and generated counts.
+PP tok/s.
+TG512 tok/s.
+Wall time.
+MTP generated/accepted/acceptance and mean draft length if emitted.
+Stable-load free VRAM and inference minimum free VRAM.
+GPU temperatures/utilization/clocks/power if exposed.
+Fault scan.
+Same corpus and deterministic construction.
+Capture prompt fingerprint for each context length; same-context fingerprints must match.
+
+ANALYSIS REQUIRED IN FINAL RESULT
+A) PLACEMENT EFFECT
+Compare NCM33/35/36 at 32K and top two at 64K.
+Report TG/PP deltas and headroom.
+
+B) CONTEXT LOSS
+For each placement with comparable data, report:
+20K -> 32K TG loss %
+32K -> 64K TG loss %
+20K -> 32K PP loss %
+32K -> 64K PP loss %
+
+C) MTP EFFECT
+At LONGCTX_PLACEMENT compare MTP1 vs MTP2 vs MTP3 at 32K and at 64K.
+Report absolute and percentage TG changes plus acceptance changes.
+Do not assume the 2K MTP result predicts long-context behavior.
+
+D) WINNERS
+RAW_FASTEST_32K
+RAW_FASTEST_64K
+BEST_MTP_32K
+BEST_MTP_64K
+BEST_LONG_CONTEXT_CONFIG
+BEST_HEADROOM_CONFIG
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-biglever10-20260925-007.txt
+
+Include:
+state
+AUTONOMOUS_COMPLETION
+LIVE_POWERSHELL_VIEWER
+LIVE_VIEWER_CTRL_C_WIRED
+STAGES_ATTEMPTED
+STAGES_VALID
+STAGES_QUALIFIED
+and a 10-row table:
+STAGE | PROMPT | N_CPU_MOE | MTP | B | UB | PP | TG512 | WALL | LOAD_FREE | MIN_FREE | TEMP | ACCEPTANCE | STABLE
+Then the placement/context-loss/MTP analyses and winner fields above.
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
