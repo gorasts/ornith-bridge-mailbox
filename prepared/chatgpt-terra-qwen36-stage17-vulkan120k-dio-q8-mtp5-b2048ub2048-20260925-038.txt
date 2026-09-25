@@ -1,0 +1,155 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage17-vulkan120k-dio-q8-mtp5-b2048ub2048-20260925-038
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=65-85 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 17.
+Scale the exact current 90K winner to 120K.
+Do not run any later stage automatically.
+
+CURRENT WINNER — STAGE 16
+Backend=Vulkan
+Load mode=dio
+N_CPU_MOE=33
+B=2048
+UB=2048
+MTP=5
+KV=q8_0/q8_0
+Threads=14/14
+FA=on
+Server context=131072
+PROMPT=90000
+PREDICTED=512
+
+PP90K=199.430
+TG512=16.306
+WALL_S=482.669
+MTP_ACCEPTANCE=423/435 (97.241%)
+MEAN_DRAFT_LEN=1.97
+VRAM_MIN_FREE=823.1 MiB
+GTT_PEAK=10914.5 MiB
+MAX_JUNCTION=108C
+MAX_MEMORY_TEMP=68C
+no fatal faults
+viewer separate / Ctrl+C verified
+
+LOCKED SCIENTIFIC CONFIG
+Use exactly Stage 16:
+same Vulkan binary/model/backend/load mode/N_CPU_MOE/B2048/UB2048/MTP5/Q8 KV/threads/FA/server context/corpus/hash/prompt construction/viewer/telemetry/cleanup.
+
+CHANGE ONLY
+PROMPT_N: 90000 -> 120000
+PREDICTED_N remains 512.
+
+RULES
+- Exactly one benchmark arm.
+- No hidden retries.
+- No ROCm/ASUS/RPC.
+- No placement/B/UB/MTP/KV/load-mode/thread/FA/server-context changes.
+- Prompt exactly 120000; predicted exactly 512.
+- NO software temperature abort threshold.
+- Do NOT disable or modify GPU/driver/SMU hardware thermal protections.
+- Allow natural throttling.
+- Stop only for actual GPU/device/kernel fault, reset, device lost, hang, loss of control, or hardware/driver shutdown.
+- If 120K does not fit, report exact failure and stop; no fallback.
+- Leave Ornith inactive after cleanup.
+
+LIVE VIEWER — HARD GATE
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Use the proven separate XEON2 PowerShell Start-Process viewer method from Stage16.
+Verify PID/title/parentage and Ctrl+C before inference.
+Never use the ChatGPT/Codex embedded terminal panel.
+
+TELEMETRY
+Sample once per second:
+VRAM used/free
+GTT used
+GPU edge/junction/memory temp
+GPU utilization
+host RSS/RAM
+SCLK/MCLK/power if exposed
+HBM state if readable
+thermal-throttle evidence
+
+MEASURE
+PP120K
+TG512
+wall/load time
+MTP generated/accepted/acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS/RAM
+max edge/junction/memory temp
+fault scan
+prompt fingerprint
+
+COMPARE DIRECTLY TO STAGE16 90K
+DELTA_PP_120K_VS_90K
+DELTA_TG_120K_VS_90K
+DELTA_WALL_120K_VS_90K
+DELTA_ACCEPTANCE_120K_VS_90K
+DELTA_MEAN_DRAFT_120K_VS_90K
+DELTA_VRAM_MIN_FREE_120K_VS_90K
+DELTA_GTT_120K_VS_90K
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage17-vulkan120k-dio-q8-mtp5-b2048ub2048-20260925-038.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage17-vulkan120k-dio-q8-mtp5-b2048ub2048-20260925-038
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=dio
+MTP_DEPTH=5
+KV_K=q8_0
+KV_V=q8_0
+PROMPT_N=120000
+PREDICTED_N=512
+N_CPU_MOE=33
+B=2048
+UB=2048
+PP120K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+HOST_RAM_MAX_USED=
+MAX_EDGE_TEMP_C=
+MAX_JUNCTION_TEMP_C=
+MAX_MEMORY_TEMP_C=
+THERMAL_THROTTLE_EVIDENCE=
+FAULT_SCAN=
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_PID=
+LIVE_VIEWER_TITLE=
+LIVE_VIEWER_CTRL_C_WIRED=
+LIVE_VIEWER_PARENTAGE_CHECK=
+DELTA_PP_120K_VS_90K=
+DELTA_TG_120K_VS_90K=
+DELTA_WALL_120K_VS_90K=
+DELTA_ACCEPTANCE_120K_VS_90K=
+DELTA_MEAN_DRAFT_120K_VS_90K=
+DELTA_VRAM_MIN_FREE_120K_VS_90K=
+DELTA_GTT_120K_VS_90K=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
