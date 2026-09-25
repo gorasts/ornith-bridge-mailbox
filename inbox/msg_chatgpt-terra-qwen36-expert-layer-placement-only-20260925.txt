@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-expert-layer-placement-only-20260925
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly:
+prepared/chatgpt-terra-qwen36-expert-layer-placement-only-20260925.txt
+
+User requested an EXPERTS-ONLY layer-placement test. Keep exactly 7 sparse expert blocks on ROCm0 and compare tail 33-39 vs middle 16-22 vs front 0-6. Change nothing else. Single GORAST only, no ASUS/RPC, MTP1, Q8 KV, P2048+TG512, 105C abort. Leave Ornith stopped afterward. Publish only the specified result and stop.
