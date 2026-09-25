@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-bridge-healthcheck-20260926-049
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+Bridge health check after XEON2 reboot.
+Do not run any benchmark or touch GORAST/ASUS.
+
+TASK
+Reply with exactly this payload in the result:
+LUNA BRIDGE OK
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-bridge-healthcheck-20260926-049.txt
+
+Required format:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-bridge-healthcheck-20260926-049
+source: TERRA
+state: COMPLETE
+
+RESULT:
+LUNA BRIDGE OK
