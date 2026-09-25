@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-headroom3-20260925-005
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly:
+prepared/chatgpt-terra-qwen36-autonomous-headroom3-20260925-005.txt
+
+Run the full three-stage Qwen3.6 real-work optimization autonomously to completion. The visible Windows PowerShell live-view console is a hard prerequisite before Stage 1. No operator input between stages.
