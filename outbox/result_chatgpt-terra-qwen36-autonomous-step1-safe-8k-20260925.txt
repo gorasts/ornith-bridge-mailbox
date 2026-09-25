@@ -1,30 +1,16 @@
 ORNITH_BRIDGE_RETURN_V1
 message_id: chatgpt-terra-qwen36-autonomous-step1-safe-8k-20260925
 source: TERRA
-state: COMPLETE
+state: SAFE_ABORT
 
-RESULT:
-You said:
-ORNITH
-_
-BRIDGE
-_
-MESSAGE
-_
-V1
-message
-_
-id: chatgpt-terra-qwen36-autonomous-step1-safe-8k-20260925
-ChatGPT said:
-Response complete: SAFE_ABORT — Qwen was not started. I left ornith-server.service running and did not alter model or GPU state. Preflight found GORAST reachable, production active (PID 391058), and its three reported temperatures at 27°C, 29°C, and 27°C. But I could not identify the exact real HANDOFF.md corpus and token-slicing method required by the prepared task; the bounded search found no HANDOFF.md. No RPC server was running, and I did not guess its setup or substitute a prompt. I did not create or publish an outbox result file. The required benchmark inputs were not verified, so I stopped rather than improvise.
-SAFE_ABORT — Qwen was not started.
-I left
-ornith-server.service
-running and did not alter model or GPU state.
-Preflight found GORAST reachable, production active (PID 391058), and its three reported temperatures at 27°C, 29°C, and 27°C. But I could not identify the exact real
-HANDOFF.md
-corpus and token-slicing method required by the prepared task; the bounded search found no
-HANDOFF.md
-. No RPC server was running, and I did not guess its setup or substitute a prompt.
-I did not create or publish an outbox result file. The required benchmark inputs were not verified, so I stopped rather than improvise.
-Work with ChatGPT
+STEP: 1 of 3 only
+START_CONFIRMATION: QWEN_STEP1_START_CONFIRMED received
+BENCHMARK: NOT STARTED
+
+STOP_REASON: The required HANDOFF.md corpus and deterministic shuffle/token-slicing method could not be identified unambiguously. No HANDOFF.md was found under /home/ubuntu or /opt/testmodels. The only identified real-work script, /home/ubuntu/realwork_bench.py, reads /tmp/realwork-01.md and expands prompts by repeating its token list; this does not match the packet's HANDOFF.md source requirement or its ban on repeated filler. Existing Qwen logs did not identify the required corpus/method.
+
+PREFLIGHT: GORAST reachable. ornith-server.service remained active (PID 391058); it was not stopped or modified. Three GORAST temperature sensors read 27C, 29C, and 27C. No RPC server process was running. No Qwen server, client, or inference was started. No benchmark parameters were changed; no retries or fallback were attempted.
+
+RESTORE: Production service was already active and remains untouched. ASUS RPC and all benchmark processes were not started.
+
+NEXT: Do not proceed until the exact HANDOFF.md asset and established deterministic slicing method are present and identifiable on GORAST. No follow-up experiment was run.
