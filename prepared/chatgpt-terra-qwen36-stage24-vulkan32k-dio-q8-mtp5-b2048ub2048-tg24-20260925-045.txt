@@ -1,0 +1,117 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage24-vulkan32k-dio-q8-mtp5-b2048ub2048-tg24-20260925-045
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=55-75 minutes.
+
+PURPOSE
+Validate the anomalous 32K MTP5 result with 24 independent TG512 samples.
+This is a statistical validation run, not a parameter sweep.
+Do not run any MTP6 ladder rung or any later stage automatically.
+
+LOCKED SCIENTIFIC CONFIG — EXACT 32K MTP5 CONFIG
+Backend=Vulkan
+Load mode=dio
+Same Vulkan binary/model
+N_CPU_MOE=33
+B=2048
+UB=2048
+MTP=5
+KV=q8_0/q8_0
+Threads=14/14
+FA=on
+Server context=131072
+PROMPT_N=32768
+PREDICTED_N=512 per sample
+Same deterministic real-work corpus/hash and same 32K prompt construction/fingerprint target.
+
+REFERENCE ANOMALOUS SINGLE SAMPLE
+PP32K=347.591 tok/s
+TG512=14.484 tok/s
+MTP_ACCEPTANCE=361/747 (48.327%)
+MEAN_DRAFT_LEN=1.48
+PROMPT_FINGERPRINT=51da1d892d2a0de41d9c95eb0bf5722c43cc42e548e44dfd1e790a9f1eea4a0a
+
+VALIDATION PROTOCOL
+- Collect exactly 24 completed TG512 measurement samples at the same locked 32K configuration.
+- Each sample must generate 512 tokens; do not use TG128/TG256.
+- Do not change sampler/config/runtime parameters between samples.
+- Preserve every completed sample, including slow/outlier samples; do not discard results.
+- No hidden retries. If a sample fails due to a true device/server fault, record that sample as failed and report it; do not silently replace it.
+- Record per-sample TG tok/s, MTP accepted/drafted counts, acceptance %, mean draft length, wall/generation timing where available.
+- Report PP separately; the scientific focus is the distribution of TG512 and speculative acceptance.
+- Compute across completed samples: median TG, arithmetic mean TG, min, max, p10, p90, sample standard deviation, and coefficient of variation.
+- Also compute median/mean/min/max acceptance percentage and mean draft length across samples.
+- Explicitly state whether the original 14.484 TG / 48.327% point looks representative, an outlier, or cannot be decided.
+- Keep raw 24-row sample table in the result file.
+
+RULES
+- Exactly this validation job only.
+- No MTP6 run.
+- No context changes.
+- No ROCm/ASUS/RPC.
+- No software temperature abort.
+- Hardware/driver/SMU protections unchanged.
+- Stop only on real GPU/device/kernel fault/reset/device-lost/hang.
+- Leave Ornith inactive after cleanup.
+
+LIVE VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Use the proven separate PowerShell Start-Process method.
+Verify PID/title/parentage and Ctrl+C before inference.
+
+MEASURE/RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage24-vulkan32k-dio-q8-mtp5-b2048ub2048-tg24-20260925-045.txt
+
+Required summary fields:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage24-vulkan32k-dio-q8-mtp5-b2048ub2048-tg24-20260925-045
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=dio
+PROMPT_N=32768
+PREDICTED_N=512
+N_CPU_MOE=33
+B=2048
+UB=2048
+MTP_DEPTH=5
+KV_K=q8_0
+KV_V=q8_0
+SAMPLE_TARGET=24
+SAMPLES_COMPLETED=
+SAMPLES_FAILED=
+PP32K=
+TG_MEDIAN=
+TG_MEAN=
+TG_MIN=
+TG_MAX=
+TG_P10=
+TG_P90=
+TG_SAMPLE_STDDEV=
+TG_CV_PERCENT=
+ACCEPTANCE_MEDIAN=
+ACCEPTANCE_MEAN=
+ACCEPTANCE_MIN=
+ACCEPTANCE_MAX=
+MEAN_DRAFT_LEN_MEAN=
+ORIGINAL_POINT_ASSESSMENT=
+VRAM_MIN_FREE=
+GTT_PEAK=
+MAX_EDGE_TEMP_C=
+MAX_JUNCTION_TEMP_C=
+MAX_MEMORY_TEMP_C=
+FAULT_SCAN=
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_CTRL_C_WIRED=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+LATER_STAGES_RUN=NO
+
+Then include RAW_SAMPLE_TABLE with rows 01..24 and per-sample:
+sample, TG512, accepted, drafted, acceptance_pct, mean_draft_len, timing/wall if available.
