@@ -1,0 +1,113 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage18-vulkan2k-dio-q8-mtp5-b2048ub2048-20260925-039
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=10-20 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 18.
+Begin the context-scaling ladder with the exact current winning configuration.
+Do not run any later ladder point automatically.
+
+LOCKED CONFIG — SAME AS STAGE 16/17
+Backend=Vulkan
+Load mode=dio
+Same Vulkan binary/model
+N_CPU_MOE=33
+B=2048
+UB=2048
+MTP=5
+KV=q8_0/q8_0
+Threads=14/14
+FA=on
+Server context=131072
+Predicted=512
+Same deterministic real-work corpus/hash and prompt construction.
+
+CHANGE ONLY
+PROMPT_N=2048
+
+REFERENCE POINTS ALREADY KNOWN
+90K:
+PP=199.430
+TG=16.306
+Acceptance=97.241%
+VRAM min free=823.1 MiB
+GTT peak=10914.5 MiB
+
+120K:
+PP=161.474
+TG=13.610
+Acceptance=96.355%
+VRAM min free=823.1 MiB
+GTT peak=10943.8 MiB
+
+RULES
+- Exactly one benchmark arm.
+- No hidden retries.
+- No scientific changes other than prompt length.
+- No ROCm/ASUS/RPC.
+- No software temperature abort.
+- Do not alter hardware/driver/SMU protections.
+- Stop only on real GPU/device/kernel fault/reset/device-lost/hang.
+- Leave Ornith inactive after cleanup.
+
+LIVE VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Use the proven separate PowerShell Start-Process method.
+Verify PID/title/parentage and Ctrl+C before inference.
+
+MEASURE
+PP2K
+TG512
+wall/load time
+MTP acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS/RAM
+temps
+fault scan
+prompt fingerprint
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage18-vulkan2k-dio-q8-mtp5-b2048ub2048-20260925-039.txt
+
+Required fields:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage18-vulkan2k-dio-q8-mtp5-b2048ub2048-20260925-039
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+PROMPT_N=2048
+PREDICTED_N=512
+BACKEND=vulkan
+LOAD_MODE=dio
+N_CPU_MOE=33
+B=2048
+UB=2048
+MTP_DEPTH=5
+KV_K=q8_0
+KV_V=q8_0
+PP2K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_PEAK=
+HOST_RSS=
+MAX_EDGE_TEMP_C=
+MAX_JUNCTION_TEMP_C=
+MAX_MEMORY_TEMP_C=
+FAULT_SCAN=
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_CTRL_C_WIRED=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
