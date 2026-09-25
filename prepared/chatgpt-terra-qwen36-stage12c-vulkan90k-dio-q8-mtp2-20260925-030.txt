@@ -1,0 +1,137 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage12c-vulkan90k-dio-q8-mtp2-20260925-030
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=50-70 minutes.
+
+PURPOSE
+Operational retry of Stage 12 only.
+Stage 12 and 12B never launched inference because the separate visible PowerShell viewer was not verified.
+No 90K scientific result exists yet.
+
+SCIENTIFIC CONFIG — IDENTICAL TO STAGE 12/12B
+Backend=Vulkan
+Load mode=dio
+Same Vulkan binary/model
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=2
+KV=q8_0/q8_0
+Threads=14/14
+FA=on
+Server context=131072
+Prompt=90000
+Predicted=512
+Same deterministic corpus/hash and prompt construction.
+
+HARD VIEWER PROCEDURE
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+
+Luna must do this BEFORE inference:
+1) Create/prepare the viewer script.
+2) Launch it explicitly from XEON2 with a separate desktop PowerShell process using:
+   Start-Process powershell.exe -ArgumentList '-NoExit','-ExecutionPolicy','Bypass','-File','<viewer.ps1>'
+3) Verify a distinct powershell.exe process exists for that viewer and is NOT the ChatGPT/Codex embedded terminal process.
+4) Record viewer PID and window title.
+5) Verify Ctrl+C in that viewer is wired to terminate the active benchmark/client process or trigger the scoped cancel path.
+6) Only after steps 1-5 pass, start inference.
+
+Do NOT merely check whether a viewer already exists.
+Do NOT run the viewer inside the app terminal.
+If the separate window cannot be launched and verified, SAFE_ABORT and report the exact launch/verification error.
+
+ALLOWED OPERATIONAL FIXES ONLY
+- viewer script path/launch command
+- process/PID/title verification
+- Ctrl+C plumbing
+- preflight sequencing
+No scientific parameter changes.
+
+RULES
+- Exactly one benchmark arm.
+- No hidden retries.
+- No ROCm/ASUS/RPC.
+- No placement/B/UB/MTP/KV/thread/FA changes.
+- Hard safety abort junction >=110C or GPU/device/kernel fault.
+- Transient high temp below 110C is not itself failure.
+- No fallback to mmap or F16.
+- Leave Ornith inactive after cleanup.
+
+TELEMETRY
+Sample once per second:
+VRAM used/free
+GTT used
+GPU edge/junction temp
+GPU utilization
+host RSS
+SCLK/MCLK if exposed
+power if exposed
+HBM state if readable
+thermal-throttle evidence
+
+MEASURE
+PP90K
+TG512
+wall/load time
+MTP acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS
+max edge/junction temp
+fault scan
+prompt fingerprint
+thermal-throttle evidence
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage12c-vulkan90k-dio-q8-mtp2-20260925-030.txt
+
+Required fields:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage12c-vulkan90k-dio-q8-mtp2-20260925-030
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=dio
+MTP_DEPTH=2
+KV_K=q8_0
+KV_V=q8_0
+PROMPT_N=90000
+PREDICTED_N=512
+N_CPU_MOE=33
+PP90K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+VRAM_MIN_FREE_GE_1024_MIB=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+MAX_EDGE_TEMP_C=
+MAX_JUNCTION_TEMP_C=
+THERMAL_THROTTLE_EVIDENCE=
+HBM_STATE=
+FAULT_SCAN=
+MTP_ACCEPTANCE_GE_95PCT=
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_PID=
+LIVE_VIEWER_TITLE=
+LIVE_VIEWER_CTRL_C_WIRED=
+LIVE_VIEWER_PARENTAGE_CHECK=
+CLEANUP=
+OPERATIONAL_FIX_ONLY=YES
+NO_SCIENTIFIC_CHANGES=YES
+NO_HIDDEN_RETRIES=YES
