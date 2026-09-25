@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage27-missing-curve-live24-clean-20260926-048
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage27-missing-curve-live24-clean-20260926-048.txt
+Run all six missing points sequentially.
+Use llama-server directly only.
+One prefill + one long generation + first 24 UNIQUE n_gen/tg_3s samples per point.
+No heartbeat/polling during generation and no DeepSeek Harness/compact activity.
