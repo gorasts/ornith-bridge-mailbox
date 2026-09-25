@@ -1,0 +1,46 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage6-vulkan32k-mmap-20260925-018
+source: TERRA
+state: COMPLETE
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan
+LOAD_MODE=mmap
+PROMPT_N=32768
+PREDICTED_N=512
+N_CPU_MOE=33
+PROMPT_PROGRESS=33279/32768
+PP32K=166.763
+TG512=18.615
+WALL_S=223.963
+LOAD_TIME_S=4.118
+MTP_ACCEPTANCE=232/278 (83.45%); mean_draft_len=1.83
+VRAM_LOAD_FREE=1851.6 MiB
+VRAM_MIN_FREE=1846.1 MiB
+GTT_BASELINE=13.8 MiB
+GTT_LOAD=1221.0 MiB
+GTT_PREFILL_PEAK=1344.3 MiB
+GTT_GENERATION=1345.2 MiB
+GTT_PEAK=1345.2 MiB
+HOST_RSS=13609.9 MiB peak server RSS
+MAX_TEMP_C=79.0
+MAX_GPU_UTILIZATION=100%
+MAX_SCLK_MHZ=NA
+MAX_MCLK_MHZ=NA
+MAX_POWER=not exposed
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; UNAVAILABLE (dmesg access denied/unavailable)
+DELTA_PP_MMAP_VS_DIO=-98.424 tok/s
+DELTA_TG_MMAP_VS_DIO=+0.245 tok/s
+DELTA_GTT_MMAP_VS_DIO=-8965.081 MiB
+DELTA_TEMP_MMAP_VS_DIO=-25.000 C
+DELTA_MIN_FREE_MMAP_VS_DIO=+0.090 MiB
+DELTA_LOAD_TIME_MMAP_VS_DIO=-2.936 s
+PROMPT_FINGERPRINT=51da1d892d2a0de41d9c95eb0bf5722c43cc42e548e44dfd1e790a9f1eea4a0a; CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+EXACT_BINARY=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+BUILD_VERSION=0.2.0-dev build 10709 commit 9a9394a89; GNU 11.4.0
+THERMAL_ABORT_C=105
+EXACT_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+CLEANUP=client/server scoped cleanup; port free=YES; Ornith left inactive
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+RAW_EVIDENCE=/tmp/terra-qwen36-stage6-vulkan32k-mmap-20260925-018 (logs, per-second GPU/GTT/RSS telemetry)
+
