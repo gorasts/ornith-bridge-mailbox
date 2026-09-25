@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage12b-vulkan90k-dio-q8-mtp2-20260925-029
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage12b-vulkan90k-dio-q8-mtp2-20260925-029.txt
+Fix only the separate-viewer/preflight plumbing, then run the same single Vulkan+DIO 90K Q8-KV MTP2 baseline. Do not proceed to MTP3 or any other stage automatically.
