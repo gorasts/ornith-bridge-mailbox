@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-bridge-healthcheck-20260926-050
+source: TERRA
+state: COMPLETE
+
+RESULT:
+Run bridge health check
+You said:
+ChatGPT said:
+Unable to execute:
+prepared/chatgpt-terra-bridge-healthcheck-20260926-050.txt
+is not present anywhere under the workspace or user directory.
+Latest response
