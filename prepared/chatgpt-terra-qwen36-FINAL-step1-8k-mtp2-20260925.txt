@@ -1,0 +1,182 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-FINAL-step1-8k-mtp2-20260925
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+FINAL AUTONOMOUS QWEN3.6 JOB — STEP 1 OF 3
+USER HAS EXPLICITLY AUTHORIZED THIS TEST. DO NOT ASK FOR ANOTHER CONFIRMATION.
+DO NOT DIVERT INTO BRIDGE/DISPATCHER REPAIR. ONCE THIS FILE IS RECEIVED, RUN THE BENCHMARK, PUBLISH THE RESULT, AND STOP.
+
+PURPOSE
+Run one conservative, previously proven Qwen3.6 dual-Vega 8K + TG512 benchmark. This is a deterministic synthetic control, not real-work. It exists only to re-establish the known-good Qwen path safely before Step 2.
+
+MODEL
+/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+
+KNOWN PROVEN PRIOR 8K REFERENCE
+CTX=12288
+PROMPT=8192
+TG=512
+SPLIT=0.500,0.500
+B/UB=512/256
+TARGET=GPU/GPU
+CPU_EXPERTS=0
+KV=f16/f16 GPU
+MTP2
+WORKAROUNDS=--no-spec-draft-backend-sampling --fit off
+RESULT=PP 186.65209662344716 / TG512 17.813397445760994
+MTP acceptance=1.00000, mean draft=3.00
+GORAST free=909.2 MiB
+ASUS free=155.3 MiB
+GORAST Tmax=60C
+ASUS Tmax=88C
+RPC=ALIVE, kernel checks OK
+
+IMPORTANT: THIS JOB HAS NO HANDOFF.MD DEPENDENCY.
+Use deterministic synthetic token IDs exactly as defined below.
+
+CONTROL PATH — USE GORAST TO CONTROL ASUS
+Do NOT require XEON2 -> ASUS SSH.
+GORAST has the established noninteractive controller path:
+  SSH_KEY=/home/ubuntu/.ssh/id_ed25519
+  ASUS_HOST=asus@192.168.100.231
+Use from GORAST:
+  ssh -i /home/ubuntu/.ssh/id_ed25519 -o BatchMode=yes -o ConnectTimeout=5 asus@192.168.100.231 '<command>'
+If host-key acceptance is the only issue, use:
+  -o StrictHostKeyChecking=accept-new
+Do not ask the user for an ASUS key unless this established GORAST key itself is actually missing.
+
+EXACT RUNTIME
+GORAST Qwen MTP server:
+  /opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+
+ASUS RPC:
+  /opt/testmodels/prism-llama/build-hip/bin/ggml-rpc-server
+
+ASUS RPC START COMMAND (execute through GORAST -> ASUS SSH):
+  nohup env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama/build-hip/bin \
+  /opt/testmodels/prism-llama/build-hip/bin/ggml-rpc-server \
+  -H 0.0.0.0 -p 50052 -d ROCm0 -c \
+  >/opt/testmodels/prism_rpc.log 2>&1 </dev/null &
+
+Before starting a new RPC, check whether the exact RPC is already running. If already healthy, reuse it and remember that it was pre-existing. If this job starts it, stop it during cleanup.
+
+PRE-FLIGHT — DO THIS WITHOUT STOPPING ORNITH
+1. Verify model and both binaries exist and are executable.
+2. From GORAST, verify GORAST -> ASUS SSH using the key above.
+3. Read temperatures on BOTH hosts using existing rocm-smi/sysfs telemetry.
+4. Require both GPUs <=60C before load. If hotter, wait/cool naturally; do not change fan/clock/voltage/power.
+5. Start/reuse ASUS RPC and verify:
+   - TCP 192.168.100.231:50052 reachable
+   - RPC process alive
+   - GORAST Qwen server binary can list/see the RPC device, if supported.
+6. If the ASUS SSH key is present but the first SSH invocation fails due a command/quoting issue, FIX THE COMMAND and retry. That is not a benchmark parameter change.
+7. If ASUS is genuinely unreachable/authentication fails despite the established GORAST key, report the exact SSH stderr and stop. Do not touch GPUs.
+
+ONLY AFTER PREFLIGHT PASSES:
+Stop ornith-server.service on GORAST.
+Do not kill unrelated processes.
+Record whether RPC was started by this job.
+
+QWEN SERVER COMMAND
+Use this canonical command unless a surviving successful qwen36 script on GORAST shows an additional REQUIRED runtime-only flag. Do not alter benchmark parameters.
+
+env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama-mtp/build-hip/bin \
+/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server \
+-m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf \
+--host 127.0.0.1 --port 8119 --no-webui \
+--rpc 192.168.100.231:50052 \
+--tensor-split 0.500,0.500 \
+-ngl 99 --n-cpu-moe 0 \
+-c 12288 -b 512 -ub 256 \
+--cache-type-k f16 --cache-type-v f16 \
+--spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-n-min 1 \
+--no-spec-draft-backend-sampling --fit off \
+-np 1
+
+Do NOT add:
+- --no-kv-offload / -nkvo
+- CPU MTP
+- different tensor split
+- different context
+- different batch/ubatch
+- different KV precision
+- different MTP depth
+- any GPU reset/rebind/driver operation
+
+If this Prism build uses --ui/--no-ui instead of --webui/--no-webui, substituting --no-ui for --no-webui is an allowed syntax-only correction. No benchmark parameter changes are allowed.
+
+PROMPT / REQUEST
+Use target server /tokenize on deterministic text:
+  "Qwen3.6 deterministic dual Vega benchmark control. "
+Repeat enough to obtain seed token IDs, then tile the integer IDs to EXACTLY 8192 tokens.
+Save the integer token array and SHA256.
+POST /completion:
+  prompt=<exact 8192 integer token IDs>
+  n_predict=512
+  temperature=0
+  cache_prompt=false
+  ignore_eos=true
+  stream=false
+
+VRAM SAFETY
+After server load/warmup and BEFORE the 8192-token request:
+- Measure free VRAM on both GPUs.
+- REQUIRE >=128 MiB FREE ON EACH GPU.
+- If either is below 128 MiB: do not infer. Stop Qwen, restore Ornith, return SAFE_ABORT with measurements.
+This is the only pre-inference safe abort allowed after successful connectivity/runtime setup.
+
+THERMAL / VGA SAFETY
+- Hard abort at 95C on the highest available edge/junction/hotspot sensor of either GPU.
+- Sample both GPUs throughout load, PP and TG.
+- On GPU page fault, GPUVM fault, HIP/ROCm fatal fault, device loss, OOM, RPC death, server crash, or amdgpu kernel fault: IMMEDIATELY stop the test and do not retry.
+- NEVER reset either GPU.
+- NEVER unbind/rebind PCI.
+- NEVER reload/unload amdgpu.
+- NEVER power-cycle.
+- NEVER alter clocks, voltage, fan curve, or power limit.
+- After a GPU fault, collect evidence only and stop.
+
+LIVE VIEW
+Provide the existing PowerShell/native llama-server live viewer if available.
+It must stream native server output line-by-line.
+Ctrl+C must TERMINATE Qwen/client, stop RPC only if this job started it, and restore Ornith.
+Do not block the benchmark solely because the viewer cannot be opened; the benchmark may proceed if the model-side control path is healthy.
+
+DISPATCHER NOTE
+The local dispatcher previously had malformed awaitingReply state. DO NOT spend this benchmark job repairing or investigating that state. This benchmark message itself is explicit authorization. Once accepted, execute directly and publish the outbox result. Do not emit repeated confirmation prompts.
+
+MEASURE
+- PP tok/s
+- TG512 tok/s
+- wall time
+- prompt_n / predicted_n
+- MTP generated / accepted / acceptance / mean draft length
+- GORAST + ASUS VRAM after load, peak, minimum free
+- both GPUs temperature maxima
+- power, utilization, clocks where available
+- network RX/TX avg/peak during PP and TG
+- RPC health before/during/after
+- kernel/device fault scan both hosts
+- exact commands
+- prompt SHA256
+
+CLEANUP — ALWAYS
+1. Stop Qwen test server/client.
+2. If this job started ASUS RPC, stop that RPC. If RPC pre-existed, leave it running.
+3. Restore ornith-server.service.
+4. Verify Ornith active.
+5. Leave both GPUs otherwise untouched.
+
+RETURN
+Publish:
+outbox/result_chatgpt-terra-qwen36-FINAL-step1-8k-mtp2-20260925.txt
+
+State must be one of PASS / SAFE_ABORT / FAILURE.
+Explicitly include:
+SYNTHETIC_CONTROL=YES
+REALWORK=NO
+NO_GPU_RESET=YES
+ORNITH_RESTORED=YES/NO
+Do not run Step 2. ChatGPT will inspect this result and issue Step 2 autonomously.
