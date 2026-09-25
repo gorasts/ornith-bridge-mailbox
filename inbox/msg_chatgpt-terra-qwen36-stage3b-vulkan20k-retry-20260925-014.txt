@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage3b-vulkan20k-retry-20260925-014
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage3b-vulkan20k-retry-20260925-014.txt
+Fix only the Stage 3 Vulkan controller argument mismatch, then run the same single Vulkan 20K arm. Do not proceed to another optimization stage.
