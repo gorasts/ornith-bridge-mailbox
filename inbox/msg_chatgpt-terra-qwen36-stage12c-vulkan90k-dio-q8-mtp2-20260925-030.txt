@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage12c-vulkan90k-dio-q8-mtp2-20260925-030
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage12c-vulkan90k-dio-q8-mtp2-20260925-030.txt
+
+Important: actively launch the required separate XEON2 PowerShell viewer first using Start-Process, verify PID/title/parentage and Ctrl+C wiring, then run the same single Vulkan+DIO 90K Q8-KV MTP2 benchmark.
+
+Do not proceed to MTP3 or any other scientific stage automatically.
