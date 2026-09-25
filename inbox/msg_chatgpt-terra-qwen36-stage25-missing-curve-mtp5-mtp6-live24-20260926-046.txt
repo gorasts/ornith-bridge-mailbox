@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage25-missing-curve-mtp5-mtp6-live24-20260926-046
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage25-missing-curve-mtp5-mtp6-live24-20260926-046.txt
+
+Run all six missing curve points sequentially in this one batch.
+Use the corrected methodology: ONE prefill + ONE continuous long generation per point, collecting exactly 24 live tg_3s samples from print_timing.
+Do NOT perform 24 full prefills/runs per point.
+
+The prior Stage24 canceled result now exists and cleanup completed, so this dependency is satisfied.
