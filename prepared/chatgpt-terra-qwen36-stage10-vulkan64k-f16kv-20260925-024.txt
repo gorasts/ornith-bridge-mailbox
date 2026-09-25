@@ -1,0 +1,140 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage10-vulkan64k-f16kv-20260925-024
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=40-55 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 10.
+Test KV precision as the next major lever at 64K.
+Do not run any follow-up stage.
+
+CURRENT WINNER REFERENCE — STAGE 8B
+Backend=Vulkan
+Load mode=mmap
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=2
+KV=q8_0/q8_0
+PROMPT=65536
+PREDICTED=512
+PP64K=139.951
+TG512=17.968
+MTP_ACCEPTANCE=336/348 (96.552%)
+VRAM_MIN_FREE=1783.2 MiB
+GTT_PEAK=1347.2 MiB
+MAX_TEMP=95C
+
+STAGE 9 CONCLUSION
+MTP3 is rejected:
+PP64K=138.338
+TG512=16.623
+MTP_ACCEPTANCE=93.781%
+GTT_PEAK=1599.4 MiB
+MAX_TEMP=92C
+
+LOCKED SCIENTIFIC CONFIG
+Use exactly Stage 8B:
+same Vulkan binary/model/backend/load mode/N_CPU_MOE/B/UB/MTP2/threads/FA/server context/corpus/hash/prompt construction/viewer/telemetry/cleanup.
+
+CHANGE ONLY
+--cache-type-k q8_0 -> f16
+--cache-type-v q8_0 -> f16
+
+RULES
+- Exactly one benchmark arm.
+- No retries.
+- No ROCm/ASUS/RPC.
+- No placement/B/UB/MTP/load-mode/thread/context changes.
+- Prompt=65536, predicted=512.
+- Thermal abort=105C.
+- If F16 KV cannot allocate or causes device/kernel fault, report exact failure and stop; do not fall back to Q8.
+- Leave Ornith inactive after cleanup.
+
+LIVE VIEWER — HARD GATE
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Luna must open the live viewer in its own separate XEON2 PowerShell window using Start-Process powershell.exe -NoExit ...
+Never use the ChatGPT/Codex built-in terminal panel.
+If separate window cannot be verified, SAFE_ABORT before inference.
+Result must report:
+LIVE_VIEWER_WINDOW=SEPARATE
+LIVE_VIEWER_CTRL_C_WIRED=YES
+
+TELEMETRY
+Sample once per second:
+VRAM used/free
+GTT used
+GPU temp/utilization
+host RSS
+clocks/power if exposed
+
+MEASURE
+PP64K
+TG512
+wall/load time
+MTP generated/accepted/acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS
+max temp/utilization
+fault scan
+prompt fingerprint
+
+COMPARE DIRECTLY TO Q8 STAGE8B
+DELTA_PP_F16_VS_Q8
+DELTA_TG_F16_VS_Q8
+DELTA_ACCEPTANCE_F16_VS_Q8
+DELTA_GTT_F16_VS_Q8
+DELTA_TEMP_F16_VS_Q8
+DELTA_MIN_FREE_F16_VS_Q8
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage10-vulkan64k-f16kv-20260925-024.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage10-vulkan64k-f16kv-20260925-024
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=mmap
+MTP_DEPTH=2
+KV_K=f16
+KV_V=f16
+PROMPT_N=65536
+PREDICTED_N=512
+N_CPU_MOE=33
+PP64K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_CTRL_C_WIRED=
+DELTA_PP_F16_VS_Q8=
+DELTA_TG_F16_VS_Q8=
+DELTA_ACCEPTANCE_F16_VS_Q8=
+DELTA_GTT_F16_VS_Q8=
+DELTA_TEMP_F16_VS_Q8=
+DELTA_MIN_FREE_F16_VS_Q8=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
