@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-bridge-audit-optimize-all-users-20260925
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+TASK:
+Read and execute:
+prepared/chatgpt-claude-bridge-audit-optimize-all-users-20260925.txt
+
+Focus especially on the suspected second writer and the GROK subtree/processes. Do a read-only forensic audit first. Do not interrupt an active benchmark. Apply only proven, low-risk bridge fixes and validate multi-agent routing. Return the specified outbox result.
