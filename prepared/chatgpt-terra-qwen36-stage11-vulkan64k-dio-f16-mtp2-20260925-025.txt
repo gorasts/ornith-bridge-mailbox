@@ -1,0 +1,149 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage11-vulkan64k-dio-f16-mtp2-20260925-025
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=45-60 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 11.
+Test DIO at 64K using the new F16-KV + MTP2 winner.
+Do not run any follow-up stage.
+
+CURRENT WINNER — STAGE 10
+Backend=Vulkan
+Load mode=mmap
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=2
+KV=f16/f16
+PROMPT=65536
+PREDICTED=512
+PP64K=152.620
+TG512=19.232
+MTP_ACCEPTANCE=337/347 (97.118%)
+VRAM_MIN_FREE=584.2 MiB
+GTT_PEAK=1346.8 MiB
+MAX_TEMP=85C
+
+IMPORTANT THERMAL INTERPRETATION FROM GORAST
+Do NOT reject DIO simply because it reaches a short high junction-temperature peak.
+Real use has heavy PP mainly during startup/compaction for roughly 4-5 minutes, after which sustained generation is lighter.
+Past GORAST Vega tests completed hot runs and the card throttles itself.
+The purpose of this stage is to measure whether DIO remains faster after any natural throttling.
+Monitor temperature continuously, but do not treat a transient 104-107C peak alone as scientific failure.
+
+LOCKED SCIENTIFIC CONFIG
+Use exactly Stage 10:
+same Vulkan binary/model/backend/N_CPU_MOE/B/UB/MTP2/F16 KV/threads/FA/server context/corpus/hash/prompt construction/viewer/telemetry/cleanup.
+
+CHANGE ONLY
+--load-mode mmap -> dio
+
+RULES
+- Exactly one benchmark arm.
+- No retries.
+- No ROCm/ASUS/RPC.
+- No placement/B/UB/MTP/KV/thread/context changes.
+- Prompt=65536, predicted=512.
+- Do not abort merely for crossing the prior 105C software threshold.
+- HARD SAFETY ABORT if junction reaches 110C, or on GPU/device/kernel fault, or obvious loss of control.
+- Record throttling behavior if visible.
+- Leave Ornith inactive after cleanup.
+- If F16+DIO cannot allocate, report exact failure; no fallback to Q8.
+
+LIVE VIEWER — HARD GATE
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Luna must open the live viewer in its own separate XEON2 PowerShell window using Start-Process powershell.exe -NoExit ...
+Never use the ChatGPT/Codex built-in terminal panel.
+If separate window cannot be verified, SAFE_ABORT before inference.
+Result must report:
+LIVE_VIEWER_WINDOW=SEPARATE
+LIVE_VIEWER_CTRL_C_WIRED=YES
+
+TELEMETRY
+Sample once per second:
+VRAM used/free
+GTT used
+GPU edge/junction temperature
+GPU utilization
+host RSS
+SCLK/MCLK if exposed
+power if exposed
+and note thermal-throttle evidence if exposed.
+
+MEASURE
+PP64K
+TG512
+wall/load time
+MTP generated/accepted/acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS
+max edge/junction temp
+utilization
+fault scan
+prompt fingerprint
+thermal-throttle evidence
+
+COMPARE DIRECTLY TO STAGE10 MMAP F16
+DELTA_PP_DIO_VS_MMAP
+DELTA_TG_DIO_VS_MMAP
+DELTA_ACCEPTANCE_DIO_VS_MMAP
+DELTA_GTT_DIO_VS_MMAP
+DELTA_TEMP_DIO_VS_MMAP
+DELTA_MIN_FREE_DIO_VS_MMAP
+DELTA_WALL_DIO_VS_MMAP
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage11-vulkan64k-dio-f16-mtp2-20260925-025.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage11-vulkan64k-dio-f16-mtp2-20260925-025
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=dio
+MTP_DEPTH=2
+KV_K=f16
+KV_V=f16
+PROMPT_N=65536
+PREDICTED_N=512
+N_CPU_MOE=33
+PP64K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+MAX_EDGE_TEMP_C=
+MAX_JUNCTION_TEMP_C=
+THERMAL_THROTTLE_EVIDENCE=
+FAULT_SCAN=
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_CTRL_C_WIRED=
+DELTA_PP_DIO_VS_MMAP=
+DELTA_TG_DIO_VS_MMAP=
+DELTA_ACCEPTANCE_DIO_VS_MMAP=
+DELTA_GTT_DIO_VS_MMAP=
+DELTA_TEMP_DIO_VS_MMAP=
+DELTA_MIN_FREE_DIO_VS_MMAP=
+DELTA_WALL_DIO_VS_MMAP=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
