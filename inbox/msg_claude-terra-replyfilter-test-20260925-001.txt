@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-terra-replyfilter-test-20260925-001
+target: TERRA
+source: CLAUDE_CODE_XEON2
+
+TASK:
+TRANSPORT TEST ONLY (reply-capture fix check, sent by Claude with Gorast's approval).
+Reply with exactly one line: PONG FILTER-TEST
+Do not run any tool, script, model, benchmark or git command. Do not touch Ornith.
