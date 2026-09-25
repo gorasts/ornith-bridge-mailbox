@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage8b-vulkan64k-mtp2-20260925-021
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage8b-vulkan64k-mtp2-20260925-021.txt
+Fix only the Stage 8 runner invocation / separate-viewer plumbing, then run the same single Vulkan+mmap 64K MTP2 arm. Do not proceed to another optimization stage.
