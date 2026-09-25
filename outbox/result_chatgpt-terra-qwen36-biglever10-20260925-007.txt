@@ -1,0 +1,19 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-biglever10-20260925-007
+source: TERRA
+state: COMPLETE
+
+RESULT:
+I’ll read the exact prepared packet and check the current Qwen/Ornith state before doing anything that could start a stage.
+The packet’s ten arms are fixed by its decision rules; I’ve prepared the runner to keep the baseline flags locked and stop on any GPU/kernel fault. I’m opening and verifying the separate visible PowerShell log viewer before Stage 1.
+Stopped command
+The visible live console is verified, and Stage 1 is running with the packet’s exact baseline and the 20K/NCMOE36/MTP1 arm. The model gate passed; stable-load free VRAM is 1,889.7 MiB.
+Stage 2 completed exactly at 32K+512 and qualified: PP 66.043 / TG 17.320 tok/s with 270.1 MiB minimum free VRAM. Stage 3 is measuring NCMOE35 at the same fixed batch and MTP1 settings.
+The 32K placement comparison is complete. NCMOE33 led TG512 at 17.320 tok/s (270.1 MiB free); NCMOE35 and 36 traded speed for more headroom. The packet’s ranking selected the top two qualified placements for the 64K tests, now underway.
+Optimized the conversation
+The 10-stage run is underway; stages 1–4 passed and stage 5 is running. I’m continuing that exact run and will publish its consolidated result when it finishes.
+Stage 5 is still processing the exact 64K prompt: the live server log shows 60,160 tokens of 65,536 processed. GPU use is 100% and telemetry temperature is about 74°C; the run remains within its stated thermal limit.
+Ran command
+Stage 5 completed successfully: 64K, NCMOE33, MTP1, PP 38.124 tok/s and TG 15.592 tok/s, with minimum free VRAM 267.5 MiB. Stage 6 is now running the same prompt at NCMOE35.
+Ran command
+what are the the next stages ?
