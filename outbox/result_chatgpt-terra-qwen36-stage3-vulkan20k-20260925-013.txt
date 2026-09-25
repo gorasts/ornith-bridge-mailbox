@@ -1,0 +1,36 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage3-vulkan20k-20260925-013
+source: TERRA
+state: FAILURE
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan
+LOAD_MODE=dio
+EXACT_BINARY=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+BUILD_VERSION=0.2.0-dev build 10709 commit 9a9394a89; GNU 11.4.0
+BUILD_COMPARABILITY=SAME_SOURCE_COMMIT_9a9394a89_AS_ROCM; Vulkan GNU 11.4.0 vs ROCm GNU 13.3.0; RADV VEGA10
+MTP_SUPPORT=PASS (--spec-type draft-mtp; MTP1 arm)
+LIVE_POWERSHELL_VIEWER=PASS (visible Codex terminal panel; read-only live log)
+LIVE_VIEWER_CTRL_C_WIRED=YES (Ctrl+C writes scoped CANCEL marker)
+PROMPT_N=NA
+PREDICTED_N=NA
+PP20K=NA
+TG512=NA
+WALL_S=NA
+LOAD_TIME_S=NA
+MTP_ACCEPTANCE=NA
+VRAM_LOAD_FREE=NA
+VRAM_MIN_FREE=NA
+HOST_RSS=0.0 MiB peak server RSS
+MAX_TEMP_C=NA
+FAULT_SCAN=TypeError: run.<locals>.start_vulkan() takes 5 positional arguments but 6 were given
+DELTA_PP_VULKAN_VS_ROCM_DIO=NA
+DELTA_TG_VULKAN_VS_ROCM_DIO=NA
+DELTA_MIN_FREE_VULKAN_VS_ROCM_DIO=NA
+DELTA_LOAD_TIME_VULKAN_VS_ROCM_DIO=NA s
+EXACT_COMMAND=NOT_LAUNCHED
+PROMPT_FINGERPRINT=NA; EXPECTED=a77724f7c7b882bb28d2b5f79ec6944535672bd56a832af87f4ee862ce6abc76
+CLEANUP=client/server scoped cleanup; port free=see retained raw logs; Ornith left inactive
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+RAW_EVIDENCE=/tmp/terra-qwen36-stage3-vulkan20k-20260925-013 (server/client logs, 1-second telemetry and controller output)
+
