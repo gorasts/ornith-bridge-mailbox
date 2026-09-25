@@ -1,0 +1,84 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage1-dio20k-20260925-009
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=20-25 minutes.
+
+PURPOSE
+Single supervisor-controlled optimization stage.
+Test one major lever only: ROCm load mode mmap -> dio at 20K.
+Do not run any follow-up stage.
+
+REFERENCE
+Model=Qwen3.6-35B-A3B-UD-IQ3_XXS
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=1
+KV=q8_0/q8_0
+PROMPT=20480
+PREDICTED=512
+Known mmap result: PP20K=88.869, TG512=18.991, VRAM_MIN_FREE=269.9 MiB, MAX_TEMP=82C.
+
+LOCKED CONFIG
+Reuse the exact model, ROCm server build, corpus/hash, ROCm0 topology, context=131072, threads, FA, deterministic real-work prompt construction, safety rules, 105C thermal limit, telemetry, cleanup, and visible PowerShell live-view workflow from the successful autonomous6 run.
+
+CHANGE ONLY
+--load-mode dio
+
+RULES
+- Exactly one benchmark arm.
+- No retries.
+- No Vulkan, ASUS, RPC, or -ngld in this stage.
+- Do not change N_CPU_MOE, B, UB, MTP depth, KV, threads, context, corpus, or prompt method.
+- If DIO is unsupported or cannot load cleanly, report that and stop; do not substitute mmap/none.
+- Visible Windows PowerShell viewer required, streaming native benchmark/server output, with working Ctrl+C cancellation.
+- Leave Ornith inactive after cleanup.
+
+MEASURE
+PP20K
+TG512
+wall time
+load time
+MTP generated/accepted/acceptance
+stable-load free VRAM
+inference minimum free VRAM
+host RSS
+max GPU temperature/utilization/clocks/power if exposed
+fault scan
+exact prompt/predicted counts
+prompt fingerprint
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage1-dio20k-20260925-009.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage1-dio20k-20260925-009
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+LOAD_MODE=dio
+LIVE_POWERSHELL_VIEWER=
+LIVE_VIEWER_CTRL_C_WIRED=
+PROMPT_N=
+PREDICTED_N=
+PP20K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+DELTA_PP_VS_MMAP=
+DELTA_TG_VS_MMAP=
+DELTA_MIN_FREE_VS_MMAP=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
