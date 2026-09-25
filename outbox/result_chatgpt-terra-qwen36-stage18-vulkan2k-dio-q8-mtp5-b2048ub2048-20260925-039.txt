@@ -1,0 +1,66 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage18-vulkan2k-dio-q8-mtp5-b2048ub2048-20260925-039
+source: TERRA
+state: COMPLETE
+
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan (RADV VEGA10 / Vulkan0)
+LOAD_MODE=dio
+MTP_DEPTH=5
+KV_K=q8_0
+KV_V=q8_0
+PROMPT_N=2048
+PREDICTED_N=512
+N_CPU_MOE=33
+B=2048
+UB=2048
+THREADS=14/14
+FA=on
+SERVER_CONTEXT=131072
+PP2K=502.064 tok/s
+TG512=28.025 tok/s
+WALL_S=22.316 (observed 23.042)
+LOAD_TIME_S=7.055
+MTP_ACCEPTANCE=406/521 (77.927%)
+MEAN_DRAFT_LEN=1.78
+PROMPT_PROGRESS_TOKENS=2559 (harness accounting; requested prompt_n=2048)
+PROMPT_FINGERPRINT=43949b7536a71d0ff906d8738a89ca0652d7d93b41dde87821ee5851e966bf57
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+
+VRAM_LOAD_FREE=874070016 bytes (833.6 MiB)
+VRAM_MIN_FREE=863039488 bytes (823.1 MiB)
+GTT_BASELINE=14487552 bytes (13.8 MiB)
+GTT_LOAD=11325235200 bytes (10800.6 MiB)
+GTT_PREFILL_PEAK=11345686528 bytes (10820.1 MiB)
+GTT_GENERATION=11354624000 bytes (10828.6 MiB)
+GTT_PEAK=11354624000 bytes (10828.6 MiB)
+HOST_RSS=458.922 MiB peak
+HOST_RAM_MAX_USED=12.102 GiB
+HOST_RAM_MIN_AVAILABLE=19.066 GiB
+MAX_GPU_BUSY=99%
+MAX_EDGE_TEMP_C=40
+MAX_JUNCTION_TEMP_C=57
+MAX_MEMORY_TEMP_C=37
+MAX_SCLK_MHZ=unavailable
+MAX_MCLK_MHZ=unavailable
+MAX_GPU_POWER=not exposed by available sensor
+THERMAL_THROTTLE_EVIDENCE=No explicit throttle flag exposed; hardware/driver thermal protections unchanged and software temperature abort disabled as specified.
+FAULT_SCAN=server:NO_FATAL_SERVER_LOG_MATCH; kernel:UNAVAILABLE (dmesg access denied/unavailable)
+SERVER_BUILD=0.2.0-dev build 10709 commit 9a9394a89; GNU 11.4.0
+EXACT_SERVER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 2048 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=SEPARATE
+LIVE_VIEWER_PID=13336
+LIVE_VIEWER_TITLE=Qwen Stage18 MTP5 2K B2048 Live Viewer (title during SSH attachment: OpenSSH SSH client)
+LIVE_VIEWER_CTRL_C_WIRED=YES; watcher maps KeyboardInterrupt to this run's scoped CANCEL marker; not triggered
+LIVE_VIEWER_PARENTAGE_CHECK=PASS; at launch PowerShell PID 13336 had pwsh parent PID 30820 and ssh child PID 25284; visible window handle verified; remote watcher PID 3008252
+
+CLEANUP=COMPLETE; runner reported port_8099_free=True; Qwen client/server cleanup completed; Ornith production was not touched; separate viewer left open at completion
+CONTROLLER_ARM_INDEX=5 (runner-local index; this report is the requested Stage 18 2K point)
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+LATER_POINTS_RUN=NO
+
+RESULT=The sole exact 2K Vulkan+DIO Q8 MTP5 B2048/UB2048 point completed successfully. The 8K point and all later ladder points were not started.
+
