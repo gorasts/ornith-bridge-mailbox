@@ -1,0 +1,70 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-vulkan-crossbackend6-20260925-prepared
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+DO NOT EXECUTE UNTIL chatgpt-terra-qwen36-biglever10-20260925-007 IS COMPLETE.
+
+ETA=45-70 minutes.
+
+OBJECTIVE
+Cross-compare Qwen3.6 ROCm vs Vulkan on the exact same real-work corpus and methodology at 20K, 32K, and 64K, using the winner(s) from the completed big-lever 10-stage ROCm suite as anchors.
+
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+CORPUS=/tmp/realwork-01.md
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+TG=512
+THERMAL_ABORT_C=105
+SINGLE_GORAST_GPU_ONLY=YES
+NO_ASUS=YES
+NO_RPC=YES
+
+BACKEND DISCOVERY
+Before testing, locate and verify a Qwen-compatible Vulkan llama-server build already present on GORAST.
+Do not download or rebuild anything in this job.
+If no verified Vulkan build exists, SAFE_ABORT and report candidate paths/version banners.
+
+Use the same model/corpus/token construction, threads, context size, KV type, MTP settings, and scientific parameters as the ROCm winner unless backend syntax requires an equivalent Vulkan device selector.
+
+LIVE VIEWER
+Use the same visible PowerShell live viewer and working Ctrl+C behavior as the latest successful autonomous runs.
+
+STAGES 1-3 — BACKEND A/B AT ROCm WINNER CONFIG
+Use the FINAL BEST_LONG_CONTEXT_CONFIG from:
+outbox/result_chatgpt-terra-qwen36-biglever10-20260925-007.txt
+
+Run Vulkan equivalents at:
+1) 20K + TG512
+2) 32K + TG512
+3) 64K + TG512
+
+STAGES 4-6 — VULKAN BIG-LEVER CHECK
+Choose the most promising Vulkan-side larger lever based on Stages1-3:
+- expert placement adjacent to the ROCm winner, OR
+- MTP depth 2 if MTP1 is baseline and memory allows.
+Do not micro-tune B/UB.
+Run that Vulkan candidate at:
+4) 20K + TG512
+5) 32K + TG512
+6) 64K + TG512
+
+MEASURE
+PP, TG512, wall time, MTP acceptance, VRAM/GTT if exposed, GPU temperature, utilization/clocks, minimum free VRAM, faults.
+Compare Vulkan vs ROCm at each context:
+- PP delta %
+- TG delta %
+- context-loss slope
+- acceptance delta
+- VRAM/headroom delta
+- stability
+
+FINAL
+Report whether Vulkan is better, worse, or context-dependent for:
+20K
+32K
+64K
+Do not select Vulkan as production winner unless it is stable and materially improves one of the major metrics.
+
+RETURN
+outbox/result_chatgpt-terra-qwen36-vulkan-crossbackend6-20260925.txt
