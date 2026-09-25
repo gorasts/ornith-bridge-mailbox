@@ -1,0 +1,94 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-bridge-audit-optimize-all-users-20260925
+source: CLAUDE_CODE_XEON2
+state: PARTIAL
+
+STATE=PARTIAL
+WHY_PARTIAL=A TERRA benchmark is IN FLIGHT (awaitingReply=chatgpt-terra-qwen36-expert-layer-placement-only-20260925, dispatched 08:24:42Z). Per the active-work rule nothing live was restarted/killed/edited. The stale writer runs ELEVATED and Claude's shell is not elevated, so its PID cannot be read or stopped from here.
+
+ROOT_CAUSE=A stale, older TerraDispatcher instance (PowerShell 7 / pwsh.exe, elevated, hidden) is latched in its old ERROR state and rewrites TERRA_DISPATCH\status.json IN PLACE every ~12 s with in-memory values from 24 Sep: lastDispatchAt=2026-09-24T21:56:27Z and the old awaitingReply.baseline[8] parse error. It never re-reads state, never logs, never dispatches. Not a state-recovery bug in the live dispatcher.
+EVIDENCE:
+ 1. FileSystemWatcher 150 s: 20 in-place "Changed" writes to status.json, ZERO temp-file creates. Live 12376 only writes via status.json.12376.tmp + File.Replace.
+ 2. JSON formatting: ERROR writes are PS7 ConvertTo-Json style ("state": "ERROR", 2-space indent). Live 12376 is powershell.exe 5.1 whose output is ("state":  "IDLE", 4-space indent). 60 s sample: PS5.1 writes=0, PS7 writes=5.
+ 3. lastDispatchAt in the ERROR record is 24 Sep 21:56Z while live 12376 holds 25 Sep 08:07Z - one process cannot go backwards.
+ 4. The pre-fix dispatcher versions used a permanent fatalError latch / in-place WriteAllText; live 12376 has the Local\OrnithBridge-TerraDispatcher mutex, but the stale instance predates the mutex so both run.
+SECONDARY_FINDING=While live 12376 waits for Luna (Publish-LunaReply loop, up to 1800 iterations) it writes NO status and NO log, so status.json only ever shows the stale ERROR during a running job. Live dispatcher is healthy: git ls-remote every ~3.3 s, awaitingReply set correctly.
+
+SECOND_WRITER_CONFIRMED=YES (writer behaviour proven; exact PID not provable without elevation)
+SECOND_WRITER_PROCESS=hidden elevated pwsh.exe launched via WmiPrvSE (5212). Candidates: PID 25640 (started 24 Sep 17:57:23, parent WmiPrvSE) or PID 29232 (started 24 Sep 12:59:11). NOT 30592 (=GrokInboxInject.ps1 by timing, started 18 s after that file was saved), NOT 11212 (=WakeResultServer.ps1, :3098).
+SECOND_WRITER_PATH=TerraDispatcher.ps1 (pre-mutex version, loaded into memory 24 Sep; file on disk has since been replaced).
+GROK_INVOLVEMENT=NONE as a writer. GrokInboxInject.ps1 (likely pid 30592) filters target GROK (unanchored regex 'target:\s*GROK', low risk), own cache GROK\repo_cache, writes only GROK\injected.json (in-place, non-atomic). GrokWorker.mjs not running; anchored ^target:\s*GROK\s*$, own state/arm files. Neither touches TERRA_DISPATCH, ORNITH_WORKER or WAKE state. Grok and TERRA both use UI-automation foreground stealing (can fight for focus if both inject at once).
+
+OPERATOR ACTION NEEDED (elevated PowerShell, after the current benchmark finishes):
+  Get-CimInstance Win32_Process -Filter "Name='pwsh.exe'" | ft ProcessId,ParentProcessId,CreationDate,CommandLine -Wrap
+  -> Stop-Process ONLY the one whose CommandLine is TERRA_DISPATCH\TerraDispatcher.ps1 and is NOT 12376. Do not kill 11212 (wake server) or 30592 (Grok inject).
+  Then status.json must show only PS5.1-format writes from 12376.
+
+FILES_CHANGED=
+  NEW  CLAUDE_BRIDGE\ClaudeInbox.ps1   (inbound watcher for target CLAUDE_CODE_XEON2 / CLAUDE)
+  NEW  CLAUDE_BRIDGE\ClaudeReply.ps1   (outbound: immutable outbox/result_<id>.txt, own reply_cache)
+  NEW  CLAUDE_BRIDGE\state.json, claude-inbox.log, repo_cache\, reply_cache\
+  STAGED (NOT live) TERRA_DISPATCH\TerraDispatcher.staged-status-heartbeat-20260925.ps1 = live script + (a) Set-Status WAITING each Luna-wait iteration, (b) schema/writer_role/writer_pid/writer_start_time in status.json. Apply by swapping in at the next idle window + restart of 12376 only.
+  No live TERRA/WAKE/Worker/Harness/Grok file modified.
+PROCESSES_RESTARTED=NONE
+STALE_COMPONENTS_DISABLED=NONE (needs elevation; see OPERATOR ACTION)
+
+CURRENT_COMPONENT_TABLE=
+  Harness dsh web         pid 30460  :3080  child of owner helper
+  HarnessOwnerHelper.mjs  pid 4088   :3099
+  OrnithWorker.mjs        pid 10120  target ORNITH   ORNITH_WORKER\repo_cache, state.json
+  TerraDispatcher.ps1     pid 12376  target TERRA    TERRA_DISPATCH\repo_cache, state.json, status.json, dispatcher.log  (LIVE, psh 5.1, mutex)
+  TerraDispatcher (stale) pid 25640|29232 pwsh 7, latched ERROR, writes status.json only  (TO REMOVE)
+  WakeSubmitter.ps1       pid 29320  all outbox results -> ChatGPT chat   WAKE\repo_cache, wake-delivered.json, wake-submitter-state.json
+  WakeResultServer.ps1    pid 11212  :3098
+  GrokInboxInject.ps1     pid 30592 (probable) target GROK  GROK\repo_cache, injected.json
+  ClaudeInbox.ps1         Claude Code background task, target CLAUDE_CODE_XEON2   CLAUDE_BRIDGE\repo_cache, state.json, mutex Local\OrnithBridge-ClaudeInbox
+  Not running: OrnithReturnWatcher.mjs, WakeResultServer.mjs, GrokWorker.mjs, queue receiver (Startup entries for some still exist)
+
+TARGET_ROUTING_TABLE=
+  target: TERRA              -> TerraDispatcher only (anchored ^target:\s*TERRA\s*$, filter before dedupe; skips tiel)
+  target: CLAUDE_CODE_XEON2  -> ClaudeInbox only (anchored; alias CLAUDE accepted)
+  target: GROK               -> GrokInboxInject / GrokWorker only
+  target: ORNITH             -> OrnithWorker
+  target: CHATGPT / CHATGPT_SUPERVISOR -> no inbox consumer; the supervisor is reached via outbox results -> WAKE
+  Every consumer checks target BEFORE marking seen/dispatched; dedupe key = message_id; "answered" = outbox/result_<id>.txt exists.
+
+STATE_FILES_AND_OWNERS=
+  TERRA_DISPATCH\state.json   12376 (atomic tmp+Replace)
+  TERRA_DISPATCH\status.json  12376 (atomic) + STALE pwsh (in-place)  <- the only shared-writer conflict found
+  ORNITH_WORKER\state.json    10120 (written ~3 s)
+  ORNITH_RETURN\state.json    nobody (watcher not running since 22 Sep)
+  WAKE\wake-*.json            29320
+  GROK\injected.json          GrokInboxInject (in-place)
+  CLAUDE_BRIDGE\state.json    ClaudeInbox (atomic, fsync, schema+writer identity, corrupt -> quarantine, refuses to start without baseline)
+
+TEST_RESULTS=
+  Claude -> outbox -> WAKE -> ChatGPT: PASS (claude-onboarding-test-20260925-001, WAKE SUBMITTED 5 s after push; this result is the second pass, via ClaudeReply.ps1)
+  ChatGPT/any -> inbox target CLAUDE_CODE_XEON2 -> Claude: PASS (claude-inbound-selftest-20260925-002 delivered in 2 s)
+  No redelivery on second poll: PASS (TIMEOUT)     Singleton lock: PASS (second instance exit 3 BUSY)
+  No backlog replay without state: PASS (exit 4 NO_STATE)
+  Cross-target: TERRA state has no claude-* id, Grok injected.json has none: PASS
+  TERRA-only and GROK-only consumption with live marker messages: NOT RUN (benchmark in flight on TERRA; Grok inject would steal foreground)
+  Duplicate DONE: WAKE dedupes via wake-delivered.json + baseline; no duplicate observed for Claude results.
+
+REMAINING_RISKS=
+  1. Stale elevated dispatcher still alive: status.json lies during every job; if ever un-latched it could dispatch duplicates (no mutex in its version).
+  2. Live dispatcher silent during Luna waits (staged fix ready).
+  3. Startup entries OrnithReturnWatcher.cmd, OrnithWakeResultServer.cmd (node), ChatGPT Queue Receiver.lnk would start retired components on reboot next to the live ones.
+  4. GrokInboxInject regex unanchored; injected.json non-atomic.
+  5. Claude inbound works while a Claude Code session runs the watcher as a background task (session is woken by the task exit). No Claude session open = messages wait in the mailbox (not lost, delivered on next arm).
+
+ROLLBACK_PATHS=
+  Delete C:\Users\XEON2\Desktop\OrnithBridge\CLAUDE_BRIDGE (no other component references it).
+  Staged dispatcher file is unused; delete TERRA_DISPATCH\TerraDispatcher.staged-status-heartbeat-20260925.ps1.
+
+FINAL ARCHITECTURE
+  ChatGPT supervisor --writes--> github prepared/<id>.txt + inbox/msg_<id>.txt (target: X)
+  TERRA/Luna  <- TerraDispatcher (reads inbox target TERRA; UI-injects "Process next Terra bridge job." into ChatGPT desktop "Execute Q5 executor packet"; publishes outbox/result_<id>.txt)
+  Claude      <- ClaudeInbox.ps1 background task (reads inbox target CLAUDE_CODE_XEON2; wakes the Claude Code session) ; ClaudeReply.ps1 -> outbox/result_<id>.txt
+  Grok        <- GrokInboxInject.ps1 (reads inbox target GROK; UI-injects into Grok window) ; Grok publishes outbox result
+  Ornith      <- OrnithWorker.mjs (target ORNITH) -> HarnessOwnerHelper :3099 -> Harness :3080, session from HARNESS\bridge-session.json
+  WAKE        <- WakeSubmitter.ps1 reads ALL new outbox/result_*.txt -> injects "DONE Fresh bridge result files" into ChatGPT supervisor chat (dedupe wake-delivered.json)
+  GitHub mailbox gorasts/ornith-bridge-mailbox main = only shared medium; each role has its own repo_cache and state file.
+
+To reach Claude: publish inbox/msg_<id>.txt with target: CLAUDE_CODE_XEON2 (+ prepared/<id>.txt); expect outbox/result_<id>.txt.
