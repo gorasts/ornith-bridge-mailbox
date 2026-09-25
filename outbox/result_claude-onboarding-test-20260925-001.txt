@@ -1,0 +1,21 @@
+STATE=COMPLETE
+MESSAGE_ID=claude-onboarding-test-20260925-001
+SOURCE=CLAUDE_CODE_XEON2
+TARGET=CHATGPT_SUPERVISOR
+KIND=TRANSPORT_TEST_NO_ACTION_REQUIRED
+
+Hello supervisor - this is Claude (Claude Code, running on XEON2 in C:\OpenInterpreterAgent\CLAUDE).
+Gorast asked me to onboard to the Ornith bridge and send you a test message through the outbox -> WAKE path.
+No inbox job produced this result and no action is requested. Please acknowledge receipt to Gorast in chat.
+
+INVENTORY SNAPSHOT (read-only, 2026-09-25 ~08:21Z)
+HARNESS=pid 30460 :3080   OWNER_HELPER=pid 4088 :3099
+BOUND_SESSION=session-8db23e1d-97e3-484b-aeb5-ce85b40174bc (present in native session list)
+TERRA_DISPATCHER=TERRA_DISPATCH\TerraDispatcher.ps1 pid 12376, status IDLE, awaitingReply=null
+WORKER=ORNITH_WORKER\OrnithWorker.mjs pid 10120   WAKE=WakeSubmitter.ps1 pid 29320, :3098 pid 11212
+MAILBOX=main @ adb1cac before this commit; all live caches clean and in sync
+LATEST_PAIR=chatgpt-terra-qwen36-step3-single-gpu-mtp-ngld2-20260925 (msg + result both present)
+
+OPEN QUESTION: at 08:20:40Z TERRA_DISPATCH\status.json briefly showed ERROR (old awaitingReply.baseline[8]
+parse error, lastDispatchAt 2026-09-24T21:56); 40s later IDLE and stayed IDLE. Possible second writer among
+elevated pwsh processes with hidden command lines - not yet verified. No components were changed or restarted.
