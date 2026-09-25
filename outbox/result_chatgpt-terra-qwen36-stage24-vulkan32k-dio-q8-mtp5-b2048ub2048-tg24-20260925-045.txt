@@ -1,0 +1,96 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage24-vulkan32k-dio-q8-mtp5-b2048ub2048-tg24-20260925-045
+source: TERRA
+state: FAILURE
+AUTONOMOUS_COMPLETION=NO; viewer cancellation interrupted sample 05; validation stopped without retry
+BACKEND=vulkan (Vulkan0 / RADV VEGA10)
+LOAD_MODE=dio
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+SERVER=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server; build 10709 commit 9a9394a89
+PROMPT_N=32768
+PREDICTED_N=512 per sample
+N_CPU_MOE=33
+B=2048
+UB=2048
+THREADS=14/14
+FA=on
+SERVER_CONTEXT=131072
+MTP_DEPTH=5
+KV_K=q8_0
+KV_V=q8_0
+SAMPLE_TARGET=24
+SAMPLES_COMPLETED=4
+SAMPLES_FAILED=1 (sample 05 interrupted before a completed 512-token result)
+SAMPLES_NOT_STARTED=19
+PP32K=mean 345.725 tok/s across 4 completed samples; range 343.160-347.725
+TG_MEDIAN=14.8095
+TG_MEAN=14.8555
+TG_MIN=13.738
+TG_MAX=16.065
+TG_P10=13.9516 (linear interpolation)
+TG_P90=15.7962 (linear interpolation)
+TG_SAMPLE_STDDEV=0.9957
+TG_CV_PERCENT=6.703
+ACCEPTANCE_MEDIAN=50.186%
+ACCEPTANCE_MEAN=50.307%
+ACCEPTANCE_MIN=44.968%
+ACCEPTANCE_MAX=55.887%
+ACCEPTANCE_P10_P90=45.976%/54.734% (interim, n=4)
+MEAN_DRAFT_LEN_MEAN=1.5025
+ORIGINAL_POINT_ASSESSMENT=CANNOT_DECIDE for the requested 24-sample validation; among only 4 completed samples the original TG14.484 / acceptance48.327% falls inside interim TG and acceptance p10-p90, and is consistent with sample 01
+VRAM_MIN_FREE=863039488 bytes (823.06 MiB); VRAM_MAX_USED=7710117888 bytes
+GTT_BASELINE=14487552 bytes (13.82 MiB)
+GTT_STABLE_LOAD_PEAK=11325235200 bytes (10800.59 MiB)
+GTT_LOAD_PEAK=11325235200 bytes (10800.59 MiB)
+GTT_PREFILL_PEAK=11379011584 bytes (10851.87 MiB)
+GTT_GENERATION_PEAK=11386081280 bytes (10858.61 MiB)
+GTT_PEAK=11386081280 bytes (10858.61 MiB)
+HOST_RSS_PEAK=0.0 MiB as recorded by controller (measurement unavailable/invalid)
+HOST_RAM_MAX_USED=13006164 KiB
+MAX_EDGE_TEMP_C=74
+MAX_JUNCTION_TEMP_C=108
+MAX_MEMORY_TEMP_C=68
+GPU_BUSY_MAX_PERCENT=100
+GPU_POWER=unavailable in telemetry
+LOAD_TIME_S=7.054
+PROMPT_FINGERPRINT=51da1d892d2a0de41d9c95eb0bf5722c43cc42e548e44dfd1e790a9f1eea4a0a (matches target)
+CANCEL_EVIDENCE=CANCEL marker says "visible viewer Ctrl+C"; timestamp 2026-09-25 22:14:06.601 UTC. It was recorded during sample 05; the benchmark log showed sample 05 started 22:13:52 and reached 30s elapsed. The initiating actor is not established. No Ctrl+C was sent by this executor.
+SAMPLE05_PARTIAL=controller prompt_progress_tokens=33279; no completed sample metrics were recorded; do not interpret as a completed TG512.
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; kernel dmesg scan unavailable (access denied); no observed device-loss/reset/Vulkan fatal match
+LIVE_VIEWER_WINDOW=SEPARATE PowerShell console; PID 6792; observed attached title "OpenSSH SSH client", returned to "Qwen Stage24 MTP5 32K TG24 Live Viewer" after SSH detached; console remains open
+LIVE_VIEWER_REMOTE_WATCH_PID=3116555
+LIVE_VIEWER_PARENTAGE_CHECK=PASS (PowerShell PID 6792 parent PID 7164; SSH child PID 19412 while attached)
+LIVE_VIEWER_CTRL_C_WIRED=YES; watcher maps Ctrl+C to a run-scoped CANCEL marker; marker was detected by controller
+CLEANUP=COMPLETE; controller state FAILURE; active-pids.json has client/server null; port 8099 free; Ornith production was not touched
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+LATER_STAGES_RUN=NO
+RUNNER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 2048 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 5 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+OPERATIONAL_MULTI_SAMPLE_WRAPPER=one invocation of the existing benchmark harness with exactly 24 positional 32768 prompt lengths; each request retained its standard TG512 deterministic construction; wrapper allowed no other prompt length and did not retry
+RAW_SAMPLE_TABLE
+sample	prompt_n	predicted_n	PP_tok_s	TG512_tok_s	MTP_accepted/drafted	acceptance_pct	mean_draft_len	elapsed_s	status
+01	32768	512	347.725	14.450	361/747	48.327	1.48	129.616	COMPLETE
+02	32768	512	347.379	16.065	375/671	55.887	1.56	126.154	COMPLETE
+03	32768	512	344.636	15.169	369/709	52.045	1.52	128.785	COMPLETE
+04	32768	512	343.160	13.738	353/785	44.968	1.45	132.703	COMPLETE
+05	32768	512	NA	NA	NA	NA	NA	30s observed before cancellation	INCOMPLETE; no final sample result
+06	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+07	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+08	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+09	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+10	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+11	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+12	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+13	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+14	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+15	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+16	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+17	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+18	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+19	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+20	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+21	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+22	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+23	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+24	32768	512	NA	NA	NA	NA	NA	NA	NOT_STARTED
+
