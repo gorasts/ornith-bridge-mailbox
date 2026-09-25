@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-biglever10-20260925-007
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-biglever10-20260925-007.txt
+Run the full 10-stage big-lever Qwen3.6 optimization autonomously. Do not ask for operator input between stages.
