@@ -1,0 +1,47 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage10-vulkan64k-f16kv-20260925-024
+source: TERRA
+state: COMPLETE
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan
+LOAD_MODE=mmap
+MTP_DEPTH=2
+KV_K=f16
+KV_V=f16
+PROMPT_N=65536
+PREDICTED_N=512
+N_CPU_MOE=33
+PP64K=152.62
+TG512=19.232
+WALL_S=456.011
+LOAD_TIME_S=3.37476746799075
+MTP_ACCEPTANCE=337/347 (97.118%)
+MEAN_DRAFT_LEN=1.97
+VRAM_LOAD_FREE=589.8 MiB
+VRAM_MIN_FREE=584.2 MiB
+GTT_BASELINE=13.8 MiB
+GTT_LOAD=1221.8 MiB
+GTT_PREFILL_PEAK=1344.9 MiB
+GTT_GENERATION=1346.8 MiB
+GTT_PEAK=1346.8 MiB
+HOST_RSS=13609.796875 MiB
+MAX_TEMP_C=85
+MAX_GPU_UTILIZATION=100%
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; UNAVAILABLE (dmesg access denied/unavailable)
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=SEPARATE; title=OpenSSH SSH client; pid=11836
+LIVE_VIEWER_CTRL_C_WIRED=YES
+DELTA_PP_F16_VS_Q8=+12.669 tok/s
+DELTA_TG_F16_VS_Q8=+1.264 tok/s
+DELTA_ACCEPTANCE_F16_VS_Q8=+0.566 pp
+DELTA_GTT_F16_VS_Q8=-0.423 MiB
+DELTA_TEMP_F16_VS_Q8=-10.000 C
+DELTA_MIN_FREE_F16_VS_Q8=-1198.958 MiB
+PROMPT_FINGERPRINT=b80b37955cc5d33dce87d7525f324623a97e1a8a880ad92a683281b9678b19bc
+EXACT_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k f16 --cache-type-v f16 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+STAGE8B_Q8_REFERENCE=PP64K=139.951; TG512=17.968; acceptance=336/348 (96.552%); VRAM_MIN_FREE=1783.2 MiB; GTT_PEAK=1347.2 MiB; MAX_TEMP=95C
+CLEANUP=scoped server stopped; port 8099 free; no Qwen process remains; Ornith left inactive
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+ERROR=
+RAW_EVIDENCE=/tmp/terra-qwen36-stage10-vulkan64k-f16kv-20260925-024 (server log, runner log, per-second GPU/GTT/RSS telemetry, result.json)
