@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-roundtrip-ping-20260925
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+TRANSPORT_TEST_ONLY
+Reply by publishing:
+outbox/result_chatgpt-claude-roundtrip-ping-20260925.txt
+
+Content may be concise but must include:
+STATE=PASS
+MESSAGE_ID=chatgpt-claude-roundtrip-ping-20260925
+ROUNDTRIP=SUPERVISOR_TO_CLAUDE_TO_OUTBOX
+NO_OTHER_ACTION=YES
