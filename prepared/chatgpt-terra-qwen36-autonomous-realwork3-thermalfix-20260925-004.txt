@@ -1,0 +1,146 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-thermalfix-20260925-004
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+GOAL
+Complete the SAME 3-stage Qwen3.6 real-work optimization as the immediately prior job.
+
+ONLY CORRECTION
+The prior packet incorrectly used THERMAL_ABORT=85C.
+Use the user's established Qwen benchmark hard thermal abort:
+THERMAL_ABORT_C=105
+
+NO OTHER SCIENTIFIC OR BENCHMARK PARAMETER MAY CHANGE.
+
+CORPUS
+SOURCE=/home/ubuntu/realwork-01.md
+DEST=/tmp/realwork-01.md
+REQUIRED_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+Verify DEST hash exactly. If missing, copy only from SOURCE if SOURCE has the exact hash. No substitute corpus.
+
+MODEL
+/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+SERVER
+/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+BENCH_SCRIPT
+/home/ubuntu/realwork_bench.py
+
+SCOPE
+- GORAST single GPU only.
+- NO ASUS. NO RPC.
+- NO GPU reset, PCI rebind, driver reload, clock/voltage/fan/power modification.
+- Exactly THREE benchmark arms maximum. One launch per arm. NO hidden retries.
+- MTP1 only.
+- Do NOT test --n-cpu-moe 32.
+- Do NOT add -ngld.
+- Ornith must remain inactive throughout and at end.
+- On ROCm/kernel GPU fault: stop entire job immediately, cleanup, report FAILURE.
+- On user-space OOM only: arm INVALID; continue only if cleanup succeeds and GPU health is normal.
+- Operational fixes only; no scientific parameter changes.
+
+PREFLIGHT
+- GPU temperature <70C before Stage 1.
+- model readable, server executable, benchmark script readable.
+- corpus exact SHA256.
+- port 8099 free.
+- record baseline VRAM/temp.
+- inspect BENCH_SCRIPT usage read-only and invoke it correctly for exactly 20480 prompt tokens and 512 predicted tokens.
+
+CRITICAL MODEL LOAD
+Every arm MUST include:
+-m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+Verify the named model is loaded before benchmark. Router mode / no model loaded => FAIL job, no retry.
+
+EXACT SERVER TEMPLATE
+env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama-mtp/build-hip/bin /opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device ROCm0 -ngl 99 --n-cpu-moe <ARM_VALUE> -c 131072 -b <ARM_B> -ub <ARM_UB> -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+
+BENCHMARK METHOD
+- /home/ubuntu/realwork_bench.py with /tmp/realwork-01.md.
+- PROMPT_N=20480 exactly.
+- PREDICTED_N=512 exactly.
+- Same prompt content/order every arm.
+- deterministic request / temperature=0 as supported by existing script.
+- capture prompt/token fingerprint and prove equality.
+- capture PP20K, TG512, wall time, counts.
+- capture MTP generated/accepted/acceptance if emitted.
+- capture stable-load VRAM used/free and inference peak/min free.
+- capture GPU temp/max util/power/clocks where available.
+- scan server/kernel logs for GPU/ROCm faults.
+- valid = exact 20480 prompt + exact 512 predicted + no fatal GPU/kernel fault.
+
+STAGE 1
+N_CPU_MOE=34
+B=2048
+UB=2048
+
+STAGE 2
+N_CPU_MOE=33
+B=1024
+UB=1024
+
+STAGE 3 DECISION
+Choose faster valid arm by TG512.
+If TG512 differs by <2%, choose higher PP20K.
+If only one valid, choose it.
+If neither valid, STOP; no Stage 3.
+
+STAGE 3
+If Stage 1 wins:
+  N_CPU_MOE=34 B=2048 UB=1024
+If Stage 2 wins:
+  N_CPU_MOE=33 B=2048 UB=1024
+
+FINAL WINNER
+Stability mandatory.
+Highest TG512 wins.
+If TG512 within 2%, higher PP20K wins.
+Report deltas versus parent.
+
+THERMAL RULE
+HARD THERMAL ABORT=105C.
+Do not invent or substitute a lower threshold.
+Normal throttling below 105C is not itself an abort.
+At >=105C terminate immediately and cleanup.
+
+CLEANUP
+Always stop Qwen server/client processes.
+Leave Ornith inactive: ORNITH_RESTORED=NO.
+Leave verified corpus in place.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-autonomous-realwork3-thermalfix-20260925-004.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-thermalfix-20260925-004
+source: TERRA
+state: COMPLETE | SAFE_ABORT | FAILURE
+
+AUTONOMOUS_COMPLETION=
+CORPUS_SHA256=
+MODEL_LOADED_EACH_ARM=
+STAGES_ATTEMPTED=
+STAGES_VALID=
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE
+
+STAGE3_DECISION=
+FINAL_WINNER=
+WINNER_REASON=
+DELTA_TG_VS_PARENT=
+DELTA_PP_VS_PARENT=
+FAULT_SCAN=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
