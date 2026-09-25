@@ -1,0 +1,198 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-step3-single-gpu-mtp-ngld2-20260925
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+QWEN3.6 AGREED PLAN — STEP 3 OF 3 (FINAL)
+USER AUTHORIZED AUTONOMOUS EXECUTION.
+RUN THIS STEP ONLY, RETURN THE RESULT, THEN RESTORE ORNITH BECAUSE THE CAMPAIGN IS FINISHED.
+
+PURPOSE
+Continue directly from the PASS result of Step 2.
+Step 2 selected the maximum safe single-GPU placement:
+  --n-cpu-moe 33
+with 419,434,496 bytes free after stable load.
+Baseline at this placement:
+  CTX=131072
+  P=2048
+  TG=512
+  Q8_0/Q8_0 KV
+  MTP1
+  PP=255.24689403913752 tok/s
+  TG=20.42610371312189 tok/s
+  MTP acceptance=0.851449
+  GPU Tmax=52C
+  no GPU/kernel fault
+
+This final step follows the agreed plan:
+1) test MTP3
+2) test MTP4
+3) take the faster stable MTP3/MTP4 arm and test ONLY draft placement -ngld 2 on that winner
+No ASUS. No RPC. No second GPU.
+
+LOCKED BASE CONFIG FOR ALL ARMS
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+SERVER=/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+TOPOLOGY=GORAST_ROCm0_ONLY
+NO_RPC=YES
+NO_ASUS=YES
+CTX=131072
+PROMPT=2048
+TG=512
+B=2048
+UB=2048
+T=14
+TB=14
+FA=ON
+KV_K=q8_0
+KV_V=q8_0
+LOAD=mmap
+NGL=99
+N_CPU_MOE=33
+NO_SPEC_DRAFT_BACKEND_SAMPLING=YES
+FIT=off
+NP=1
+PRIO=2
+POLL=100
+CPU_STRICT=1
+JINJA=YES
+NO_WEBUI=YES
+temperature=0
+cache_prompt=false
+ignore_eos=true if supported
+stream=false
+
+Use the SAME deterministic 2048-token prompt construction as Step 2.
+Prefer the exact Step-2 prompt token IDs if saved.
+If reconstructing, reproduce the same deterministic tokenization method and record the SHA256.
+Do not substitute a different workload.
+
+ARM A — MTP3
+Same base config.
+--spec-type draft-mtp
+--spec-draft-n-max 3
+--spec-draft-n-min 1
+DO NOT add -ngld in this arm.
+Fresh server.
+Require >=128 MiB free VRAM after stable load before inference.
+Run exactly P2048 + TG512.
+
+ARM B — MTP4
+Run only if ARM A completed without GPU/kernel fault and was not rejected for load headroom.
+Same base config.
+--spec-type draft-mtp
+--spec-draft-n-max 4
+--spec-draft-n-min 1
+DO NOT add -ngld in this arm.
+Fresh server.
+Require >=128 MiB free VRAM after stable load before inference.
+Run exactly P2048 + TG512.
+
+MTP WINNER SELECTION
+Among ARM A and ARM B, select the arm with the higher measured TG512 ONLY if it:
+- completed exactly P2048 + TG512
+- had no GPU/kernel/device fault
+- met >=128 MiB load headroom
+If only one arm is valid, that arm is the winner.
+If neither is valid, skip the -ngld2 arm and report why.
+
+ARM C — NGLD2 CONTROL ON THE MTP WINNER
+Run only if an MTP3/MTP4 winner exists.
+Keep EVERYTHING identical to the winner and change ONLY:
+  -ngld 2
+Fresh server.
+Require >=128 MiB free VRAM after stable load before inference.
+Run exactly P2048 + TG512.
+This is the controlled test of GPU draft placement.
+
+IMPORTANT SCIENTIFIC RULE
+Between comparable arms, change only the intended variable:
+- A -> B: MTP depth 3 -> 4
+- winner -> C: only -ngld default -> -ngld 2
+Do not change placement, KV, context, B/UB, threads, FA, prompt, TG, backend, device, or any other benchmark parameter.
+
+SERVER FORM
+Use Step-2 proven command and change only the MTP flags described above:
+env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama-mtp/build-hip/bin \
+/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server \
+-m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf \
+--host 127.0.0.1 --port 8099 --device ROCm0 \
+-ngl 99 --n-cpu-moe 33 \
+-c 131072 -b 2048 -ub 2048 -t 14 -tb 14 -fa on \
+--cache-type-k q8_0 --cache-type-v q8_0 \
+--load-mode mmap \
+--spec-type draft-mtp \
+--spec-draft-n-max <3_or_4> --spec-draft-n-min 1 \
+--no-spec-draft-backend-sampling --fit off \
+-np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+For ARM C only append:
+-ngld 2
+
+STOP / SAFETY RULES
+USER-SPECIFIED HARD THERMAL ABORT = 105C.
+Do NOT invent a lower abort limit.
+Normal throttling below 105C is not itself an abort.
+
+For EACH arm:
+- fresh server
+- measure stable-load VRAM before inference
+- require >=128 MiB free after load
+- if <128 MiB, mark that arm REJECT and stop trying any more aggressive MTP depth
+- if GPU page fault, GPUVM fault, HIP/ROCm fatal error, device loss, amdgpu kernel fault, or server crash occurs: stop the entire Step 3 and do not retry after a GPU fault
+- OOM/startup failure without GPU fault: record exact evidence and do not try a more aggressive arm
+- NEVER GPU reset
+- NEVER PCI unbind/rebind
+- NEVER unload/reload amdgpu
+- NEVER change clocks, voltage, fan curve, or power limit
+
+PRODUCTION RULE
+Ornith should already be stopped from Step 2.
+Do NOT start Ornith between A/B/C.
+At FINAL cleanup of this Step 3:
+1) stop Qwen test server/client
+2) verify no test server remains
+3) restore ornith-server.service
+4) verify Ornith active
+This is the end of the 3-step campaign.
+
+ROUTINE FIXES
+You may fix quoting, PID handling, endpoint syntax, log parsing, or equivalent operational bugs yourself.
+You may NOT change a scientific parameter.
+Do not ask for confirmation.
+Do not perform dispatcher/bridge repair as part of this benchmark unless execution is impossible without it.
+
+MEASURE FOR EACH VALID ARM
+- PP tok/s
+- TG512 tok/s
+- wall time
+- prompt_n / predicted_n
+- MTP generated / accepted / acceptance / mean draft length if emitted/derivable
+- stable-load VRAM used/free
+- peak VRAM / minimum free during inference
+- max temperature
+- utilization/power/clocks where available
+- kernel/device fault scan
+- exact command
+- prompt SHA256
+
+RETURN
+Publish:
+outbox/result_chatgpt-terra-qwen36-step3-single-gpu-mtp-ngld2-20260925.txt
+
+Include a compact comparison:
+MTP1_STEP2_BASELINE: PP=255.24689403913752 TG=20.42610371312189
+MTP3: ...
+MTP4: ...
+WINNER_BEFORE_NGLD2: ...
+WINNER_PLUS_NGLD2: ...
+FINAL_FASTEST_STABLE: ...
+
+At end include exactly:
+SINGLE_GPU_GORAST_ONLY=YES
+ASUS_USED=NO
+RPC_USED=NO
+N_CPU_MOE=33
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=YES
+CAMPAIGN_COMPLETE=YES
