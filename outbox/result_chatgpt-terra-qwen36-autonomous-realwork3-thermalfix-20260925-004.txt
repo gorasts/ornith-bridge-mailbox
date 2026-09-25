@@ -1,0 +1,38 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-thermalfix-20260925-004
+source: TERRA
+state: COMPLETE
+
+AUTONOMOUS_COMPLETION=YES
+CORPUS_SOURCE_PATH=/home/ubuntu/realwork-01.md
+CORPUS_DESTINATION=/tmp/realwork-01.md
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+MODEL_LOADED_EACH_ARM=YES; named model confirmed by server log and /v1/models before tokenization
+STAGES_ATTEMPTED=3
+STAGES_VALID=3
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+PROMPT_SOURCE=/tmp/realwork-01.md
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=a77724f7c7b882bb28d2b5f79ec6944535672bd56a832af87f4ee862ce6abc76 (SHA256 of canonical JSON prompt token IDs; identical all stages)
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=NO (service remained inactive)
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE
+1 | 34 | 2048 | 2048 | 108.155 | 18.972 | 216.307 | 675.2 MiB | 14.9 MiB | 79 | 247/263; 93.916%; mean spec 1.94 | PASS
+2 | 33 | 1024 | 1024 | 99.729 | 18.855 | 232.471 | 1041.9 MiB | 270.5 MiB | 79 | 244/267; 91.386%; mean spec 1.91 | PASS
+3 | 34 | 2048 | 1024 | 98.752 | 17.828 | 236.063 | 1314.9 MiB | 541.8 MiB | 81 | 226/284; 79.577%; mean spec 1.80 | PASS
+
+STAGE3_DECISION=Stage 1 selected: Stage 1 vs Stage 2 TG512 gap was 0.62% (<2%), so higher PP20K selected Stage 1. Stage 3 used N_CPU_MOE=34, B=2048, UB=1024.
+FINAL_WINNER=STAGE 1 (N_CPU_MOE=34, B=2048, UB=2048)
+WINNER_REASON=Highest TG512 among valid arms; Stage 1 also won the <2% Stage 1/2 tie-break. Stage 3 was slower.
+DELTA_TG_VS_PARENT=Stage 3 vs Stage 1: -6.030%
+DELTA_PP_VS_PARENT=Stage 3 vs Stage 1: -8.694%
+GPU_TELEMETRY=Max utilization 100% on each arm; max sampled temperatures 79/79/81 C. Power sensor unavailable. Stable-load clock snapshot: SCLK 852 MHz, MCLK 800 MHz. No GPU reset or device-state changes.
+FAULT_SCAN=PASS; no matching GPUVM/ROCm/kernel fault lines in any stage scan
+CLEANUP=All Qwen benchmark clients and servers stopped; Qwen PID list empty; port 8099 free; Ornith inactive; verified corpus left in place
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
