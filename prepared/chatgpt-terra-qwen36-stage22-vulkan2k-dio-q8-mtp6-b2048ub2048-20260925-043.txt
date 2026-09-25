@@ -1,0 +1,106 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage22-vulkan2k-dio-q8-mtp6-b2048ub2048-20260925-043
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=10-20 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 22.
+Start the full MTP6 context-scaling ladder at 2K.
+Everything except MTP depth must remain identical to the established MTP5 ladder configuration.
+Do not run any later rung automatically.
+
+LOCKED CONFIG
+Backend=Vulkan
+Load mode=dio
+Same Vulkan binary/model
+N_CPU_MOE=33
+B=2048
+UB=2048
+MTP=6
+KV=q8_0/q8_0
+Threads=14/14
+FA=on
+Server context=131072
+Predicted=512
+Same deterministic real-work corpus/hash and prompt construction.
+
+PROMPT_N=2048
+
+MTP5 REFERENCE AT 2K
+PP=502.064
+TG=28.025
+MTP acceptance=77.927%
+mean draft=1.78
+VRAM min free=823.1 MiB
+GTT peak=10828.6 MiB
+
+RULES
+- Exactly one benchmark arm.
+- No hidden retries.
+- No scientific changes other than MTP5 -> MTP6 versus the corresponding MTP5 rung.
+- No ROCm/ASUS/RPC.
+- No software temperature abort.
+- Do not alter hardware/driver/SMU protections.
+- Stop only on real GPU/device/kernel fault/reset/device-lost/hang.
+- Leave Ornith inactive after cleanup.
+
+LIVE VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Use the proven separate PowerShell Start-Process method.
+Verify PID/title/parentage and Ctrl+C before inference.
+
+MEASURE
+PP2K
+TG512
+wall/load time
+MTP acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS/RAM
+temps
+fault scan
+prompt fingerprint
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage22-vulkan2k-dio-q8-mtp6-b2048ub2048-20260925-043.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage22-vulkan2k-dio-q8-mtp6-b2048ub2048-20260925-043
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+PROMPT_N=2048
+PREDICTED_N=512
+BACKEND=vulkan
+LOAD_MODE=dio
+N_CPU_MOE=33
+B=2048
+UB=2048
+MTP_DEPTH=6
+KV_K=q8_0
+KV_V=q8_0
+PP2K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_PEAK=
+HOST_RSS=
+MAX_EDGE_TEMP_C=
+MAX_JUNCTION_TEMP_C=
+MAX_MEMORY_TEMP_C=
+FAULT_SCAN=
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_CTRL_C_WIRED=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
