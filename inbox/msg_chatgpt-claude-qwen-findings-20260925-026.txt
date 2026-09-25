@@ -1,0 +1,157 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-qwen-findings-20260925-026
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+CURRENT QWEN3.6 / GORAST FINDINGS — REFERENCE FOR CLAUDE
+
+Please treat this as a read-only findings handoff. No system/GPU/benchmark changes unless Gorast explicitly asks.
+
+MODEL / PLATFORM
+- Model: /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+- Vulkan binary: /opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+- Build: 0.2.0-dev build 10709 commit 9a9394a89
+- GORAST single Vega 8GB
+- Typical locked config unless noted:
+  N_CPU_MOE=33
+  B=1280
+  UB=1024
+  ctx=131072
+  FA=on
+  threads=14/14
+  TG512
+  deterministic real-work corpus
+
+MAJOR FINDINGS
+
+1) VULKAN BACKEND WAS A LARGE STEP UP VS ROCM
+20K Vulkan+DIO, NCM33, MTP1, Q8 KV:
+- PP=290.481 tok/s
+- TG=20.535 tok/s
+- VRAM min free=1846 MiB
+- max temp=92C
+This was dramatically faster than paired ROCm+DIO at 20K:
+- PP=95.371
+- TG=18.781
+
+2) LOAD MODE TRADEOFF AT 32K
+Vulkan+DIO, NCM33, MTP1, Q8:
+- PP=265.187
+- TG=18.370
+- GTT peak=10310.3 MiB
+- max temp=104C
+
+Vulkan+mmap, same config:
+- PP=166.763
+- TG=18.615
+- GTT peak=1345.2 MiB
+- max temp=79C
+
+Interpretation:
+- DIO gives ~59% higher PP.
+- TG is effectively similar.
+- DIO drives much more GTT and heat.
+- IMPORTANT correction from Gorast/past testing: do not reject DIO just because of transient ~104-107C peaks. In real usage, heavy PP happens mainly at initial load/compaction for roughly 4-5 minutes; the Vega throttles rather than immediately failing. The key is whether DIO still completes reliably and remains materially faster after natural throttling.
+
+3) 64K VULKAN+MMAP SCALING
+NCM33, MTP1, Q8:
+- PP64K=139.465
+- TG=16.693
+- GTT peak=1345.2 MiB
+- max temp=92C
+- MTP acceptance=98.06%
+Compared with 32K mmap:
+- PP -16.37%
+- TG -10.33%
+- GTT essentially flat
+
+Historical ROCm 64K reference:
+- PP=38.124
+- TG=15.592
+So Vulkan+mmap was ~3.66x faster PP and ~7% faster TG than that historical ROCm arm.
+
+4) MTP DEPTH AT 64K
+MTP1:
+- PP=139.465
+- TG=16.693
+- acceptance=98.06%
+- temp=92C
+
+MTP2:
+- PP=139.951
+- TG=17.968
+- acceptance=96.552%
+- temp=95C
+- VRAM min free=1783.2 MiB
+- GTT peak=1347.2 MiB
+
+MTP3:
+- PP=138.338
+- TG=16.623
+- acceptance=93.781%
+- temp=92C
+- GTT peak=1599.4 MiB
+
+Conclusion at 64K:
+- MTP2 is clear winner.
+- MTP3 is ~7.5% slower TG than MTP2.
+- Do NOT assume this holds at 90K+. Gorast explicitly wants MTP3 and then MTP4 tested again at longer context if viable because speculative behavior can change with context.
+
+5) KV PRECISION AT 64K
+Current best completed 64K result:
+Vulkan+mmap + NCM33 + B1280/UB1024 + MTP2 + F16 KV
+- PP64K=152.620
+- TG512=19.232
+- MTP acceptance=97.118%
+- VRAM min free=584.2 MiB
+- GTT peak=1346.8 MiB
+- max temp=85C
+
+Compared to Q8 KV MTP2:
+- PP +9.1%
+- TG +7.0%
+- acceptance +0.566 pp
+- GTT essentially unchanged
+- VRAM headroom reduced by ~1.2 GiB
+
+This is the current best completed practical 64K configuration.
+
+6) CURRENT ACTIVE STAGE
+Stage 11 dispatched:
+chatgpt-terra-qwen36-stage11-vulkan64k-dio-f16-mtp2-20260925-025
+
+Purpose:
+- same 64K winner above
+- change only mmap -> DIO
+- determine whether F16+MTP2 combines with DIO's big PP gain
+- do not reject solely for short high thermal peak
+- hard safety cutoff set at 110C
+- monitor edge/junction temp, GTT, VRAM, throttling evidence, PP/TG
+
+7) PLACEMENT RESULT
+At 32K Vulkan+DIO:
+NCM35 vs NCM33:
+- NCM35 PP -1.8%
+- TG -3.0%
+- same 104C
+- GTT +~572 MiB
+- more VRAM headroom but no performance/thermal benefit
+Conclusion: NCM35 rejected for this path.
+
+8) VIEWER RULE
+Permanent workflow requirement from Gorast:
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Luna must open an independent XEON2 PowerShell window using Start-Process powershell.exe -NoExit ...
+Never use the ChatGPT/Codex built-in terminal panel as the live viewer.
+Results must report LIVE_VIEWER_WINDOW=SEPARATE and Ctrl+C wiring.
+
+REQUEST TO CLAUDE
+Please acknowledge and, if useful, provide concise read-only observations about:
+- whether the F16-KV gain plausibly changes the expected DIO/GTT behavior at 64K
+- what to watch for in Stage 11 to distinguish harmless thermal throttling from a real stability/performance problem
+- whether 90K MTP2 -> MTP3 -> MTP4 is a sensible next branch if Stage 11 succeeds
+
+Do not change anything.
+
+Publish response to:
+outbox/result_chatgpt-claude-qwen-findings-20260925-026.txt
