@@ -1,0 +1,119 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-step1b-reproduce-8k-20260925
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+QWEN3.6 AUTONOMOUS PLAN — STEP 1B (replacement for SAFE_ABORTED Step 1)
+Run ONLY this step, then return results to ChatGPT. Do not start Step 2.
+
+WHY THIS REPLACEMENT EXISTS:
+The first Step 1 safe-aborted because it depended on locating the historical real HANDOFF.md corpus and because RPC was not already running.
+For this safety/reproduction step, REMOVE the real-HANDOFF dependency. This is a controlled synthetic reproduction of the previously proven Qwen3.6 8K path. Do not claim it is real-work.
+
+GOAL:
+Reproduce the previously successful 8K dual-Vega Qwen3.6 MTP2 result safely, using the same benchmark topology/configuration. Establish that the known-good Qwen path and both GPUs/RPC are healthy before any longer-context step.
+
+MODEL:
+/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+
+PROVEN PRIOR REFERENCE:
+CTX=12288
+PROMPT=8192
+TG=512
+SPLIT=0.500,0.500
+B/UB=512/256
+TARGET=GPU/GPU
+CPU_EXPERTS=0
+KV=F16 GPU
+MTP2
+WORKAROUNDS=--no-spec-draft-backend-sampling --fit off
+Prior result: PP=186.65209662344716, TG512=17.813397445760994, acceptance=1.00000, mean draft=3.00, GORAST free=909.2 MiB, ASUS free=155.3 MiB, GORAST Tmax=60C, ASUS Tmax=88C, RPC=ALIVE, kernels OK.
+
+RUNTIME DISCOVERY / VERIFICATION:
+Before launching anything, inspect the surviving prior Qwen3.6 benchmark scripts/logs/configs under /opt/testmodels and /opt/testmodels/benchlogs and verify the exact server/RPC binaries used by the successful Qwen3.6 MTP runs.
+Likely historical MTP server tree is /opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server and proven RPC binary is /opt/testmodels/prism-llama/build-hip/bin/ggml-rpc-server, but DO NOT assume this: verify from local prior artifacts first.
+If the exact Qwen runtime cannot be verified with high confidence, SAFE_ABORT and report the candidate evidence. Do not guess.
+
+RPC:
+If verified as the historical Qwen RPC binary, start ASUS RPC exactly using its known-good command/environment and port 50052, then verify reachability and device listing before stopping Ornith or loading Qwen.
+Do not restart/rebind/reset the GPU or driver.
+If RPC cannot start cleanly, stop and report.
+
+PROMPT:
+This step intentionally uses a controlled deterministic synthetic prompt, not HANDOFF.md.
+Use target-server /tokenize to generate deterministic seed token IDs, then tile the exact integer IDs to prompt_n=8192.
+Save the exact token-ID array and SHA256 so later steps can reuse/extend deterministically.
+Request: /completion, n_predict=512, temperature=0, cache_prompt=false, ignore_eos=true.
+Do not use random input.
+
+LOCKED BENCHMARK CONFIG:
+CTX=12288
+PROMPT=8192
+TG=512
+SPLIT=0.500,0.500
+B=512
+UB=256
+TARGET=GPU/GPU
+CPU_EXPERTS=0
+KV=f16/f16 GPU KV
+FA and thread/runtime settings = exact settings from the verified prior successful Qwen3.6 MTP2 benchmark; do not invent alternatives.
+MTP=draft-mtp
+DRAFT_MAX=2
+DRAFT_MIN=1 if supported/used in the prior verified run
+WORKAROUNDS=--no-spec-draft-backend-sampling --fit off
+NO automatic fallback.
+NO second arm.
+NO parameter sweep.
+
+HARD VGA SAFETY:
+- Before test, both GPUs must cool to <=60C. Wait if necessary; do not change fan/clock/voltage/power settings.
+- After load/warmup, require >=128 MiB FREE VRAM ON EACH GPU before inference.
+- If either GPU has <128 MiB free, SAFE_ABORT before prompt.
+- Hard thermal abort at 95C on either GPU hotspot/junction/available highest-temperature sensor.
+- On any GPU page fault, GPUVM fault, ROCm/HIP fault, Vulkan fault, device loss, RPC death, OOM, server crash, or kernel amdgpu fault: immediately terminate test processes and STOP. No retry.
+- NEVER issue GPU reset, PCI reset, driver unload/reload, device rebind, power-cycle, clock/voltage/power-limit changes, or any recovery command.
+- Do not run another benchmark after a GPU fault in this step.
+- Preserve exact dmesg/kernel evidence if a fault occurs.
+
+LIVE WINDOWS VIEW:
+Provide the user's established PowerShell live console streaming native llama-server output line-by-line.
+It must state:
+Ctrl+C TERMINATES THE ACTIVE TEST, STOPS QWEN/RPC TEST PROCESSES STARTED BY THIS JOB, AND RESTORES ORNITH.
+Ctrl+C must actually cancel the benchmark, not merely close the viewer.
+Use explicit PID/control tracking.
+
+MEASURE:
+PP tok/s
+TG512 tok/s
+wall time
+prompt_n/predicted_n
+MTP generated/accepted/acceptance/mean draft length
+GORAST + ASUS VRAM after load/peak/min free
+temperatures (including junction/hotspot where exposed)
+power/util/clocks
+network RX/TX average and peak during PP/TG
+RPC health
+kernel/device fault scan on both hosts
+exact server command
+exact RPC command
+exact verified runtime provenance
+prompt token SHA256
+
+PASS CRITERIA:
+- Completed exact 8192 + TG512
+- both GPUs >=128 MiB free after load and no unsafe headroom event
+- both GPUs remained <95C
+- no kernel/device/RPC fault
+- no unapproved config change
+
+CLEANUP:
+Restore the pre-test ASUS RPC state: if this job started it, stop it after the run; if it was already running, leave it.
+Always restore and verify ornith-server.service on GORAST.
+Leave no Qwen test server/client processes.
+
+RETURN:
+Publish one compact outbox result with PASS / SAFE_ABORT / FAILURE.
+Include exact values and paths to evidence logs.
+Explicitly say SYNTHETIC_CONTROL=YES and REALWORK=NO.
+Do not proceed to Step 2.
