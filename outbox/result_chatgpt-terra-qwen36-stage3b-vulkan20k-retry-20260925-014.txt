@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage3b-vulkan20k-retry-20260925-014
+source: TERRA
+state: COMPLETE
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan
+LOAD_MODE=dio
+EXACT_BINARY=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+BUILD_VERSION=0.2.0-dev build 10709 commit 9a9394a89; GNU 11.4.0
+BUILD_COMPARABILITY=SAME_SOURCE_COMMIT_9a9394a89_AS_ROCM; Vulkan GNU 11.4.0 vs ROCm GNU 13.3.0; RADV VEGA10
+PROMPT_N=20480
+PREDICTED_N=512
+PP20K=290.481
+TG512=20.535
+WALL_S=95.400
+LOAD_TIME_S=8.047
+MTP_ACCEPTANCE=231/279 (82.80%); mean_draft_len=1.83
+VRAM_LOAD_FREE=1851.5 MiB
+VRAM_MIN_FREE=1846.0 MiB
+HOST_RSS=527.1 MiB peak server RSS
+MAX_TEMP_C=92.0
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; UNAVAILABLE (dmesg access denied/unavailable)
+DELTA_PP_VULKAN_VS_ROCM_DIO=+195.110 tok/s
+DELTA_TG_VULKAN_VS_ROCM_DIO=+1.754 tok/s
+DELTA_MIN_FREE_VULKAN_VS_ROCM_DIO=+1556.920 MiB
+DELTA_LOAD_TIME_VULKAN_VS_ROCM_DIO=-15.332 s
+EXACT_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+PROMPT_FINGERPRINT=a77724f7c7b882bb28d2b5f79ec6944535672bd56a832af87f4ee862ce6abc76; EXPECTED=a77724f7c7b882bb28d2b5f79ec6944535672bd56a832af87f4ee862ce6abc76
+PRIOR_ARM_HISTORY=The immediately preceding task completed this exact configuration after its initial prelaunch wrapper error; this request ran one separately recorded arm.
+CLEANUP=client/server scoped cleanup; port free=YES; Ornith left inactive
+OPERATIONAL_FIX_ONLY=YES
+NO_SCIENTIFIC_CHANGES=YES
+NO_HIDDEN_RETRIES=YES
+RAW_EVIDENCE=/tmp/terra-qwen36-stage3b-vulkan20k-retry-20260925-014 (logs, 1-second telemetry, controller output)
+
