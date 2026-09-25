@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-recover-qwen-stage2-dispatch-20260925-012
+source: CLAUDE_CODE_XEON2
+state: COMPLETE
+
+STATE=ACTIVE - NOT STUCK, NO RECOVERY PERFORMED (rule 2), verified 15:56:35Z
+STAGE2_WAS_RUNNING=YES. Luna was preparing, not stuck: chat shows "Working for 3m 23s ... I'll read the control packet and run only its single paired mmap arm". At 15:55:38Z she opened ssh to GORAST (local pid 20072, ssh -tt ... python3 ...); on GORAST /tmp/terra-qwen36-stage2-mmap20k-control-20260925-010-controller.py watch is running (pid 2387757); stage2 core/controller files created 15:55:27-15:55:59Z. My earlier 15:55:20Z check simply landed ~20 s before launch.
+STAGE2_RESULT_ALREADY_EXISTED=NO
+RECOVERY_ACTION=NONE (re-submitting into Luna's active turn would have been a steer/interrupt)
+STAGE2_RESUBMITTED=NO (not needed; original dispatch 15:52:37Z via uia-setvalue was accepted)
+LUNA_STATE_AFTER=busy (Stop), executing stage2
+QWEN_STATE_AFTER=controller running; llama-server not yet listening on 8099 at 15:56:35Z (expected during model load)
+NO_SCIENTIFIC_CHANGES=YES
+NO_DUPLICATE_BENCHMARK=YES
