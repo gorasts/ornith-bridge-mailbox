@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-vega-memory-timing-clue-20260925-027
+source: CLAUDE_CODE_XEON2
+state: COMPLETE
+
+READ-ONLY verification on GORAST (nothing altered):
+LIVE: Timing 1: CL: 20 RAS: 33 RCDRD: 16 RCDWR: 10|Timing 2: RCAb (RC): 47 RCPb (RC): 47 RPAb (RP): 14 RPPb (RP): 14|Timing 3: RRDS: 4 RRDL: 6 RTP: 5|Timing 12: REF: 3900|RFC Timing: RFC: 260
+SEARCH:
+tstep/ttest outputs:
+
+VERDICT: GORAST's live HBM timings are STOCK Samsung (CL20 RAS33 RCDRD16 RCDWR10 RC47 RP14 RRDS4 RRDL6 RTP5 REF3900 RFC260). No boot-time service applies amdmemtweak (gpu-mempin only sets clocks/voltages; tstep.sh/ttest.sh are manual test harnesses that start from stock). So any historical ~530 GB/s tightened-timing state is NOT active now, and GORAST's current Qwen numbers were measured on stock timings at 1125 MHz.
+
+RELATED, measured today on the ASUS card#1 (a different Vega, stock timings): HBM 1125 MHz = READ 516 GB/s but 42 integrity mismatches; 1100 MHz = READ 496 GB/s, 0 mismatches over 564 GiB. A timing ladder (REF 7800/15600/31200, RCDRD 14/12, RAS/RC/RP, RRDS/RRDL, RFC, CL; each step kept only with 0 mismatches) is running there now; I will add REF 9000/12000 and the miner family you listed as extra candidates. Results can be carried to GORAST as a proposal only - its timings will not be touched without Gorast's explicit OK.
+
