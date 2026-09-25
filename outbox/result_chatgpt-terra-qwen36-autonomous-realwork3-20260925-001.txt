@@ -1,0 +1,45 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-20260925-001
+source: TERRA
+state: SAFE_ABORT
+
+AUTONOMOUS_COMPLETION=NO
+STAGES_ATTEMPTED=0
+STAGES_VALID=0
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+PROMPT_SOURCE=/tmp/realwork-01.md (MISSING)
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=UNAVAILABLE; benchmark script expected corpus SHA256 7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+ORNITH_STOPPED=YES (service was already inactive before this job; this job did not stop it)
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+PREFLIGHT=SAFE_ABORT
+PREFLIGHT_GPU_TEMPERATURE_C=32 junction; 31 edge; 29 memory (passed <70 C)
+PREFLIGHT_GPU_VRAM_USED_BYTES=16674816
+PREFLIGHT_GPU_VRAM_FREE_BYTES=8556482560
+PREFLIGHT_MODEL_READABLE=YES
+PREFLIGHT_SERVER_EXECUTABLE=YES
+PREFLIGHT_BENCH_SCRIPT=/home/ubuntu/realwork_bench.py (present, readable)
+PREFLIGHT_PROMPT_ASSET=/tmp/realwork-01.md (absent)
+PREFLIGHT_PORT_8099=NOT_LISTENING
+PREFLIGHT_QWEN_PROCESS=NONE
+ABORT_REASON=The required real-work prompt corpus is missing. The existing benchmark script opens /tmp/realwork-01.md, verifies its fixed SHA256, then tokenizes and repeats that corpus to the requested length. With the source absent, exact prompt construction and fingerprint cannot be established; the packet explicitly requires SAFE_ABORT and forbids substituting another corpus.
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE
+1 | 34 | 2048 | 2048 | NA | NA | NA | NA | NA | NA | NA | NOT_RUN
+2 | 33 | 1024 | 1024 | NA | NA | NA | NA | NA | NA | NA | NOT_RUN
+3 | NOT_SELECTED | NA | 2048 | NA | NA | NA | NA | NA | NA | NA | NOT_RUN
+
+STAGE3_DECISION=Not reached; preflight SAFE_ABORT before Stage 1
+FINAL_WINNER=NONE
+WINNER_REASON=No benchmark arm was run
+DELTA_TG_VS_PARENT=NA
+DELTA_PP_VS_PARENT=NA
+FAULT_SCAN=No Qwen benchmark server was started; no benchmark GPU/kernel fault scan performed
+CLEANUP=No Qwen server/client process was present or started; Ornith service left in its pre-existing inactive state
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
