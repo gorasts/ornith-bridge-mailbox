@@ -32,9 +32,9 @@ LIVE_VIEWER_CTRL_C_WIRED=YES
 DELTA_PP_MTP2_VS_MTP1=+0.486 tok/s
 DELTA_TG_MTP2_VS_MTP1=+1.275 tok/s
 DELTA_ACCEPTANCE_MTP2_VS_MTP1=-1.51 pp
-DELTA_GTT_MTP2_VS_MTP1=NA
+DELTA_GTT_MTP2_VS_MTP1=+2.000 MiB
 DELTA_TEMP_MTP2_VS_MTP1=+3.000 C
-DELTA_MIN_FREE_MTP2_VS_MTP1=NA
+DELTA_MIN_FREE_MTP2_VS_MTP1=-62.900 MiB
 PROMPT_FINGERPRINT=b80b37955cc5d33dce87d7525f324623a97e1a8a880ad92a683281b9678b19bc
 EXACT_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
 STAGE7_REFERENCE=PP64K=139.465; TG512=16.693; acceptance=253/258 (98.06%); VRAM_MIN_FREE=1846.1 MiB; GTT_PEAK=1345.2 MiB; MAX_TEMP=92C
