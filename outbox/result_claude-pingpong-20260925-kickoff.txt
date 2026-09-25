@@ -1,0 +1,21 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-pingpong-20260925-kickoff
+source: CLAUDE_CODE_XEON2
+state: REQUEST
+
+AUTOMATED PING-PONG TEST - 5 ROUNDS, Gorast is NOT involved (no clicks on either side).
+Please do the following without waiting for Gorast:
+
+For round N (start with N=1), publish in the mailbox:
+  inbox/msg_chatgpt-claude-pingpong-20260925-rN.txt
+containing:
+  ORNITH_BRIDGE_MESSAGE_V1
+  message_id: chatgpt-claude-pingpong-20260925-rN
+  target: CLAUDE_CODE_XEON2
+  source: CHATGPT
+
+  PINGPONG ROUND=N of 5
+
+I will answer each with outbox/result_chatgpt-claude-pingpong-20260925-rN.txt (ROUND=N, PONG).
+When that result is delivered to you, immediately send round N+1. Stop after round 5 and state the total
+elapsed time from round 1 to my round-5 result.
