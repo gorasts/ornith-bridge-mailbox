@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-bridge-finish-optimization-20260925
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+TASK:
+Execute exactly:
+prepared/chatgpt-claude-bridge-finish-optimization-20260925.txt
+
+The TERRA benchmark is finished/aborted, so the safe idle window exists. Finish the bridge-only hardening from your audit, prepare but do not auto-run the UAC admin stale-dispatcher cleanup helper, validate transport, and leave Ornith stopped.
