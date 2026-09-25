@@ -1,0 +1,150 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-20260925-001
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+GOAL
+Complete one autonomous, real Qwen3.6 optimization job with THREE benchmark stages and return one final result. No operator input between stages.
+
+MODEL
+/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+
+SERVER
+/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+
+SCOPE / SAFETY
+- GORAST single GPU only.
+- Do NOT use ASUS.
+- Do NOT use RPC.
+- Do NOT run GPU reset or modify device state.
+- Do NOT change model files.
+- Thermal abort: 85 C.
+- If a ROCm/kernel GPU fault occurs, STOP THE ENTIRE JOB, clean Qwen processes, report failure, and do not improvise recovery.
+- If a candidate merely OOMs in user-space without a kernel/device fault, mark that arm INVALID and continue only if the server/process is cleanly stopped and GPU health is normal.
+- Exactly 3 benchmark arms maximum. No hidden retries. One launch per arm.
+- Do not test MTP > 1. Prior measurements established MTP1 as fastest stable; keep --spec-draft-n-max 1.
+- Do not test --n-cpu-moe 32; prior placement sweep rejected it for insufficient headroom.
+- Do not add -ngld; prior control was slower.
+- Stop ornith-server.service once before benchmark loading, only after preflight passes.
+- Keep Ornith stopped throughout all three stages and leave it stopped at the end of this job. Report ORNITH_RESTORED=NO intentionally.
+- Always stop Qwen server/client processes at final cleanup.
+
+PREFLIGHT
+1. Verify GORAST GPU temperature < 70 C before stopping Ornith.
+2. Verify model readable and server executable.
+3. Verify no Qwen server is already using port 8099 after Ornith is stopped.
+4. Record GPU VRAM used/free and temperatures.
+5. Verify /home/ubuntu/realwork_bench.py and /tmp/realwork-01.md exist. Use this same real-work corpus/method for all three arms.
+6. If these prompt assets are missing or the benchmark script cannot target exactly 20480 prompt tokens and 512 generated tokens reproducibly, SAFE_ABORT before running any arm. Do not substitute a different corpus.
+
+COMMON SERVER FLAGS
+--host 127.0.0.1
+--port 8099
+--device ROCm0
+-ngl 99
+-c 131072
+-t 14
+-tb 14
+-fa on
+--cache-type-k q8_0
+--cache-type-v q8_0
+--load-mode mmap
+--spec-type draft-mtp
+--spec-draft-n-max 1
+--spec-draft-n-min 1
+--no-spec-draft-backend-sampling
+--fit off
+-np 1
+--prio 2
+--poll 100
+--cpu-strict 1
+--jinja
+--no-webui
+
+BENCHMARK METHOD
+- Real-work prompt source: /tmp/realwork-01.md through /home/ubuntu/realwork_bench.py.
+- Exactly PROMPT_N=20480 and PREDICTED_N=512 for every valid arm.
+- temperature=0 / deterministic request if supported by the existing script.
+- Same prompt content/order across arms.
+- Capture a prompt/token fingerprint so equality across arms can be proven.
+- Capture PP20K tok/s, TG512 tok/s, wall time, prompt tokens, predicted tokens.
+- Capture MTP draft generated/accepted and acceptance rate if emitted.
+- Capture stable-load VRAM used/free and inference peak used/min free.
+- Capture GPU temperature over the run, max utilization, power/clocks if available.
+- Scan kernel/server logs for GPU/ROCm faults.
+- Stability requires exactly 20480 prompt tokens + 512 predicted tokens and no fatal GPU/kernel fault.
+
+STAGE 1 — SAFE REALISTIC BASELINE
+--n-cpu-moe 34
+-b 2048
+-ub 2048
+Run exactly once.
+
+STAGE 2 — MORE GPU EXPERT WORK WITH LOWER TRANSIENT BATCH
+--n-cpu-moe 33
+-b 1024
+-ub 1024
+Run exactly once.
+
+DECISION FOR STAGE 3
+Choose the faster valid arm by TG512. If TG512 differs by <2%, choose the arm with higher PP20K. If only one arm is valid, choose that one. If neither is valid, stop and report FAILURE; do not run stage 3.
+
+STAGE 3 — UBATCH REFINEMENT OF THE WINNER
+If Stage 1 wins:
+  --n-cpu-moe 34
+  -b 2048
+  -ub 1024
+If Stage 2 wins:
+  --n-cpu-moe 33
+  -b 2048
+  -ub 1024
+Run exactly once.
+
+FINAL SELECTION
+Among all valid arms:
+1. Stability is mandatory.
+2. Highest TG512 wins.
+3. If TG512 is within 2%, higher PP20K wins.
+4. Report exact deltas vs the nearest parent configuration.
+Do not invent a winner from an invalid arm.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-autonomous-realwork3-20260925-001.txt
+
+Required fields:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-20260925-001
+source: TERRA
+state: COMPLETE | SAFE_ABORT | FAILURE
+
+AUTONOMOUS_COMPLETION=YES/NO
+STAGES_ATTEMPTED=
+STAGES_VALID=
+MODEL=
+PROMPT_SOURCE=
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=
+ORNITH_STOPPED=
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+Then a compact table:
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE
+
+Then:
+STAGE3_DECISION=
+FINAL_WINNER=
+WINNER_REASON=
+DELTA_TG_VS_PARENT=
+DELTA_PP_VS_PARENT=
+FAULT_SCAN=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+
+If you encounter an ambiguity not explicitly covered above, choose the safest interpretation that preserves the exact three-arm limit and benchmark comparability. Do not ask the operator mid-job.
