@@ -1,0 +1,55 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-headroom3-20260925-005
+source: TERRA
+state: COMPLETE
+AUTONOMOUS_COMPLETION=YES
+LIVE_POWERSHELL_VIEWER=PASS
+LIVE_VIEWER_CTRL_C_WIRED=YES
+STAGES_ATTEMPTED=1,2,3
+STAGES_VALID=1,2,3
+STAGES_QUALIFIED=NONE
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+MODEL_LOADED_EACH_ARM=YES
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=a77724f7c7b882bb28d2b5f79ec6944535672bd56a832af87f4ee862ce6abc76 (SHA256 of compact JSON token-ID array; identical across arms)
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE | QUALIFIED
+1 | 34 | 2048 | 1536 | 98.186 | 18.642 | 236.006 | 995.7 MiB | 77.3 MiB | 80.0 | 84.783% | YES | NO
+2 | 34 | 1536 | 1536 | 103.728 | 18.287 | 225.395 | 996.3 MiB | 78.0 MiB | 83.0 | 82.796% | YES | NO
+3 | 33 | 1536 | 1536 | 104.102 | 19.460 | 223.001 | 721.9 MiB | 20.9 MiB | 87.0 | 93.916% | YES | NO
+
+STAGE3_DECISION=both valid; TG delta 1.90% <2%, chose higher PP Stage 2
+FINAL_PRACTICAL_WINNER=NO_PRACTICAL_WINNER
+WINNER_REASON=no new arm met exact counts, fault-free/stable, <105C and >=128 MiB inference minimum-free qualification
+DELTA_TG_VS_PRIOR_REFERENCE=NA%
+DELTA_PP_VS_PRIOR_REFERENCE=NA%
+DELTA_MIN_FREE_VRAM_VS_PRIOR=NA MiB
+FAULT_SCAN=dmesg unavailable; server logs scanned
+CLEANUP=Qwen client/server stopped; port 8099 free; Ornith left inactive
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+EXACT_COMMON_FLAGS=-m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device ROCm0 -ngl 99 --n-cpu-moe <stage> -c 131072 -b <stage> -ub 1536 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+GPU_TELEMETRY=Per-stage 1-second samples saved in stageN-telemetry.tsv; max utilization/temperature and RAM are summarized above. Power sensor availability is reported per stage.
+REFERENCE_ONLY=Prior 34/2048/2048: PP=108.155 TG=18.972 VRAM_MIN_FREE=14.9 MiB MAX_TEMP=79C (not rerun).
+STAGE1_MTP=accepted 234/276; mean_draft_len=1.85
+STAGE1_GPU=busy_max=100%; edge_max=68.0C; junction_max=80.0C; memory_max=72.0C; power=not exposed by available sysfs sensor
+STAGE1_RAM=max_used=2.93 GiB; min_available=28.24 GiB
+STAGE2_MTP=accepted 231/279; mean_draft_len=1.83
+STAGE2_GPU=busy_max=100%; edge_max=70.0C; junction_max=83.0C; memory_max=74.0C; power=not exposed by available sysfs sensor
+STAGE2_RAM=max_used=2.92 GiB; min_available=28.25 GiB
+STAGE3_MTP=accepted 247/263; mean_draft_len=1.94
+STAGE3_GPU=busy_max=100%; edge_max=71.0C; junction_max=87.0C; memory_max=75.0C; power=not exposed by available sysfs sensor
+STAGE3_RAM=max_used=3.01 GiB; min_available=28.16 GiB
+BASELINE_VRAM_USED=16674816 bytes
+BASELINE_VRAM_FREE=8160.1 MiB
+BASELINE_EDGE_C=30.0
+BASELINE_JUNCTION_C=32.0
+
+DETAILS=Each stage command and complete logs/telemetry are retained in /tmp/terra-qwen36-autonomous-headroom3-20260925-005
+
