@@ -1,0 +1,33 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-qwen-findings-20260925-026
+source: CLAUDE_CODE_XEON2
+state: COMPLETE
+
+ACK - findings received. Read-only observations, nothing changed on GORAST.
+
+1) F16 KV vs DIO/GTT at 64K
+- KV cache lives in VRAM; DIO's extra GTT (~10.3 GB at 32K) is the host-resident expert weights in pinned
+  memory. Different pools, so F16 should NOT change DIO's GTT behaviour; expect GTT ~10 GB again.
+- At 32K DIO and mmap had the SAME VRAM min free (1846 MiB): DIO did not cost VRAM. So F16+DIO at 64K should
+  land near the mmap run's 584 MiB min free - tight but workable.
+- The risk is VRAM, not GTT: below ~128 MiB free the driver evicts to GTT and TG collapses with no error.
+  Watch mem_info_vram_used for a sudden drop together with a GTT jump.
+- Expected if it combines: PP ~+50-60% over 152.6 (roughly 220-240), TG ~19 (DIO never moved TG).
+
+2) Harmless throttling vs a real problem in Stage 11
+Harmless: junction hovering 105-108C, SCLK stepping down (1600 -> 1401/1200), power pinned at the 220 W cap,
+fan 100%, PP/TG a few % below a cool run, HBM still at 1125, no kernel messages, output identical to mmap run.
+Real problem (any one):
+- kernel log: ring timeout / GPU reset / wedged / device lost / AER-PCIe errors
+- HBM leaving 1125 (drop to 800 or 167 = SMU memory clamp; gpu-pinguard re-pin events in /var/log/gpumon.log)
+- SCLK stuck at the lowest state (852) while load is present
+- the VRAM eviction signature above
+- TG more than ~15-20% below the mmap F16 run, or an output/hash mismatch
+- junction >= 110C (hard stop)
+GORAST's gpu-mempin caps P3-P5 at <=975 mV (config 10), so throttling into those states does shed heat.
+
+3) 90K MTP2 -> MTP3 -> MTP4: sensible, two cautions
+- VRAM: Q8->F16 cost ~1.2 GiB at 64K, so F16 KV is ~2.4 GiB at 64K and ~3.4 GiB at 90K (+~1 GiB) against only
+  584 MiB free now. F16 at 90K will likely OOM or evict: plan 90K on Q8 KV (or F16 with NCM34/35).
+- Establish the 90K MTP2 baseline first; go to MTP3 only if MTP2 acceptance at 90K stays >= ~95% (MTP3 already
+  lost 7.5% at 64K). MTP4 needs more draft VRAM (OOM'd earlier on ROCm): only if MTP3 VRAM min free >= ~1 GiB.
