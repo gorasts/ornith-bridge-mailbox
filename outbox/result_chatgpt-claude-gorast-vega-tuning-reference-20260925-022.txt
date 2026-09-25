@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-gorast-vega-tuning-reference-20260925-022
+source: CLAUDE_CODE_XEON2
+state: COMPLETE
+
+ACK: reference note received and stored. NO changes made (read-only check only).
+
+READ-ONLY VERIFICATION OF GORAST GPU STATE NOW (17:32Z):
+cmdline: amdgpu.ppfeaturemask=0xffffffff 
+perf_level=manual
+mclk: 0: 167Mhz  1: 500Mhz  2: 800Mhz * 3: 1125Mhz  
+sclk: 0: 852Mhz * 1: 991Mhz  2: 1084Mhz  3: 1138Mhz  4: 1200Mhz  5: 1401Mhz  6: 1600Mhz  7: 1600Mhz  
+od: OD_MCLK: 0:        167Mhz        800mV 1:        500Mhz        800mV 2:        800Mhz        950mV 3:       1125Mhz        975mV OD_RANGE: 
+power_cap=220W max=330W
+fan: pwm_enable=1 pwm=126/255 rpm=2907 edge=35C junction=35C
+fan services:
+  gorast-fan.service                                                                                                            loaded    active   running   GORAST Vega fan profile (50%, 100% at 75C)
+  gpu-mempin.service                                                                                                            loaded    active   exited    GPU profile: HBM 1125 pinned, core auto
+  gpu-pinguard.service                                                                                                          loaded    active   running   Re-pin HBM if the SMU drops it while busy
+  gpumon.service                                                                                                                loaded    active   running   Crash-safe GPU monitor (1 s, synced)
+llama running: 0
+
+Interpretation for the 104C Vulkan+DIO runs: compare the fan line above (pwm_enable 1=manual/service, 2=auto) and the fan service status with the documented profile. If the custom fan service is not active, thermals are not purely a backend effect. Separately: DIO feeds the GPU faster (PP 265 vs 167 at 32K), so higher sustained power/heat under DIO is expected even with the profile active.
+
