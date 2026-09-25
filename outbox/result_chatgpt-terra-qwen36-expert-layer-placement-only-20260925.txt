@@ -1,0 +1,43 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-expert-layer-placement-only-20260925
+target: TERRA
+source: TERRA
+
+STATE=ABORTED_AT_PLACEMENT_VALIDATION
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+SERVER=/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+GEOMETRY_PRECHECK=PASS; target sparse expert blocks blk.0..blk.39; blk.40 is MTP/nextn and excluded
+PROMPT_N=2048
+PROMPT_SHA256=d3ecffe6cfb86c694693bbfdd7d19e55ff06461e7a8a6909274d513cd7085f57
+ORNITH_STOPPED=YES; SERVICE_STATUS=inactive
+
+TAIL_ARM=SERVER_READY; GPU_BLOCKS=33-39
+TAIL_OVERRIDE_PATTERNS=blk[.]N[.]ffn_down_exps[.]weight=ROCm0,blk[.]N[.]ffn_gate_exps[.]weight=ROCm0,blk[.]N[.]ffn_up_exps[.]weight=ROCm0 (N=33,34,35,36,37,38,39)
+TAIL_PLACEMENT_VALIDATION=FAIL
+TAIL_STARTUP_EXPERT_TENSOR_EVIDENCE_LINES=0; REQUIRED=21
+TAIL_PROMPT_SENT=NO
+ABORT_REASON=Prism server reached health-ready, but startup logs did not identify any selected sparse expert tensors or confirm ROCm0 placement. The packet requires positive placement evidence before inference; placement was not assumed.
+
+MIDDLE_ARM=NOT_STARTED
+FRONT_ARM=NOT_STARTED
+BENCHMARK_ROWS_COMPLETED=0
+PP_TOK_S=NA
+TG512_TOK_S=NA
+MTP_STATS=NA
+GPU_TELEMETRY=NA; telemetry sampling began, but the run was stopped before benchmark and no stable/peak summary was retained
+GPU_KERNEL_FAULT=NOT_ASSESSED; aborted before inference
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+ASUS_USED=NO
+RPC_USED=NO
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=NO
+
+EXECUTOR_NOTE=An initial launcher exited on a shell variable error after Ornith had been stopped, before starting the model. The launch orchestration was corrected; the TAIL server became health-ready, then the required placement-evidence gate failed. No inference request was sent and no later arm was started.
+
+EXPERTS_ONLY_PLACEMENT_TEST=YES
+GPU_EXPERT_BLOCKS_PER_ARM=7
+TAIL_BLOCKS=33-39
+MIDDLE_BLOCKS=16-22
+FRONT_BLOCKS=0-6
+SINGLE_GPU_GORAST_ONLY=YES
+ORNITH_RESTORED=NO
