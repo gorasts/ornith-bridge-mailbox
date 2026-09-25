@@ -1,0 +1,127 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage8b-vulkan64k-mtp2-20260925-021
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=40-55 minutes.
+
+PURPOSE
+Operational retry of Stage 8 only.
+Previous Stage 8 SAFE_ABORTED before any benchmark inference because the remote preflight invoked the Vulkan runner incorrectly:
+usage: qwen36_stage3_vulkan_013_runner.py prepare|watch|run
+The separate live viewer also never opened.
+
+This is NOT a scientific retry because Stage 8 never launched inference.
+
+SCIENTIFIC CONFIG — MUST REMAIN IDENTICAL TO STAGE 8
+Backend=Vulkan
+Load mode=mmap
+Model=Qwen3.6-35B-A3B-UD-IQ3_XXS
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP depth=2
+KV=q8_0/q8_0
+PROMPT=65536
+PREDICTED=512
+Context=131072
+Same corpus/hash, prompt construction, threads, FA, binary, telemetry and cleanup.
+
+REFERENCE MTP1 STAGE7
+PP64K=139.465
+TG512=16.693
+MTP_ACCEPTANCE=253/258 (98.06%)
+VRAM_MIN_FREE=1846.1 MiB
+GTT_PEAK=1345.2 MiB
+MAX_TEMP=92C
+
+ALLOWED OPERATIONAL FIXES ONLY
+- Correct the runner invocation / preflight command so the existing Vulkan runner executes properly.
+- Correct separate-window viewer launch plumbing if needed.
+Do not change any scientific parameter.
+
+LIVE VIEWER — HARD GATE
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Luna must open the viewer as its OWN XEON2 PowerShell window using Start-Process powershell.exe -NoExit ...
+Never use the ChatGPT/Codex built-in terminal panel.
+If the separate window cannot be opened and verified, SAFE_ABORT before inference.
+Result must report:
+LIVE_VIEWER_WINDOW=SEPARATE
+LIVE_VIEWER_CTRL_C_WIRED=YES
+
+RULES
+- Exactly one benchmark arm.
+- No hidden retries.
+- No ROCm/ASUS/RPC.
+- No placement/B/UB/KV/load-mode/thread/context changes.
+- Thermal abort=105C.
+- Leave Ornith inactive after cleanup.
+- If MTP2 cannot allocate, report exact failure and stop; no fallback.
+
+MEASURE
+PP64K
+TG512
+wall/load time
+MTP generated/accepted/acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS
+max temp/utilization
+fault scan
+prompt fingerprint
+
+COMPARE TO STAGE7 MTP1
+DELTA_PP_MTP2_VS_MTP1
+DELTA_TG_MTP2_VS_MTP1
+DELTA_ACCEPTANCE_MTP2_VS_MTP1
+DELTA_GTT_MTP2_VS_MTP1
+DELTA_TEMP_MTP2_VS_MTP1
+DELTA_MIN_FREE_MTP2_VS_MTP1
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage8b-vulkan64k-mtp2-20260925-021.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage8b-vulkan64k-mtp2-20260925-021
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=mmap
+MTP_DEPTH=2
+PROMPT_N=65536
+PREDICTED_N=512
+N_CPU_MOE=33
+PP64K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_CTRL_C_WIRED=
+DELTA_PP_MTP2_VS_MTP1=
+DELTA_TG_MTP2_VS_MTP1=
+DELTA_ACCEPTANCE_MTP2_VS_MTP1=
+DELTA_GTT_MTP2_VS_MTP1=
+DELTA_TEMP_MTP2_VS_MTP1=
+DELTA_MIN_FREE_MTP2_VS_MTP1=
+CLEANUP=
+OPERATIONAL_FIX_ONLY=YES
+NO_SCIENTIFIC_CHANGES=YES
+NO_HIDDEN_RETRIES=YES
