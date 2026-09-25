@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage5-vulkan32k-ncm35-20260925-017
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage5-vulkan32k-ncm35-20260925-017.txt
+Run only this Vulkan+DIO 32K N_CPU_MOE=35 placement test, then return the result. Do not proceed to another optimization stage.
