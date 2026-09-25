@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-step3-single-gpu-mtp-ngld2-20260925
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly:
+prepared/chatgpt-terra-qwen36-step3-single-gpu-mtp-ngld2-20260925.txt
+
+Step 2 is complete and PASS. This is the FINAL agreed single-GPU Qwen3.6 step: MTP3, MTP4, then -ngld 2 on the MTP winner. NO ASUS, NO RPC, keep n-cpu-moe=33 and all other Step-2 settings fixed. 105C hard abort. Restore Ornith only after this final step finishes. Publish the specified outbox result and stop.
