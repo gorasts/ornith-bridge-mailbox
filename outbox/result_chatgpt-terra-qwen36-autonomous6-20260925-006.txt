@@ -1,0 +1,69 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous6-20260925-006
+source: TERRA
+state: COMPLETE
+AUTONOMOUS_COMPLETION=YES
+LIVE_POWERSHELL_VIEWER=PASS
+LIVE_VIEWER_CTRL_C_WIRED=YES
+STAGES_ATTEMPTED=6
+STAGES_VALID=1,2,3,4,5,6
+STAGES_QUALIFIED=1,2,3,4,5,6
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+MODEL_LOADED_EACH_ARM=YES
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=a77724f7c7b882bb28d2b5f79ec6944535672bd56a832af87f4ee862ce6abc76 (SHA256 compact JSON token-ID array; identical across arms)
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE_MiB | VRAM_MIN_FREE_MiB | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE | QUALIFIED
+1 | 33 | 1536 | 1024 | 93.887 | 18.222 | 246.190 | 1040.4 | 270.8 | 82.0 | 83.81% | YES | YES
+STAGE1_MTP=accepted 233/278; mean_draft_len=1.84
+STAGE1_GPU=max_busy=100%; edge=68.0C; junction=82.0C; memory=73.0C; power=not exposed by available sysfs sensor
+STAGE1_RAM=max_used=2.61 GiB; min_available=28.56 GiB
+STAGE1_STATUS=COMPLETED; fault=NO_FATAL_SERVER_LOG_MATCH
+2 | 33 | 1280 | 1024 | 88.869 | 18.991 | 257.372 | 1042.1 | 269.9 | 82.0 | 93.56% | YES | YES
+STAGE2_MTP=accepted 247/264; mean_draft_len=1.94
+STAGE2_GPU=max_busy=100%; edge=69.0C; junction=82.0C; memory=73.0C; power=not exposed by available sysfs sensor
+STAGE2_RAM=max_used=2.59 GiB; min_available=28.57 GiB
+STAGE2_STATUS=COMPLETED; fault=NO_FATAL_SERVER_LOG_MATCH
+3 | 34 | 1280 | 1024 | 88.554 | 17.619 | 260.287 | 1315.3 | 542.4 | 83.0 | 75.60% | YES | YES
+STAGE3_MTP=accepted 220/291; mean_draft_len=1.76
+STAGE3_GPU=max_busy=100%; edge=69.0C; junction=83.0C; memory=73.0C; power=not exposed by available sysfs sensor
+STAGE3_RAM=max_used=2.61 GiB; min_available=28.56 GiB
+STAGE3_STATUS=COMPLETED; fault=NO_FATAL_SERVER_LOG_MATCH
+4 | 35 | 1280 | 1024 | 88.016 | 18.935 | 259.683 | 1615.7 | 842.2 | 84.0 | 93.18% | YES | YES
+STAGE4_MTP=accepted 246/264; mean_draft_len=1.93
+STAGE4_GPU=max_busy=100%; edge=69.0C; junction=84.0C; memory=73.0C; power=not exposed by available sysfs sensor
+STAGE4_RAM=max_used=2.61 GiB; min_available=28.55 GiB
+STAGE4_STATUS=COMPLETED; fault=NO_FATAL_SERVER_LOG_MATCH
+5 | 33 | 1024 | 1024 | 98.549 | 18.116 | 236.035 | 1040.3 | 267.7 | 84.0 | 81.85% | YES | YES
+STAGE5_MTP=accepted 230/281; mean_draft_len=1.82
+STAGE5_GPU=max_busy=100%; edge=70.0C; junction=84.0C; memory=75.0C; power=not exposed by available sysfs sensor
+STAGE5_RAM=max_used=2.63 GiB; min_available=28.54 GiB
+STAGE5_STATUS=COMPLETED; fault=NO_FATAL_SERVER_LOG_MATCH
+6 | 34 | 1280 | 768 | 87.377 | 18.121 | 262.598 | 1476.7 | 713.7 | 81.0 | 84.12% | YES | YES
+STAGE6_MTP=accepted 233/277; mean_draft_len=1.84
+STAGE6_GPU=max_busy=100%; edge=69.0C; junction=81.0C; memory=73.0C; power=not exposed by available sysfs sensor
+STAGE6_RAM=max_used=2.47 GiB; min_available=28.70 GiB
+STAGE6_STATUS=COMPLETED; fault=NO_FATAL_SERVER_LOG_MATCH
+
+ADAPTIVE_DECISION_RULE=Stage 1 lowered UB from latest high-speed shape; later batch/ubatch/NC-MOE changes were selected from measured throughput and headroom. B 768-2048, UB 768..B, N_CPU_MOE 33-35.
+STAGE_SELECTION_TRACE=S1 baseline UB reduction (33, 1536, 1024); S2 headroom 270.8MiB -> batch (33, 1280, 1024); S3 adjacent placement around Stage 2: (34, 1280, 1024); S4 lower GPU expert count from Stage 2: (35, 1280, 1024); S5 measured headroom 269.9MiB -> (33, 1024, 1024); S6 final headroom/speed boundary from Stage 2: (34, 1280, 768)
+RAW_FASTEST_RESULT=STAGE 2 TG512=18.991 PP20K=88.869 VRAM_MIN_FREE_MiB=269.9
+BEST_PRACTICAL_RESULT=STAGE 2 TG512=18.991 PP20K=88.869 VRAM_MIN_FREE_MiB=269.9
+FAULT_SCAN=no fatal GPU/server fault reported; dmesg unavailable
+CLEANUP=Qwen benchmark clients/servers stopped; port 8099 free; Ornith left inactive
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+METHOD=Same Qwen3.6 model, exact-hash corpus, server build, GORAST ROCm0 topology, MTP1, Q8 KV, context, prompt construction and TG512 as the immediately preceding run; only N_CPU_MOE, B, UB changed.
+POWER=Not exposed by available GORAST sysfs sensor; clocks and utilization/temperatures recorded in per-stage telemetry.
+REFERENCE=Previous latest run: Stage1 34/2048/1536 PP98.186 TG18.642 free77.3MiB; Stage2 34/1536/1536 PP103.728 TG18.287 free78.0MiB; Stage3 33/1536/1536 PP104.102 TG19.460 free20.9MiB.
+BASELINE_VRAM_FREE_MiB=8160.1
+BASELINE_EDGE_C=32.0
+BASELINE_JUNCTION_C=32.0
+DETAILS=Raw server/client logs and one-second telemetry are retained in /tmp/terra-qwen36-autonomous6-20260925-006
+
