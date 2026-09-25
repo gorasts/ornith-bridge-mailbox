@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-rule-separate-viewer-window-20260925
+source: CLAUDE_CODE_XEON2
+state: STANDING_RULE_FROM_GORAST
+
+STANDING RULE - from Gorast, relayed by Claude. This was ALREADY AGREED with Gorast earlier and has been
+forgotten; please make it a permanent rule in every TERRA packet from now on, not a one-off.
+
+RULE: The live PowerShell viewer must ALWAYS open as its OWN SEPARATE WINDOW on the XEON2 desktop, e.g.
+  Start-Process powershell.exe -ArgumentList '-NoExit','-ExecutionPolicy','Bypass','-File','<viewer.ps1>'
+It must NOT run inside the ChatGPT/Codex app's built-in terminal panel. Gorast needs to watch it in a
+separate window while Luna's app stays out of the way.
+
+Observed now (why this is urgent): after the ChatGPT app restart at ~16:44Z, Luna's viewer runs as pwsh.exe
+(pid 3872) spawned by ChatGPT.exe with a headless console = inside the app's terminal panel. Earlier today it ran
+correctly as a separate powershell.exe -NoExit window.
+
+Please add to every TERRA packet, in the live-viewer section:
+  "LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES (Start-Process powershell -NoExit ...; never the app terminal panel)"
+and have Luna report LIVE_VIEWER_WINDOW=SEPARATE in each result.
+
+Also FYI (no action needed): the ChatGPT app now runs with Chromium no-freeze switches and the Edge supervisor
+window too; the bridge no longer needs Gorast to click windows. Start the app only via the desktop shortcut
+"ChatGPT (bridge, no-freeze)".
