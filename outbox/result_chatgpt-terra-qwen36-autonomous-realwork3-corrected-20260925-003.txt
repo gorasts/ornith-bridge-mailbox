@@ -1,0 +1,45 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-corrected-20260925-003
+source: TERRA
+state: FAILURE
+
+AUTONOMOUS_COMPLETION=NO
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+CORPUS_SOURCE_PATH=/home/ubuntu/realwork-01.md
+CORPUS_DESTINATION=/tmp/realwork-01.md
+MODEL_LOADED_EACH_ARM=YES for the sole attempted arm (Stage 1); Stages 2-3 not launched
+STAGES_ATTEMPTED=1 (Stage 1; aborted during prompt processing)
+STAGES_VALID=0
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+PROMPT_SOURCE=/tmp/realwork-01.md
+PROMPT_N=20480 requested; processed=18432 before abort
+PREDICTED_N=512 requested; actual=0
+PROMPT_FINGERPRINT=a77724f7c7b882bb28d2b5f79ec6944535672bd56a832af87f4ee862ce6abc76
+ORNITH_RESTORED=NO (service stayed inactive)
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE
+1 | 34 | 2048 | 2048 | NA | NA | 185 (aborted) | 706314240 B | 121188352 B | 85.0 junction | NA | NO
+2 | 33 | 1024 | 1024 | NA | NA | NA | NA | NA | NA | NA | NOT_RUN
+3 | NOT_SELECTED | NA | 1024 | NA | NA | NA | NA | NA | NA | NA | NOT_RUN
+
+STAGE1_LOAD=PASS; exact -m model path supplied; /v1/models returned the named Qwen model
+STAGE1_FAILURE=THERMAL_ABORT_85C
+STAGE1_PROGRESS=18432/20480 prompt tokens; generation did not begin
+GPU_PEAK_VRAM_USED_BYTES=8451969024
+GPU_MIN_FREE_VRAM_BYTES=121188352
+GPU_MAX_UTILIZATION=100%
+GPU_POWER=UNAVAILABLE
+GPU_CLOCKS_AT_PEAK=SCLK 1600 MHz; MCLK 800 MHz
+GPU_TEMPERATURE_AT_ABORT=MEM 62 C; EDGE 66 C; JUNCTION 85 C
+STAGE3_DECISION=NO_STAGE3; packet thermal abort ended the job after Stage 1
+FINAL_WINNER=NONE
+WINNER_REASON=No arm completed stably; the only attempted arm hit the hard thermal abort
+DELTA_TG_VS_PARENT=NA
+DELTA_PP_VS_PARENT=NA
+FAULT_SCAN=No matching ROCm/GPU/kernel fault lines found; thermal abort only
+CLEANUP=Benchmark client and Qwen server stopped; Qwen process list empty; port 8099 free; Ornith service inactive
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
