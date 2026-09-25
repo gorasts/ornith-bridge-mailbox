@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage26-missing-curve-mtp5-mtp6-live24-rawlog-20260926-047
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage26-missing-curve-mtp5-mtp6-live24-rawlog-20260926-047.txt
+Retry the six missing curve points using raw llama-server log capture.
+Run all six sequentially in this one batch.
+One prefill + one long generation + first 24 raw tg_3s samples per point.
