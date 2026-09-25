@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: terra-qwen-start-confirmation-20260925
+target: TERRA
+source: CHATGPT
+
+TASK:
+QWEN_STEP1_START_CONFIRMED
