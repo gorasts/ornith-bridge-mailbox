@@ -1,0 +1,143 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage25-missing-curve-mtp5-mtp6-live24-20260926-046
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+Complete every missing context point for the MTP5 and MTP6 curves in ONE sequential batch.
+IMPORTANT: "24 samples" means 24 live rolling TPS samples from llama-server's print_timing tg_3s output during ONE long generation per context point.
+It DOES NOT mean 24 complete benchmark runs and DOES NOT mean 24 repeated prefills.
+
+DEPENDENCY
+Do not execute this batch unless the prior canceled Stage24 has already published:
+outbox/result_chatgpt-terra-qwen36-stage24-vulkan32k-dio-q8-mtp5-b2048ub2048-tg24-20260925-045.txt
+
+GLOBAL LOCKED CONFIG
+Backend=Vulkan / RADV VEGA10 / Vulkan0
+Load mode=dio
+Model=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+Server=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+N_CPU_MOE=33
+B=2048
+UB=2048
+KV_K=q8_0
+KV_V=q8_0
+Threads=14/14
+FA=on
+Server context=131072
+-ngl 99
+-np 1
+--prio 2
+--poll 100
+--cpu-strict 1
+--jinja
+--no-webui
+--fit off
+--no-spec-draft-backend-sampling
+Same deterministic real-work corpus and prompt construction.
+No ROCm/ASUS/RPC.
+
+MISSING POINTS — RUN ALL SIX SEQUENTIALLY
+1. MTP5, PROMPT_N=65536
+2. MTP6, PROMPT_N=16384
+3. MTP6, PROMPT_N=32768
+4. MTP6, PROMPT_N=65536
+5. MTP6, PROMPT_N=90000
+6. MTP6, PROMPT_N=120000
+
+CORRECT TPS SAMPLING METHOD FOR EACH POINT
+- ONE fresh prefill only for that context point.
+- ONE continuous long generation only.
+- Set generation target PREDICTED_N=2560 tokens. If the server has not emitted 24 valid tg_3s samples by 2560 tokens, continue generation only as much as needed to reach 24; do NOT redo the prefill.
+- Capture exactly 24 consecutive valid live 'tg_3s = ... t/s' values from llama-server print_timing for that one generation.
+- Do NOT substitute repeated full-run TG results.
+- Do NOT perform 24 prefills.
+- Do NOT restart/reissue the prompt merely to obtain another sample.
+- The 24 live rolling TPS samples are the primary TG statistic.
+- Also record the full-generation aggregate TG from eval timing as a sanity check.
+- Record final full-generation MTP accepted/drafted counts, acceptance %, and mean draft length.
+- Record PP from the single prefill.
+
+FRESHNESS / CACHE CONTROL
+Each context point must be scientifically independent:
+- no prompt-state carryover from the previous point;
+- no prompt-cache reuse that would skip/reduce the requested prefill;
+- a clean slot/request for every point;
+- restarting the server between arms is allowed if that is the safest way to guarantee independence.
+Do not change scientific parameters.
+
+FOR EACH POINT COMPUTE FROM THE 24 tg_3s VALUES
+LIVE_TG_SAMPLE_COUNT=24
+LIVE_TG_MEAN
+LIVE_TG_MEDIAN
+LIVE_TG_MIN
+LIVE_TG_MAX
+LIVE_TG_P10
+LIVE_TG_P90
+LIVE_TG_SAMPLE_STDDEV
+LIVE_TG_CV_PERCENT
+
+ALSO REPORT PER POINT
+PP tok/s
+FULL_GENERATION_TG tok/s
+generation tokens actually produced
+MTP_ACCEPTANCE accepted/drafted and %
+MEAN_DRAFT_LEN
+wall/load time
+VRAM load/min free
+GTT peak
+host RSS/RAM
+edge/junction/memory temps
+fault scan
+prompt fingerprint
+
+RAW DATA
+For every point include all 24 raw tg_3s values in order:
+sample01 ... sample24.
+Do not discard low/high values or manually select favorable windows.
+
+RUN POLICY
+- This user explicitly requested all six missing points in one batch.
+- Run sequentially, never in parallel.
+- No hidden retries.
+- If one point has a true server/GPU/device failure, record the failure and continue to the next point only if the GPU/server is healthy and a clean restart succeeds. Do not silently replace the failed measurement.
+- No software temperature abort.
+- Hardware/driver/SMU protections unchanged.
+- Stop for real GPU reset/device-lost/kernel fault/hang/hardware shutdown.
+- Leave Ornith production untouched/inactive.
+
+LIVE VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Use the proven separate visible XEON2 PowerShell Start-Process launcher.
+LIVE_VIEWER_CTRL_C_WIRED=YES
+Viewer should show current arm, prefill progress, generation n_gen/tg/tg_3s lines, and batch progress.
+Verify PID/title/parentage.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage25-missing-curve-mtp5-mtp6-live24-20260926-046.txt
+
+Required top summary:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage25-missing-curve-mtp5-mtp6-live24-20260926-046
+source: TERRA
+state: COMPLETE | PARTIAL | FAILURE
+AUTONOMOUS_COMPLETION=YES
+POINTS_TARGET=6
+POINTS_COMPLETED=
+POINTS_FAILED=
+SAMPLING_METHOD=ONE_PREFILL_ONE_LONG_GENERATION_24_LIVE_TG3S_SAMPLES_PER_POINT
+NO_24X_PREFILLS=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+LATER_STAGES_RUN=NO
+
+Then a section for each of the six points with all metrics and the ordered 24-sample raw tg_3s table.
+
+At the end compute curve summaries over the realistic 16K-120K operating range:
+MTP5: include existing verified MTP5 points 16K,32K,90K,120K plus this new 64K point. Do not invent missing data.
+MTP6: use this batch's 16K,32K,64K,90K,120K points.
+For each depth report simple arithmetic mean PP across these five context checkpoints and simple arithmetic mean PRIMARY_LIVE_TG statistic across the five checkpoints where methodology permits. If mixed historical methodology makes direct TG averaging scientifically inconsistent, say so clearly and provide the new MTP6 five-point live24 average separately rather than fabricating equivalence.
+
+Do not optimize around any single anomalous context. The user's target is strong average behavior across 16K through 120K.
