@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage18-vulkan2k-dio-q8-mtp5-b2048ub2048-20260925-039
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage18-vulkan2k-dio-q8-mtp5-b2048ub2048-20260925-039.txt
+Run only the 2K point of the scaling ladder with the locked winning config.
+Do not proceed to 8K or any later point automatically.
