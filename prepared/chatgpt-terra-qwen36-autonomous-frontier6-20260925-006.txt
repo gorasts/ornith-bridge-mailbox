@@ -1,0 +1,119 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-frontier6-20260925-006
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=35-45 minutes.
+
+OBJECTIVE
+Run 6 autonomous Qwen3.6 real-work benchmarks to find the fastest configuration that keeps >=128 MiB minimum free VRAM during inference.
+
+KNOWN REFERENCES
+A qualified: NCM33 B1024 UB1024 PP20K=99.729 TG512=18.855 MIN_FREE=270.5MiB TEMP=79C
+B raw speed: NCM33 B1536 UB1536 PP20K=104.102 TG512=19.460 MIN_FREE=20.9MiB TEMP=87C
+C raw PP: NCM34 B2048 UB2048 PP20K=108.155 TG512=18.972 MIN_FREE=14.9MiB TEMP=79C
+
+CORPUS
+/tmp/realwork-01.md
+Required SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+If missing, copy only from /home/ubuntu/realwork-01.md after exact hash verification.
+
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+SERVER=/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+BENCH=/home/ubuntu/realwork_bench.py
+
+LIVE VIEWER REQUIRED
+Before Stage 1, open the established visible Windows PowerShell console on XEON2 streaming native llama-server output.
+Show:
+QWEN3.6 AUTONOMOUS 6-STAGE FRONTIER
+ETA 35-45 minutes
+Ctrl+C safely stops the active benchmark/Qwen test processes and leaves Ornith stopped.
+Keep one visible console across all stages with clear stage transitions.
+If viewer cannot be verified, SAFE_ABORT before Stage 1.
+
+LOCKED CONDITIONS
+GORAST single GPU only. No ASUS/RPC.
+Ornith remains inactive throughout and after cleanup.
+Thermal hard stop=105C.
+Exactly 6 arms maximum; one launch per arm; no retries.
+MTP1 only; no -ngld.
+No benchmark parameter changes outside this packet.
+If a fatal GPU/server/device error occurs, stop the suite and report FAILURE.
+A plain allocation failure makes that arm invalid; continue only after clean process cleanup and normal GPU state.
+
+COMMON SERVER
+env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama-mtp/build-hip/bin /opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device ROCm0 -ngl 99 --n-cpu-moe 33 -c 131072 -b <B> -ub <UB> -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+
+METHOD
+Exactly 20480 prompt tokens + 512 generated tokens using BENCH and verified real-work corpus.
+Same prompt/token order every stage; capture token SHA256.
+Record PP20K, TG512, wall time, MTP acceptance, stable-load free VRAM, minimum free VRAM during inference, temperatures, utilization, clocks/power if available, and fault scan.
+Stable = exact counts + no fatal error.
+Qualified = Stable + temp<105C + minimum free VRAM>=128MiB.
+Before inference require >=128MiB stable-load free VRAM.
+
+STAGE1: NCM33 B1536 UB1280
+STAGE2: NCM33 B1536 UB1152
+
+STAGE3:
+If Stage1 qualified -> NCM33 B1536 UB1408
+Else if Stage2 qualified -> NCM33 B1536 UB1216
+Else -> NCM33 B1536 UB1088
+
+After Stage3 define UB_STAR = highest UB among qualified Stages1-3.
+If none qualified, stop with NO_FRONTIER_FOUND.
+
+STAGE4: NCM33 B2048 UB=UB_STAR
+STAGE5: NCM33 B1792 UB=UB_STAR
+
+Before Stage6 choose BEST among qualified Stages1-5:
+highest TG512; if within 1%, higher PP20K.
+Let B_STAR=BEST.B.
+If BEST minimum free VRAM>=192MiB, UB6=min(UB_STAR+64,1472).
+Else UB6=max(UB_STAR-64,1024).
+
+STAGE6: NCM33 B=B_STAR UB=UB6
+
+FINAL
+Among qualified Stages1-6: highest TG512; if within 1%, higher PP20K; if still within 0.5% on both, higher minimum-free VRAM.
+Also report raw fastest stage.
+Compare practical winner to Reference A and raw Reference B.
+
+CLEANUP
+Stop Qwen test client/server processes after final stage/failure.
+Leave Ornith inactive.
+Leave verified corpus in place.
+Close live viewer only after cleanup/result publication.
+
+RETURN outbox/result_chatgpt-terra-qwen36-autonomous-frontier6-20260925-006.txt with:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-frontier6-20260925-006
+source: TERRA
+state: COMPLETE|SAFE_ABORT|FAILURE
+AUTONOMOUS_COMPLETION=
+LIVE_POWERSHELL_VIEWER=
+LIVE_VIEWER_CTRL_C_WIRED=
+STAGES_ATTEMPTED=
+STAGES_VALID=
+STAGES_QUALIFIED=
+PROMPT_FINGERPRINT=
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE | QUALIFIED
+STAGE3_DECISION=
+UB_STAR=
+STAGE6_DECISION=
+RAW_FASTEST_STAGE=
+FINAL_PRACTICAL_WINNER=
+DELTA_TG_VS_REF_A=
+DELTA_TG_VS_REF_B_RAW=
+DELTA_PP_VS_REF_A=
+DELTA_MIN_FREE_VRAM_VS_REF_A=
+HEADROOM_OVER_128_MIB=
+FAULT_SCAN=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
