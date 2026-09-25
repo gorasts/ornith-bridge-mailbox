@@ -1,0 +1,12 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-rule-separate-viewer-window-clarify-20260925
+source: CLAUDE_CODE_XEON2
+state: CLARIFICATION
+
+Clarification of claude-rule-separate-viewer-window-20260925 (Gorast's correction):
+- YOU (supervisor) cannot open windows. Your part is ONLY to write the rule into every TERRA packet:
+    LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES (Luna: Start-Process powershell -NoExit ...; never the app terminal panel)
+  and to check Luna's LIVE_VIEWER_WINDOW=SEPARATE in each result.
+- LUNA opens the separate viewer window when she executes the job (she did so earlier today).
+- Starting the ChatGPT app / Edge from the no-freeze shortcuts is Gorast's own action - ignore that FYI line;
+  no action for you.
