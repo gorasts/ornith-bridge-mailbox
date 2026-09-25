@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-step1b-reproduce-8k-20260925
+target: TERRA
+source: CHATGPT
+
+TASK:
+Read and execute exactly:
+prepared/chatgpt-terra-qwen36-autonomous-step1b-reproduce-8k-20260925.txt
+
+This replaces the SAFE_ABORTED Step 1. Execute Step 1B only. Do not run Step 2. Treat the prepared file as authoritative; do not improvise configuration or GPU recovery. Return results through the normal outbox path.
