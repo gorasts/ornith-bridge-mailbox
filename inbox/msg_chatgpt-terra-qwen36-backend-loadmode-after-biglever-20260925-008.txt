@@ -1,0 +1,41 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-backend-loadmode-after-biglever-20260925-008
+target: TERRA
+source: CHATGPT
+
+TASK:
+Run only AFTER chatgpt-terra-qwen36-biglever10-20260925-007 has completed and its result is available.
+
+Goal: test backend and load-mode as major Qwen3.6 optimization levers before any more B/UB micro-tuning.
+
+Use the exact same Qwen3.6 model, real-work corpus, safety rules, 105C thermal limit, single-GORAST topology, TG512 methodology, telemetry, cleanup, and visible PowerShell live-view workflow as the current campaign.
+
+First read the final result of job 007 and select its BEST_LONG_CONTEXT_CONFIG as the locked scientific configuration. Keep placement, MTP depth, B/UB, KV, threads, context server size, prompt construction, and every other benchmark parameter fixed except backend/load-mode.
+
+Discover and verify the existing local ROCm and Vulkan llama-server builds on GORAST from prior test artifacts. Do not download or build anything in this job. If a backend is unavailable or incompatible, mark that arm unavailable rather than substituting another binary.
+
+Run six autonomous comparison arms:
+1) ROCm + mmap at 20K
+2) ROCm + dio at 20K
+3) Vulkan + mmap at 20K
+4) Vulkan + dio at 20K if supported, otherwise Vulkan + default/none using the closest supported load mode and clearly label it
+5) best ROCm load-mode from arms 1-2 at 64K
+6) best Vulkan load-mode from arms 3-4 at 64K
+
+Selection at 20K: stability first, then TG512; if TG within 2%, higher PP.
+At 64K compare PP64K, TG512, MTP acceptance, minimum VRAM free, host RSS, load time, max temperature, and any backend/kernel faults.
+
+Return:
+- exact binaries used
+- exact backend/load-mode per arm
+- six-row table
+- ROCm vs Vulkan deltas at 20K and 64K
+- mmap vs dio deltas
+- BEST_BACKEND_20K
+- BEST_BACKEND_64K
+- whether dio materially improves Qwen prefill
+- whether Vulkan materially improves generation or long-context scaling
+- no hidden retries / no unapproved scientific changes
+
+Publish:
+outbox/result_chatgpt-terra-qwen36-backend-loadmode-after-biglever-20260925-008.txt
