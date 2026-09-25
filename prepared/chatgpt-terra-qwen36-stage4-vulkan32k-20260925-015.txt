@@ -1,0 +1,113 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage4-vulkan32k-20260925-015
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=30-40 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 4.
+Measure 32K context scaling on the new Vulkan+DIO winner.
+Do not run any follow-up stage.
+
+STAGE 3B WINNER
+Backend=Vulkan
+Load mode=dio
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=1
+KV=q8_0/q8_0
+20K: PP=290.481 TG512=20.535
+VRAM_MIN_FREE=1846.0 MiB
+MAX_TEMP=92C
+Binary=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+
+LOCKED SCIENTIFIC CONFIG
+Use the exact same binary/model/backend/load-mode/N_CPU_MOE/B/UB/MTP/KV/threads/FA/server context/corpus/prompt construction as Stage 3B.
+
+CHANGE ONLY
+PROMPT_N: 20480 -> 32768
+PREDICTED_N remains 512.
+
+RULES
+- Exactly one benchmark arm.
+- No retries.
+- No ROCm/ASUS/RPC.
+- Do not change placement, B/UB, MTP, KV, load mode, threads, FA, server context, or model.
+- Visible PowerShell viewer required with working Ctrl+C.
+- Thermal abort=95C.
+- Leave Ornith inactive after cleanup.
+- If temperature reaches 95C, stop safely and report thermal abort; do not alter cooling/power settings.
+
+TELEMETRY
+Sample once per second through load, prefill, and generation:
+- VRAM used/free
+- GTT used if exposed
+- GPU temperatures
+- utilization
+- clocks/power if exposed
+- host RSS
+
+MEASURE
+Exact prompt/predicted counts
+PP32K
+TG512
+wall time
+load time
+MTP acceptance
+stable-load free VRAM
+inference minimum free VRAM
+peak GTT used and change from baseline
+host RSS
+max temp/utilization
+fault scan
+prompt fingerprint
+
+REFERENCE
+Vulkan+DIO 20K:
+PP=290.481
+TG=20.535
+VRAM_MIN_FREE=1846.0 MiB
+
+Historical ROCm 32K NCM33/MTP1 from interrupted 007:
+PP=66.043
+TG=17.320
+VRAM_MIN_FREE=270.1 MiB
+Use only as secondary reference; do not treat as paired.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage4-vulkan32k-20260925-015.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage4-vulkan32k-20260925-015
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=dio
+PROMPT_N=32768
+PREDICTED_N=512
+PP32K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_PEAK=
+GTT_DELTA=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+DELTA_PP_20K_TO_32K=
+DELTA_TG_20K_TO_32K=
+DELTA_PP_VS_HISTORICAL_ROCM32K=
+DELTA_TG_VS_HISTORICAL_ROCM32K=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
