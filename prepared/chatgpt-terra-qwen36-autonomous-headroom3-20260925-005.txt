@@ -1,0 +1,183 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-headroom3-20260925-005
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA
+Expected total benchmark time: approximately 8-12 minutes if all three arms complete normally.
+
+GOAL
+Run a NEW autonomous 3-stage Qwen3.6 real-work optimization around the current 20K+TG512 winner.
+Primary objective: maximize TG512 while recovering practical VRAM safety margin.
+Secondary objective: maximize PP20K.
+
+REFERENCE ONLY — DO NOT RERUN
+Prior fastest stable:
+N_CPU_MOE=34
+B=2048
+UB=2048
+PP20K=108.155 tok/s
+TG512=18.972 tok/s
+VRAM_MIN_FREE=14.9 MiB
+MAX_TEMP=79C
+This is the comparison baseline, not one of the three new stages.
+
+CORPUS
+SOURCE=/home/ubuntu/realwork-01.md
+DEST=/tmp/realwork-01.md
+REQUIRED_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+Verify DEST exact hash. If absent, copy only from SOURCE if SOURCE has exact hash.
+No substitute/reconstructed/synthetic corpus.
+
+MODEL
+/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+
+SERVER
+/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+
+BENCH_SCRIPT
+/home/ubuntu/realwork_bench.py
+
+LIVE POWERSHELL VIEW — HARD REQUIREMENT
+Before Stage 1, open the established VISIBLE Windows PowerShell live-view console on XEON2 that streams native llama-server output line-by-line for the active Qwen benchmark.
+The visible console must clearly show:
+  QWEN3.6 AUTONOMOUS REAL-WORK 3-STAGE TEST
+  ETA: 8-12 minutes
+  Ctrl+C TERMINATES THE ACTIVE TEST, STOPS QWEN TEST PROCESSES, AND LEAVES ORNITH STOPPED.
+Ctrl+C must actually cancel the active benchmark/client/server processes, not merely close the viewer.
+Keep the same visible console alive across all three stages and clearly print stage transitions.
+If the live PowerShell viewer cannot be opened and verified before Stage 1, SAFE_ABORT before any benchmark arm.
+Do not run headless.
+
+SCOPE / SAFETY
+- GORAST single GPU only.
+- NO ASUS. NO RPC.
+- Ornith is expected inactive; verify and leave inactive throughout and at final cleanup.
+- NO GPU reset, PCI rebind, driver unload/reload, clock/voltage/fan/power changes.
+- HARD THERMAL ABORT=105C.
+- Exactly 3 benchmark arms maximum.
+- One server launch per arm. NO hidden retries.
+- MTP1 only.
+- Do NOT use -ngld.
+- On GPUVM/page fault, ROCm/HIP fatal error, device loss, kernel amdgpu fault, or server crash: STOP THE ENTIRE JOB, cleanup, report FAILURE.
+- On plain user-space OOM without GPU/kernel fault: mark that arm INVALID; proceed only if cleanup succeeds and GPU health is normal.
+- Operational fixes for quoting/PID/log parsing are allowed. Scientific parameter changes are not.
+
+PREFLIGHT
+1. Verify GPU temp <70C before Stage 1.
+2. Verify MODEL readable, SERVER executable, BENCH_SCRIPT readable.
+3. Verify corpus exact SHA256.
+4. Verify port 8099 free.
+5. Verify no unrelated Qwen process.
+6. Record baseline VRAM and temperatures.
+7. Open and verify the required visible PowerShell live-view console.
+8. Inspect BENCH_SCRIPT usage read-only and invoke correctly for exactly 20480 prompt tokens + 512 predicted tokens.
+
+COMMON SERVER TEMPLATE
+env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama-mtp/build-hip/bin /opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device ROCm0 -ngl 99 --n-cpu-moe <ARM_N_CPU_MOE> -c 131072 -b <ARM_B> -ub <ARM_UB> -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+
+MODEL LOAD GATE
+Every arm must positively verify the named Qwen model is loaded before tokenization.
+Router mode or missing model => FAILURE and stop entire job; no retry.
+
+BENCHMARK METHOD
+- Real-work source: /tmp/realwork-01.md through /home/ubuntu/realwork_bench.py.
+- Exactly PROMPT_N=20480.
+- Exactly PREDICTED_N=512.
+- Same prompt content/order every arm.
+- Deterministic request / temperature=0 as supported by existing script.
+- Capture canonical prompt token-ID SHA256 and prove identical across arms.
+- Capture PP20K, TG512, wall time, exact prompt/predicted counts.
+- Capture MTP generated/accepted/acceptance and mean spec length if emitted.
+- Capture stable-load VRAM used/free and inference peak/min free.
+- Capture GPU temperatures over time, max utilization, clocks, power if available.
+- Scan server + kernel logs for GPU/ROCm faults.
+
+PRE-INFERENCE VRAM GATE
+Require >=128 MiB stable-load free VRAM before sending the 20K request.
+If <128 MiB, mark arm INVALID and do not run inference for that arm.
+
+PRACTICAL-WINNER QUALIFICATION
+A candidate is QUALIFIED only if:
+- exactly 20480 prompt tokens + 512 predicted tokens complete,
+- no fatal GPU/kernel/server fault,
+- MAX_TEMP <105C,
+- inference VRAM_MIN_FREE >=128 MiB.
+
+STAGE 1
+N_CPU_MOE=34
+B=2048
+UB=1536
+
+STAGE 2
+N_CPU_MOE=34
+B=1536
+UB=1536
+
+STAGE 3 ADAPTIVE DECISION
+Compare Stage 1 and Stage 2:
+- If both valid, choose the faster TG512 batch shape.
+- If TG512 difference is <2%, choose higher PP20K.
+- If only one is valid, use that batch shape.
+- If neither valid, STOP and do not run Stage 3.
+
+Stage 3 uses:
+N_CPU_MOE=33
+B=<winning B from Stage 1 or 2>
+UB=1536
+
+Run Stage 3 exactly once.
+
+FINAL SELECTION
+Among QUALIFIED new arms:
+1. Highest TG512 wins.
+2. If TG512 is within 2%, higher PP20K wins.
+3. Compare final winner against the prior reference 34/2048/2048.
+If no new arm is QUALIFIED, report NO_PRACTICAL_WINNER; do not promote a <128 MiB inference-headroom arm.
+
+CLEANUP
+Always stop Qwen benchmark clients and servers.
+Leave Ornith inactive: ORNITH_RESTORED=NO.
+Leave verified corpus in place.
+Close the live viewer only after the final result/cleanup is complete.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-autonomous-headroom3-20260925-005.txt
+
+Required fields:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-headroom3-20260925-005
+source: TERRA
+state: COMPLETE | SAFE_ABORT | FAILURE
+
+AUTONOMOUS_COMPLETION=
+LIVE_POWERSHELL_VIEWER=PASS/FAIL
+LIVE_VIEWER_CTRL_C_WIRED=YES/NO
+STAGES_ATTEMPTED=
+STAGES_VALID=
+STAGES_QUALIFIED=
+CORPUS_SHA256=
+MODEL_LOADED_EACH_ARM=
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=
+THERMAL_ABORT_C=105
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE | QUALIFIED
+
+STAGE3_DECISION=
+FINAL_PRACTICAL_WINNER=
+WINNER_REASON=
+DELTA_TG_VS_PRIOR_REFERENCE=
+DELTA_PP_VS_PRIOR_REFERENCE=
+DELTA_MIN_FREE_VRAM_VS_PRIOR=
+FAULT_SCAN=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
