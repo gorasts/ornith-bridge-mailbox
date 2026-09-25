@@ -1,0 +1,155 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage26-missing-curve-mtp5-mtp6-live24-rawlog-20260926-047
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=45-70 minutes.
+
+PURPOSE
+Retry the six missing MTP5/MTP6 curve points after Stage25 collector failure.
+Stage25 failed before inference because its wrapper selected zero print_timing/task lines.
+This retry MUST capture raw llama-server stdout/stderr directly and parse live tg_3s lines from that raw log.
+Do not use the failed Stage25 selected/task-id verification path.
+
+SCIENTIFIC CONFIG — IDENTICAL TO STAGE25
+Backend=Vulkan / RADV VEGA10 / Vulkan0
+Load mode=dio
+Model=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+Server=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+-ngl 99
+--n-cpu-moe 33
+-c 131072
+-b 2048
+-ub 2048
+-t 14
+-tb 14
+-fa on
+--cache-type-k q8_0
+--cache-type-v q8_0
+--load-mode dio
+--spec-type draft-mtp
+--spec-draft-n-min 1
+--no-spec-draft-backend-sampling
+--fit off
+-np 1
+--prio 2
+--poll 100
+--cpu-strict 1
+--jinja
+--no-webui
+Same deterministic real-work corpus and exact prompt construction.
+temperature=0
+ignore_eos=true
+cache_prompt=false
+
+RUN ALL SIX SEQUENTIALLY
+1) MTP5 PROMPT_N=65536
+2) MTP6 PROMPT_N=16384
+3) MTP6 PROMPT_N=32768
+4) MTP6 PROMPT_N=65536
+5) MTP6 PROMPT_N=90000
+6) MTP6 PROMPT_N=120000
+
+CORRECT LIVE24 METHOD
+For EACH point:
+- fresh server/process and clean slot; no prompt-cache reuse from prior point
+- exactly ONE prefill for requested PROMPT_N
+- exactly ONE continuous generation
+- request n_predict=2560 initially; this should be more than enough for 24 three-second windows
+- collect the FIRST 24 consecutive valid live rolling TPS samples printed by llama-server in lines containing tg_3s
+- do NOT run 24 requests
+- do NOT run 24 prefills
+- do NOT repeat the context point merely to collect another sample
+- retain all 24 values in order, including low/high values
+- also record aggregate full-generation TG and final MTP accepted/drafted counts
+
+MANDATORY RAW LOG CAPTURE
+Do not depend on controller task-id selection.
+Launch llama-server so its raw stdout AND stderr are line-buffered and tee'd to a per-point logfile, e.g. equivalent to:
+  stdbuf -oL -eL <llama-server command> 2>&1 | tee <per-point-server.log>
+Use whatever process-launch form is reliable on GORAST, but the result MUST preserve raw server lines.
+The separate viewer should tail/show this same raw log.
+After generation, parse the raw log itself for the active request's print_timing lines.
+
+Before moving to the next point, verify:
+RAW_PRINT_TIMING_LINES > 0
+LIVE_TG_SAMPLE_COUNT >= 24
+If fewer than 24 tg_3s lines occurred by n_predict=2560, continue ONLY THE SAME generation if technically possible; otherwise set a larger n_predict from the start (4096 acceptable) so one request yields >=24 samples. Do not issue a second prompt/prefill.
+
+EXPECTED LINE SHAPE
+The user-visible viewer has shown lines containing fields like:
+n_gen = ...
+tg = ... t/s
+tg_3s = ... t/s
+Parse the numeric tg_3s value from these actual raw lines.
+Do not require a task-id parser if the raw line itself is unambiguous and there is only one active slot/request (-np 1).
+
+PER POINT REPORT
+PP_TOK_S=
+FULL_GENERATION_TG_TOK_S=
+LIVE_TG_SAMPLE_COUNT=24
+LIVE_TG_VALUES=comma-separated first 24 raw tg_3s values
+LIVE_TG_MEAN=
+LIVE_TG_MEDIAN=
+LIVE_TG_MIN=
+LIVE_TG_MAX=
+LIVE_TG_P10=
+LIVE_TG_P90=
+LIVE_TG_SAMPLE_STDDEV=
+LIVE_TG_CV_PERCENT=
+MTP_ACCEPTED_DRAFTED=
+MTP_ACCEPTANCE_PERCENT=
+MEAN_DRAFT_LEN=
+PREDICTED_TOKENS_ACTUAL=
+PROMPT_FINGERPRINT=
+RAW_PRINT_TIMING_LINES=
+RAW_LOG_PATH=
+VRAM_MIN_FREE=
+GTT_PEAK=
+MAX_EDGE_TEMP_C=
+MAX_JUNCTION_TEMP_C=
+MAX_MEMORY_TEMP_C=
+FAULT_SCAN=
+
+RUN POLICY
+- User explicitly requested all six missing points in one batch.
+- Sequential only, no parallel arms.
+- No hidden retries.
+- No scientific parameter changes.
+- No software temperature abort.
+- Hardware/driver thermal protections unchanged.
+- On true GPU reset/device-lost/kernel fault/hang, record and stop/continue only if clean recovery is verified.
+- Ornith production untouched/inactive.
+
+LIVE VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_CTRL_C_WIRED=YES
+Use proven Start-Process PowerShell viewer, showing the raw tee'd log.
+Verify PID/title/parentage before inference.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage26-missing-curve-mtp5-mtp6-live24-rawlog-20260926-047.txt
+
+Top summary required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage26-missing-curve-mtp5-mtp6-live24-rawlog-20260926-047
+source: TERRA
+state: COMPLETE | PARTIAL | FAILURE
+AUTONOMOUS_COMPLETION=YES
+POINTS_TARGET=6
+POINTS_COMPLETED=
+POINTS_FAILED=
+SAMPLING_METHOD=ONE_PREFILL_ONE_LONG_GENERATION_FIRST_24_RAW_TG3S_SAMPLES_PER_POINT
+RAW_SERVER_LOG_CAPTURE=YES
+STAGE25_TASK_ID_PARSER_BYPASSED=YES
+NO_24X_PREFILLS=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+LATER_STAGES_RUN=NO
+
+Then include all six point sections and their ordered 24-sample data.
+
+SCIENTIFIC GOAL
+Do not optimize around one exact context. We care about average behavior across 16K through 120K.
