@@ -1,0 +1,60 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage15-vulkan90k-dio-q8-mtp4-b2048ub2048-20260925-035
+source: TERRA
+state: COMPLETE
+
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan
+LOAD_MODE=dio
+MTP_DEPTH=4
+KV_K=q8_0
+KV_V=q8_0
+PROMPT_N=90000
+PREDICTED_N=512
+N_CPU_MOE=33
+B=2048
+UB=2048
+PP90K=197.966 tok/s
+TG512=15.496 tok/s
+WALL_S=487.645 (observed 488.695)
+LOAD_TIME_S=7.055
+MTP_ACCEPTANCE=403/430 (93.721%)
+MTP_ACCEPTANCE_GE_75PCT=YES
+MEAN_DRAFT_LEN=1.94
+VRAM_LOAD_FREE=939933696 bytes (896.4 MiB)
+VRAM_MIN_FREE=928903168 bytes (885.9 MiB)
+GTT_BASELINE=14487552 bytes (13.8 MiB)
+GTT_LOAD=11325235200 bytes (10800.6 MiB)
+GTT_PREFILL_PEAK=11437621248 bytes (10907.8 MiB)
+GTT_GENERATION=11443691520 bytes (10913.6 MiB)
+GTT_PEAK=11443691520 bytes (10913.6 MiB)
+HOST_RSS=914.95 MiB peak
+HOST_RAM_MAX_USED=12.654 GiB
+MAX_EDGE_TEMP_C=75
+MAX_JUNCTION_TEMP_C=109
+MAX_MEMORY_TEMP_C=69
+THERMAL_THROTTLE_EVIDENCE=No explicit throttle flag exposed; max junction 109C. GPU busy reached 100%; SCLK/MCLK/power telemetry unavailable. Software temperature abort was removed; GPU/driver/SMU safeguards were unchanged.
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; kernel scan unavailable (dmesg access denied)
+PROMPT_FINGERPRINT=51d6ab03ef0dbf78ef1dc75ea3e6335c11877935dc54661bf54a2eb0edba92c1
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+PROMPT_PROGRESS_TOKENS=90511 (request prompt_n=90000; same harness/template accounting as Stage 14C)
+SERVER_BUILD=0.2.0-dev build 10709 commit 9a9394a89; GNU 11.4.0
+EXACT_SERVER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 2048 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=SEPARATE; dedicated Stage15 PowerShell process/window attached during inference
+LIVE_VIEWER_PID=31488
+LIVE_VIEWER_TITLE=Qwen Stage15 MTP4 90K B2048 Live Viewer
+LIVE_VIEWER_CTRL_C_WIRED=YES; ssh.exe used -tt and watcher maps KeyboardInterrupt to this run's scoped CANCEL marker (not triggered)
+LIVE_VIEWER_PARENTAGE_CHECK=PASS; PowerShell PID 31488 parent pwsh.exe PID 5584; child ssh.exe PID 16516; console handle 0x2C609CC; remote watcher PID 2882830
+DELTA_PP_B2048_VS_B1280=+28.092 tok/s
+DELTA_TG_B2048_VS_B1280=+4.136 tok/s
+DELTA_ACCEPTANCE_B2048_VS_B1280=+31.392 percentage points
+DELTA_MEAN_DRAFT_B2048_VS_B1280=+0.32
+DELTA_VRAM_MIN_FREE_B2048_VS_B1280=-764.0 MiB
+DELTA_GTT_B2048_VS_B1280=+551.1 MiB
+DELTA_WALL_B2048_VS_B1280=-87.185 s
+CLEANUP=COMPLETE; benchmark client/server PIDs null and port 8099 free; Ornith was not modified and remains inactive; the viewer process was no longer running after completion
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+
+RESULT=The sole exact Stage15 arm completed 90000 prompt tokens and 512 generated tokens. Acceptance crossed the requested 75% mark. No later stage ran.
