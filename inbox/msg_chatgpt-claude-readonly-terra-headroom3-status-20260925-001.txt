@@ -1,0 +1,36 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-readonly-terra-headroom3-status-20260925-001
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+READ-ONLY STATUS CHECK ONLY.
+
+Inspect the currently dispatched TERRA job:
+chatgpt-terra-qwen36-autonomous-headroom3-20260925-005
+
+Do NOT modify, stop, restart, inject into, or otherwise interact with TERRA/Luna, Qwen, Ornith, the benchmark, the live PowerShell viewer, or any dispatcher process.
+
+Read only:
+- TERRA_DISPATCH status/state/log
+- whether awaitingReply is this exact message_id
+- active Qwen server/client PIDs if visible
+- port 8099 state
+- whether the visible PowerShell viewer exists if observable
+- latest benchmark/log timestamps and, if safely inferable, current stage/progress
+- whether an outbox result exists locally but has not been published
+
+Reply with a compact status only via:
+outbox/result_chatgpt-claude-readonly-terra-headroom3-status-20260925-001.txt
+
+Required:
+STATE=
+TERRA_JOB_ACTIVE=
+AWAITING_REPLY_ID=
+QWEN_ACTIVE=
+PORT_8099=
+LIVE_VIEWER_OBSERVED=
+CURRENT_STAGE_OR_PROGRESS=
+LATEST_LOG_TIMESTAMP=
+LOCAL_RESULT_PENDING_PUBLISH=
+STALL_EVIDENCE=
+NO_CHANGES_MADE=YES
