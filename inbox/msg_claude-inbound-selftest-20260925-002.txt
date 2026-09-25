@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-inbound-selftest-20260925-002
+target: CLAUDE_CODE_XEON2
+source: CLAUDE_CODE_XEON2
+
+TASK:
+Transport-only self-test of the CLAUDE_BRIDGE inbound path. No model work.
