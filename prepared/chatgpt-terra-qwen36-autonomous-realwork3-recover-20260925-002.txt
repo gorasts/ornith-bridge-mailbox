@@ -1,0 +1,155 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-recover-20260925-002
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+GOAL
+Autonomously recover the EXACT missing real-work corpus if it already exists anywhere on GORAST, then complete the previously defined 3-stage Qwen3.6 real-work optimization without operator input.
+
+EXPECTED_CORPUS
+Required destination: /tmp/realwork-01.md
+Required SHA256: 7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+Benchmark script: /home/ubuntu/realwork_bench.py
+
+PHASE A — READ-ONLY CORPUS RECOVERY
+1. Do NOT start Qwen yet.
+2. Search existing GORAST filesystem locations likely to contain benchmark corpora/backups/log artifacts:
+   /home/ubuntu
+   /opt/testmodels
+   /var/tmp
+   /tmp
+3. Search only regular readable files, skip device/proc/sys mounts, and avoid huge model/binary files where practical.
+4. Compute SHA256 and locate an EXACT match to the required SHA256 above.
+5. Also inspect /home/ubuntu/realwork_bench.py read-only to confirm it expects that exact hash and /tmp/realwork-01.md.
+6. If exactly one or more files match the expected SHA256, select any byte-identical match and COPY it to /tmp/realwork-01.md. Verify destination SHA256 exactly.
+7. If no exact match exists, SAFE_ABORT. Do NOT synthesize, reconstruct, approximate, download, or substitute a corpus.
+8. This recovery phase may create only /tmp/realwork-01.md from an exact hash match. No other file modifications.
+
+PHASE B — REAL-WORK BENCHMARK
+Only if Phase A verified exact corpus hash.
+
+MODEL
+/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+SERVER
+/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+
+SCOPE / SAFETY
+- GORAST single GPU only.
+- NO ASUS, NO RPC.
+- NO GPU reset/device rebind/driver reload/clock/voltage/fan/power changes.
+- Thermal abort 85 C.
+- Exactly 3 benchmark arms maximum, one launch each, no hidden retries.
+- MTP1 only: --spec-draft-n-max 1.
+- Never use --n-cpu-moe 32.
+- Never add -ngld.
+- Ornith is currently expected to be inactive; verify and leave it inactive throughout and at end.
+- On ROCm/kernel GPU fault: stop entire job immediately, cleanup Qwen processes, report FAILURE.
+- On user-space OOM without kernel/device fault: mark arm INVALID; continue only if Qwen is cleanly stopped and GPU health normal.
+
+PREFLIGHT
+- GPU temperature <70 C.
+- model readable, server executable.
+- /home/ubuntu/realwork_bench.py present.
+- /tmp/realwork-01.md present with exact expected SHA256.
+- port 8099 not occupied by unrelated process.
+- capture baseline VRAM/temp.
+
+COMMON SERVER FLAGS
+--host 127.0.0.1
+--port 8099
+--device ROCm0
+-ngl 99
+-c 131072
+-t 14
+-tb 14
+-fa on
+--cache-type-k q8_0
+--cache-type-v q8_0
+--load-mode mmap
+--spec-type draft-mtp
+--spec-draft-n-max 1
+--spec-draft-n-min 1
+--no-spec-draft-backend-sampling
+--fit off
+-np 1
+--prio 2
+--poll 100
+--cpu-strict 1
+--jinja
+--no-webui
+
+BENCHMARK METHOD
+- Use /home/ubuntu/realwork_bench.py with /tmp/realwork-01.md.
+- Exactly PROMPT_N=20480 and PREDICTED_N=512 for every valid arm.
+- Same prompt content/order across all arms.
+- Capture prompt/token fingerprint and prove equality across arms.
+- Capture PP20K, TG512, wall time, MTP generated/accepted/acceptance when emitted.
+- Capture stable-load VRAM used/free; inference peak/min-free.
+- Capture GPU temps/max utilization/power/clocks if exposed.
+- Scan server/kernel logs for ROCm/GPU faults.
+- Valid arm requires exactly 20480 prompt + 512 predicted and no fatal GPU/kernel fault.
+
+STAGE 1
+--n-cpu-moe 34
+-b 2048
+-ub 2048
+
+STAGE 2
+--n-cpu-moe 33
+-b 1024
+-ub 1024
+
+STAGE 3 DECISION
+Choose faster valid arm by TG512.
+If TG512 differs by <2%, choose higher PP20K.
+If Stage 1 wins:
+  --n-cpu-moe 34 -b 2048 -ub 1024
+If Stage 2 wins:
+  --n-cpu-moe 33 -b 2048 -ub 1024
+If neither Stage 1 nor 2 valid: stop; do not run Stage 3.
+
+FINAL WINNER
+Stability mandatory.
+Highest TG512 wins; if within 2%, higher PP20K wins.
+
+CLEANUP
+Always stop Qwen server/client processes.
+Leave Ornith inactive: ORNITH_RESTORED=NO.
+Do not remove /tmp/realwork-01.md if it was restored from an exact hash match; leave it for reproducibility.
+
+RETURN
+Publish:
+outbox/result_chatgpt-terra-qwen36-autonomous-realwork3-recover-20260925-002.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-recover-20260925-002
+source: TERRA
+state: COMPLETE | SAFE_ABORT | FAILURE
+
+AUTONOMOUS_COMPLETION=
+CORPUS_RECOVERY=
+CORPUS_SOURCE_PATH=
+CORPUS_SHA256=
+STAGES_ATTEMPTED=
+STAGES_VALID=
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE
+
+STAGE3_DECISION=
+FINAL_WINNER=
+WINNER_REASON=
+DELTA_TG_VS_PARENT=
+DELTA_PP_VS_PARENT=
+FAULT_SCAN=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
