@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage1-dio20k-20260925-009
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage1-dio20k-20260925-009.txt
+Run this single DIO 20K stage only, then return the result. Do not proceed to another optimization stage.
