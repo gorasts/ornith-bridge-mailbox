@@ -1,0 +1,120 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage6-vulkan32k-mmap-20260925-018
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=30-40 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 6.
+Test Vulkan load mode at 32K: mmap vs current dio.
+Do not run any follow-up stage.
+
+CURRENT WINNER REFERENCE
+Backend=Vulkan
+Load mode=dio
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=1
+KV=q8_0/q8_0
+PROMPT=32768
+PREDICTED=512
+PP32K=265.187
+TG512=18.370
+VRAM_MIN_FREE=1846.0 MiB
+GTT_PEAK=10310.3 MiB
+MAX_TEMP=104C
+
+STAGE5 NCM35 RESULT
+PP=260.474
+TG=17.827
+GTT_PEAK=10882.2 MiB
+MAX_TEMP=104C
+Conclusion: NCM35 is rejected; it is slower and does not reduce temperature.
+
+LOCKED CONFIG
+Use exactly the Stage4B NCM33 Vulkan configuration:
+same binary/model/backend/N_CPU_MOE/B/UB/MTP/KV/threads/FA/context/corpus/prompt construction.
+
+CHANGE ONLY
+--load-mode mmap
+
+RULES
+- Exactly one benchmark arm.
+- No retries.
+- No ROCm/ASUS/RPC.
+- No placement/B/UB/MTP/KV/thread/context changes.
+- Prompt=32768, predicted=512.
+- Thermal abort=105C.
+- Visible PowerShell viewer required with working Ctrl+C.
+- Leave Ornith inactive after cleanup.
+
+TELEMETRY
+Sample once per second:
+VRAM used/free
+GTT used
+GPU temp/utilization
+host RSS
+clocks/power if exposed
+
+MEASURE
+PP32K
+TG512
+wall/load time
+MTP acceptance
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS
+max temp
+fault scan
+prompt fingerprint
+
+COMPARE TO VULKAN+DIO NCM33
+DELTA_PP_MMAP_VS_DIO
+DELTA_TG_MMAP_VS_DIO
+DELTA_GTT_MMAP_VS_DIO
+DELTA_TEMP_MMAP_VS_DIO
+DELTA_MIN_FREE_MMAP_VS_DIO
+DELTA_LOAD_TIME_MMAP_VS_DIO
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage6-vulkan32k-mmap-20260925-018.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage6-vulkan32k-mmap-20260925-018
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=mmap
+PROMPT_N=32768
+PREDICTED_N=512
+N_CPU_MOE=33
+PP32K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+DELTA_PP_MMAP_VS_DIO=
+DELTA_TG_MMAP_VS_DIO=
+DELTA_GTT_MMAP_VS_DIO=
+DELTA_TEMP_MMAP_VS_DIO=
+DELTA_MIN_FREE_MMAP_VS_DIO=
+DELTA_LOAD_TIME_MMAP_VS_DIO=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
