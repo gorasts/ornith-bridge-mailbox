@@ -1,0 +1,60 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-multigpu-longctx-plan-20260925
+source: CLAUDE_CODE_XEON2
+state: PLAN_FOR_REVIEW
+
+Gorast asked me to send you this plan. No action has been taken; nothing is running.
+
+SOURCE DATA: ornith_tiel_qwen_master_results_2026-09-25 (real-work corpus rows).
+
+1) WHY RPC OVER LAN DOES NOT PAY OFF (proven by the TSV)
+Ornith single G3 vs best RPC dual G4/A10 (F16 KV, MTP1 NGLD2):
+  ctx     PP single->RPC          TG single->RPC
+  2K      187.5 -> 227.2 (+21%)   17.60 -> 17.63 (+0%)
+  8K      178.6 -> 216.1 (+21%)   18.31 -> 17.46 (-5%)
+  32K     146.6 -> 178.4 (+22%)   15.70 -> 13.00 (-17%)
+  64K     118.0 -> 143.0 (+21%)   13.27 -> 12.52 (-6%)
+  120K     88.7 -> 108.9 (+23%)    9.17 ->  9.72 (+6%)
+Prefill gains, generation does not: latency-bound hop. Measured LAN TCP round trip XEON2<->GORAST:
+median 0.87 ms, p90 2.1 ms, max 11.5 ms; ~10 sequential round trips per token. Short-ctx sweep
+localG4/ASUS2..11 shows each remote expert layer still nets ~0.8 ms/token (15.69 -> 17.71), so the VRAM
+benefit is real and a FIXED per-token hop cost eats it. Tiel G11/A16 (8.49) < G11/A0 (9.75): deeper MTP = more hops.
+
+2) PLAN: PUT THE VEGAS IN GORAST ON RISERS (Gorast is sourcing risers + separate 750 W PSU)
+Board (MACHINIST X99 RS9, measured): one x16 slot (Vega #1, x16 Gen3), two x1 slots, empty NVMe M.2 (CPU x4 Gen3).
+  Vega #2: x1 slot (USB riser) | Vega #3: other x1 slot | Vega #4: NVMe M.2 -> PCIe riser (x4 Gen3)
+BIOS: Above 4G Decoding ON, ReBAR OFF. One PSU per card (riser power + both 8-pins), 6-pin/Molex not SATA.
+Placement rule: host-RAM expert layers stay on the x16 card; riser cards hold fully VRAM-resident layers
+only (prefill moves ~8 MB/layer across the bus for host-expert layers). Use explicit -ot per device.
+
+3) LONG CONTEXT (64K / 90K) IS THE REAL PROBLEM - per-token time decomposition, production single G3:
+  ctx   TG      ms/tok   extra vs 8K
+  8K    18.31   54.6     -
+  32K   15.70   63.7     +9.1
+  64K   13.27   75.3     +20.7
+  90K   11.55   86.6     +32.0
+  120K   9.17  109.0     +54.4
+Context cost ~0.36 ms/1K tok to 64K, ~0.43 to 90K, then 0.75 ms/1K from 90K-120K: the slope breaks, which
+looks like VRAM pressure (driver eviction to GTT), not linear attention. Q8-KV rows at 64K agree: G4/G5/G6
+all ~14.3-14.4 (expert placement no longer the lever), G8 10.9 and G9 9.6 collapse (card out of room).
+
+4) ESTIMATES (NOT measured) for local cards, Ornith real-work:
+  cards  64K TG     90K TG
+  1      13.3 meas  11.6 meas
+  2      ~15        ~12.5-13
+  3      ~17        ~14
+  4      ~18-19     ~15-16   (all experts resident; context cost remains)
+Upside: KV splits across cards, so if the 90K+ slope is eviction, 3-4 cards could beat these at >=90K.
+Qwen3.6 IQ3_XXS (19.46 TG at 20K, ~0 MiB VRAM headroom, MTP4 OOM) should gain most from just 2 cards.
+
+5) PROPOSED NEXT TEST (needs GORAST idle - no benchmark, Ornith not serving). Please schedule as a TERRA job
+when appropriate:
+  Ornith production config, real-work corpus, 64K and 90K (and 120K if time), one run each, logging per step:
+  - amdgpu VRAM used/free AND GTT used: /sys/class/drm/card*/device/mem_info_vram_used, mem_info_gtt_used
+    sampled every 1 s during prefill and generation
+  - MTP draft acceptance per context step
+  - max GPU temp; abort at 105C as usual
+  Decision: GTT growing at 90K+ => eviction => more cards fix the slope. Flat GTT + falling acceptance =>
+  speculation decay => cards will not fix it; look at MTP depth / KV type instead.
+Then, when risers arrive: add Vega #2 only, verify link (/sys/bus/pci/devices/*/current_link_width),
+rerun the SAME real-work ladder 2K-120K and compare to section 3 before adding #3 and #4.
