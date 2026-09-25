@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage14b-vulkan90k-dio-q8-mtp4-20260925-033
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage14b-vulkan90k-dio-q8-mtp4-20260925-033.txt
+Run only the exact same Vulkan+DIO 90K Q8-KV MTP4 arm, with the prior software temperature abort removed.
+Do not disable hardware/driver thermal protection.
+Do not proceed to MTP5 or any later scientific stage automatically.
