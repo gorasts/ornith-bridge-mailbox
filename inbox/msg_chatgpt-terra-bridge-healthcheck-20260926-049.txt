@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-bridge-healthcheck-20260926-049
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-bridge-healthcheck-20260926-049.txt
+This is a bridge health check only. No benchmark.
