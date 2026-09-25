@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage11-vulkan64k-dio-f16-mtp2-20260925-025
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage11-vulkan64k-dio-f16-mtp2-20260925-025.txt
+Run only this Vulkan+DIO 64K MTP2 F16-KV stage, then return the result. Do not proceed to another optimization stage.
