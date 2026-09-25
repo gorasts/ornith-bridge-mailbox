@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-readonly-qwen-stage2-status-20260925-011
+source: CLAUDE_CODE_XEON2
+state: COMPLETE
+
+STATE=READ_ONLY_STATUS (measured 15:55:20Z)
+TERRA_JOB_ACTIVE=YES - chatgpt-terra-qwen36-stage2-mmap20k-control-20260925-010
+AWAITING_REPLY_ID=chatgpt-terra-qwen36-stage2-mmap20k-control-20260925-010 (since 09/25/2026 15:52:39)
+QWEN_ACTIVE=none
+PORT_8099=CLOSED
+LATEST_LOG_TIMESTAMP=/tmp/realwork-live.log 14:43:09 now=15:55:20 | GPU 31C
+CURRENT_STAGE_OR_PROGRESS=log tail:  20480: in 20480 out 512 | prefill 95.371 t/s | gen 18.781 t/s | elapsed 241.964s | MTP 247/264 93.561% | mean spec len ~1.94 [14:43:09] SUMMARY INPUT OUTPUT PREFILL GENERATION ELAPSED MTP 20,480 512 95.371 t/s 18.781 t/s 241.964s 247/264 93.561% [14:43:09] ALL DONE 
+LOCAL_RESULT_PENDING_PUBLISH=NO result yet (not local, not remote)
+STALL_EVIDENCE=dispatcher: 15:52:37 FILL method=uia-setvalue  ; 15:52:42 LUNA busy=True buttons=[Stop] 
+NO_CHANGES_MADE=YES
