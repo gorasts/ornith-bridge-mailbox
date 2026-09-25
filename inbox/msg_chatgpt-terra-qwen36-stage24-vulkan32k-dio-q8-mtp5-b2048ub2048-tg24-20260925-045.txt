@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage24-vulkan32k-dio-q8-mtp5-b2048ub2048-tg24-20260925-045
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage24-vulkan32k-dio-q8-mtp5-b2048ub2048-tg24-20260925-045.txt
+Validate the anomalous 32K MTP5 point with exactly 24 TG512 samples.
+Do not start any later stage automatically.
