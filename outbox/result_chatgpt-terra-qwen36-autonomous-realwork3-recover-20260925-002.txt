@@ -1,0 +1,47 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-recover-20260925-002
+source: TERRA
+state: FAILURE
+
+AUTONOMOUS_COMPLETION=NO
+CORPUS_RECOVERY=PASS
+CORPUS_SOURCE_PATH=/home/ubuntu/realwork-01.md
+CORPUS_DESTINATION=/tmp/realwork-01.md
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+STAGES_ATTEMPTED=1 (Stage 1 server launch only; no model load/inference)
+STAGES_VALID=0
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+PROMPT_SOURCE=/tmp/realwork-01.md
+PROMPT_N=20480 requested; actual=0
+PREDICTED_N=512 requested; actual=0
+PROMPT_FINGERPRINT=UNAVAILABLE; model tokenizer was not loaded
+ORNITH_STOPPED=YES (service was inactive before this job)
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+PREFLIGHT=PASS
+PREFLIGHT_GPU_BASELINE=VRAM_USED_BYTES=16674816; VRAM_FREE_BYTES=8556482560; EDGE_C=31; JUNCTION_C=31; MEMORY_C=29
+PREFLIGHT_PORT_8099=FREE
+PREFLIGHT_MODEL_READABLE=YES
+PREFLIGHT_SERVER_EXECUTABLE=YES
+PREFLIGHT_BENCH_SCRIPT=PASS; expects the recovered corpus path and exact hash
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE
+1 | 34 | 2048 | 2048 | NA | NA | NA | NA (model not loaded) | NA | 31 baseline | NA | NO
+2 | 33 | 1024 | 1024 | NA | NA | NA | NA | NA | NA | NA | NOT_RUN
+3 | NOT_SELECTED | NA | 1024 | NA | NA | NA | NA | NA | NA | NA | NOT_RUN
+
+STAGE1_LAUNCH=FAILED_BEFORE_MODEL_LOAD
+DECISIVE_EVIDENCE=Server log says "starting server in router mode. models will be automatically loaded on-demand"; no model was selected or loaded. The executor invocation omitted the required model argument, so the script's /tokenize request returned HTTP 400. No /completion request was sent.
+SERVER_LOG=/tmp/qwen36-realwork3-recover-20260925-002/server-stage1.log
+STAGE3_DECISION=Not reached; Stage 1 had no benchmark result and Stage 2 was not launched
+FINAL_WINNER=NONE
+WINNER_REASON=No valid benchmark arm
+DELTA_TG_VS_PARENT=NA
+DELTA_PP_VS_PARENT=NA
+FAULT_SCAN=No matching ROCm/GPU/kernel fault lines in the post-failure 10-minute kernel journal scan
+CLEANUP=Qwen server exited and cleaned up; Qwen process list empty; port 8099 free; Ornith remains inactive
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
