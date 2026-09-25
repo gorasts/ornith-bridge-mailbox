@@ -1,0 +1,49 @@
+STATE=FAILURE
+MESSAGE_ID=chatgpt-terra-qwen36-FINAL-step1-8k-mtp2-20260925
+SYNTHETIC_CONTROL=YES
+REALWORK=NO
+NO_GPU_RESET=YES
+ORNITH_RESTORED=YES
+
+OUTCOME
+Preflight stopped before stopping Ornith or starting Qwen. No benchmark inference ran; no Qwen client/server was started; no Step 2 was run.
+
+EXACT_REQUESTED_CONFIGURATION
+MODEL=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+SERVER=/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+RPC=/opt/testmodels/prism-llama/build-hip/bin/ggml-rpc-server
+SERVER_FLAGS=--host 127.0.0.1 --port 8119 --no-webui --rpc 192.168.100.231:50052 --tensor-split 0.500,0.500 -ngl 99 --n-cpu-moe 0 -c 12288 -b 512 -ub 256 --cache-type-k f16 --cache-type-v f16 --spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1
+PROMPT_N=8192
+PREDICTED_N=512
+PROMPT_METHOD=POST /tokenize for the specified deterministic seed text, tile returned integer token IDs to exactly 8192, then POST /completion with n_predict=512, temperature=0, cache_prompt=false, ignore_eos=true, stream=false.
+
+PREFLIGHT_EVIDENCE
+GORAST_SSH=PASS (ubuntu@192.168.100.116)
+GORAST_MODEL=READABLE (14G)
+GORAST_SERVER_BINARY=EXECUTABLE
+GORAST_ORNITH_SERVICE=ACTIVE before and after; never stopped
+GORAST_GPU_SYSFS=VRAM used/total 7901360128/8573157376 bytes; temperatures 27C/28C/26C
+ASUS_SSH=PASS (asus@192.168.100.231 via the specified GORAST key)
+ASUS_GPU_SYSFS=VRAM used/total 261926912/8573157376 bytes; temperatures 20C/23C/21C
+ASUS_REQUESTED_RPC_BINARY=EXECUTABLE at /opt/testmodels/prism-llama/build-hip/bin/ggml-rpc-server
+ASUS_EXISTING_RPC=PID 2568949, listening on 0.0.0.0:50052; executable is /home/asus/llama-b11054/ggml-rpc-server, not the requested binary. Its SHA256 differs from the requested binary (9a3bfa0d9eda6f89efe90487aa9102f3333277408d0136d1dfdf1ca0398b054b vs aa90cac89d1d5ea0d383f657775752ba03c6fc8ed7399e9c24a14522a19234fd).
+RPC_DEVICE_LIST=Qwen server --list-devices showed one ROCm0 device (8176 MiB total, 8152 MiB free), both with and without --rpc 192.168.100.231:50052; it did not establish the required two-device 0.500/0.500 split.
+STOP_REASON=The required RPC port is occupied by a pre-existing process running a different binary, and preflight did not verify the exact requested RPC/two-device setup. Starting the requested RPC would collide with that process; it was not stopped or modified. Per the no-unrelated-process and no-parameter-change constraints, the benchmark was not launched.
+
+MEASUREMENTS
+PP_TOK_S=NOT_RUN
+TG512_TOK_S=NOT_RUN
+WALL_TIME=NOT_RUN
+MTP_STATS=NOT_RUN
+PROMPT_SHA256=NOT_CREATED
+VRAM_AFTER_LOAD_PEAK_MIN_FREE=NOT_APPLICABLE (server was not loaded)
+GPU_LOAD_TELEMETRY_AND_NETWORK_DURING_PP_TG=NOT_APPLICABLE
+RPC_HEALTH_AFTER=Pre-existing process and listener left untouched; TCP port was reachable before test.
+KERNEL_DEVICE_FAULT_SCAN=No fault evidence collected for a benchmark; no benchmark ran.
+
+CLEANUP
+QWEN_SERVER_OR_CLIENT=NOT_STARTED
+RPC_STARTED_BY_THIS_JOB=NO
+PREEXISTING_RPC=LEFT_RUNNING
+ORNITH_RESTORED=YES (service remained active throughout)
+GPU_RESET_OR_DEVICE_MODIFICATION=NO
