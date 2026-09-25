@@ -1,0 +1,44 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-recover-qwen-stage2-dispatch-20260925-012
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+ETA=2-4 minutes.
+
+TASK
+Recover the stuck TERRA/Luna dispatch for:
+chatgpt-terra-qwen36-stage2-mmap20k-control-20260925-010
+
+Current verified state from your read-only check:
+- TERRA awaitingReply is exactly stage2-010
+- Luna UI shows busy/Stop
+- NO Qwen process is running
+- port 8099 is closed
+- /tmp/realwork-live.log still shows only the prior Stage1 DIO run completed at 14:43:09
+- no local or remote Stage2 result exists
+
+This is transport/UI recovery only.
+
+RULES
+1. First reverify no Qwen benchmark/server/client for Stage2 is active and no Stage2 result exists.
+2. If Stage2 actually started since the prior check, make NO changes and report ACTIVE.
+3. If still stuck with no benchmark started, safely repair/retrigger the SAME pending Stage2 message exactly once using the existing bridge/dispatcher mechanisms.
+4. Do not alter the Stage2 prepared packet or scientific parameters.
+5. Do not create a different benchmark job.
+6. Do not start Stage3.
+7. Do not touch GPU/device state or Ornith except as the existing Stage2 packet itself would normally do.
+8. Report exactly what transport state was repaired and whether Stage2 was successfully re-submitted/accepted.
+
+Publish:
+outbox/result_chatgpt-claude-recover-qwen-stage2-dispatch-20260925-012.txt
+
+Include:
+STATE=
+STAGE2_WAS_RUNNING=
+STAGE2_RESULT_ALREADY_EXISTED=
+RECOVERY_ACTION=
+STAGE2_RESUBMITTED=
+LUNA_STATE_AFTER=
+QWEN_STATE_AFTER=
+NO_SCIENTIFIC_CHANGES=YES
+NO_DUPLICATE_BENCHMARK=YES
