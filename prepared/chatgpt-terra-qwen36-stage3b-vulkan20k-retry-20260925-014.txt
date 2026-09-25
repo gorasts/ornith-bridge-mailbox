@@ -1,0 +1,105 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage3b-vulkan20k-retry-20260925-014
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=20-25 minutes.
+
+PURPOSE
+Operational retry of Stage 3 only.
+Previous Stage 3 did not launch the benchmark because controller code raised:
+TypeError: run.<locals>.start_vulkan() takes 5 positional arguments but 6 were given
+
+This is NOT a scientific retry; no Vulkan server or inference launched.
+
+SCIENTIFIC CONFIG — MUST REMAIN IDENTICAL TO STAGE 3
+Backend=Vulkan
+Load mode=dio
+Model=Qwen3.6-35B-A3B-UD-IQ3_XXS
+N_CPU_MOE=33
+B=1280
+UB=1024
+MTP=1
+KV=q8_0/q8_0
+PROMPT=20480
+PREDICTED=512
+Context=131072
+Same real-work corpus/hash and deterministic prompt construction.
+
+VULKAN BUILD
+Use exactly:
+ /opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+Known comparability:
+same source commit 9a9394a89 as ROCm build
+Vulkan GNU 11.4.0 vs ROCm GNU 13.3.0
+RADV VEGA10
+MTP support already verified PASS.
+
+ALLOWED OPERATIONAL FIX
+Fix only the controller function-call/signature mismatch that prevented start_vulkan() from launching.
+Do not change any scientific parameter.
+
+RULES
+- Exactly one benchmark arm.
+- No hidden retries inside this job.
+- No ROCm/ASUS/RPC.
+- No N_CPU_MOE fallback if Vulkan does not fit.
+- If exact NCM33 configuration cannot load, report that exact outcome and stop.
+- Visible PowerShell viewer required with working Ctrl+C.
+- Thermal abort=95C.
+- Leave Ornith inactive after cleanup.
+
+MEASURE
+PP20K
+TG512
+wall time
+load time
+MTP acceptance
+stable-load free VRAM
+inference minimum free VRAM
+host RSS
+max temperature/utilization/clocks/power if available
+fault scan
+prompt fingerprint
+
+REFERENCE ROCm+DIO
+PP20K=95.371
+TG512=18.781
+VRAM_MIN_FREE=289.1 MiB
+LOAD_TIME=23.379 s
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage3b-vulkan20k-retry-20260925-014.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage3b-vulkan20k-retry-20260925-014
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=dio
+EXACT_BINARY=
+BUILD_VERSION=
+PROMPT_N=
+PREDICTED_N=
+PP20K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+HOST_RSS=
+MAX_TEMP_C=
+FAULT_SCAN=
+DELTA_PP_VULKAN_VS_ROCM_DIO=
+DELTA_TG_VULKAN_VS_ROCM_DIO=
+DELTA_MIN_FREE_VULKAN_VS_ROCM_DIO=
+DELTA_LOAD_TIME_VULKAN_VS_ROCM_DIO=
+CLEANUP=
+OPERATIONAL_FIX_ONLY=YES
+NO_SCIENTIFIC_CHANGES=YES
+NO_HIDDEN_RETRIES=YES
