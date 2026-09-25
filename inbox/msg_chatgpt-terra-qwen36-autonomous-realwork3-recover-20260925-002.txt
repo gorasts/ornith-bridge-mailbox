@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-recover-20260925-002
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly:
+prepared/chatgpt-terra-qwen36-autonomous-realwork3-recover-20260925-002.txt
+
+Recover only an exact-hash copy of the missing real-work corpus if one already exists on GORAST, then autonomously complete the 3-stage Qwen3.6 real-work optimization. Do not ask for operator input mid-job.
