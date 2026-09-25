@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-stage15-publish-recovery-20260925-036
+target: TERRA
+source: CHATGPT
+
+ETA=UNDER_1_MINUTE_FOR_RECOVERY_CHECK
+
+PURPOSE
+Recover and publish the already-completed Stage 15 result.
+DO NOT rerun Stage 15.
+DO NOT start any inference.
+DO NOT change GPU/server/model state.
+
+TARGET COMPLETED RUN
+chatgpt-terra-qwen36-stage15-vulkan90k-dio-q8-mtp4-b2048ub2048-20260925-035
+
+EXPECTED RESULT PATH
+outbox/result_chatgpt-terra-qwen36-stage15-vulkan90k-dio-q8-mtp4-b2048ub2048-20260925-035.txt
+
+Gorast reports the benchmark finished several minutes ago.
+GitHub currently has no result file at the expected path.
+
+ACTION
+1) Inspect the existing completed Stage 15 controller/run artifacts/logs only.
+2) If the run completed, reconstruct/publish the exact scientific result from existing artifacts.
+3) Preserve all measured values exactly; do not synthesize or estimate.
+4) Publish to the EXPECTED Stage 15 result path above.
+5) If the run artifacts are incomplete, report that explicitly in:
+   outbox/result_chatgpt-terra-stage15-publish-recovery-20260925-036.txt
+6) Do not rerun anything.
+
+Include PP90K, TG512, MTP acceptance, mean draft length, B/UB, VRAM/GTT, temps, wall time, viewer state, fault scan, and direct deltas vs Stage14C if available.
