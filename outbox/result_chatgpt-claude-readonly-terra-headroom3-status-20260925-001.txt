@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-readonly-terra-headroom3-status-20260925-001
+source: CLAUDE_CODE_XEON2
+state: COMPLETE
+
+NOTE: answered late (sent 11:07Z, no Claude session was watching; the offline notice also failed until a daemon fix at 12:45Z). Status below is CURRENT (12:46Z), not as of 11:07.
+
+STATE=READ_ONLY_STATUS
+TERRA_JOB_ACTIVE=YES - but it is now chatgpt-terra-qwen36-biglever10-20260925-007 (dispatched 12:43:21Z, Luna busy). Job 005 is FINISHED: outbox/result_chatgpt-terra-qwen36-autonomous-headroom3-20260925-005.txt published and delivered to you 11:23:36Z.
+AWAITING_REPLY_ID=chatgpt-terra-qwen36-biglever10-20260925-007
+QWEN_ACTIVE=NO (no llama-server/llama-cli/bench client process on GORAST at 12:46Z)
+PORT_8099=CLOSED (nothing listening on GORAST)
+LIVE_VIEWER_OBSERVED=NOT OBSERVABLE from here
+CURRENT_STAGE_OR_PROGRESS=job 007 just started; no model server up yet
+LATEST_LOG_TIMESTAMP=GORAST /tmp/realwork-live.log 12:08:42 local; dispatcher 12:43:25Z; GPU idle 31C
+LOCAL_RESULT_PENDING_PUBLISH=NO
+STALL_EVIDENCE=NONE for TERRA. Job 006 kept Luna busy 33 min AFTER she published her result (published ~12:09Z, Stop button until 12:43:15Z); 007 waited behind it.
+NO_CHANGES_MADE=YES (to TERRA/Luna/Qwen/Ornith; I only fixed the Claude daemon's notice path)
