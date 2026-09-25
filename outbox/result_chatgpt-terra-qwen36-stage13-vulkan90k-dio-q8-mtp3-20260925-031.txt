@@ -1,0 +1,63 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage13-vulkan90k-dio-q8-mtp3-20260925-031
+source: TERRA
+state: COMPLETE
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan (Vulkan0, RADV VEGA10)
+LOAD_MODE=dio
+MTP_DEPTH=3
+KV_K=q8_0
+KV_V=q8_0
+PROMPT_N=90000
+PREDICTED_N=512
+N_CPU_MOE=33
+PP90K=167.199 tok/s
+TG512=13.115 tok/s
+WALL_S=577.291
+WALL_OBSERVED_S=577.858
+LOAD_TIME_S=8.061
+MTP_ACCEPTANCE=362/446 (81.166%)
+MEAN_DRAFT_LEN=1.81
+VRAM_LOAD_FREE=1978.6 MiB
+VRAM_MIN_FREE=1973.1 MiB
+GTT_BASELINE=13.8 MiB
+GTT_LOAD=10515.9 MiB
+GTT_PREFILL_PEAK=10617.1 MiB
+GTT_GENERATION=10620.9 MiB
+GTT_PEAK=10620.9 MiB
+HOST_RSS=822.8 MiB peak server RSS
+HOST_RAM_MAX_USED=12.262 GiB
+HOST_RAM_MIN_AVAILABLE=18.905 GiB
+MAX_EDGE_TEMP_C=76
+MAX_JUNCTION_TEMP_C=109
+MAX_MEMORY_TEMP_C=69
+GPU_UTILIZATION_MAX=100%
+THERMAL_ABORT_LIMIT_C=110
+THERMAL_THROTTLE_EVIDENCE=No direct throttle indicator exposed; SCLK/MCLK and power unavailable; peak junction 109C remained below the 110C abort limit.
+HBM_STATE=Not exposed by available telemetry.
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; kernel/dmesg scan unavailable (access denied/unavailable).
+PROMPT_PROGRESS_TOKENS=90511
+PROMPT_FINGERPRINT=51d6ab03ef0dbf78ef1dc75ea3e6335c11877935dc54661bf54a2eb0edba92c1
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=SEPARATE; dedicated visible PowerShell console; handle 0x528064E
+LIVE_VIEWER_PID=19872
+LIVE_VIEWER_TITLE=Qwen Stage13 MTP3 90K Live Viewer
+LIVE_VIEWER_CTRL_C_WIRED=YES; SSH PTY Ctrl+C -> runner watch KeyboardInterrupt -> scoped CANCEL marker.
+LIVE_VIEWER_PARENTAGE_CHECK=PASS; viewer powershell.exe PID 19872, parent PID 30324 (pwsh.exe), launched via Start-Process; distinct process and console handle; not embedded terminal.
+DELTA_PP_MTP3_VS_MTP2=+10.407 tok/s
+DELTA_TG_MTP3_VS_MTP2=+0.711 tok/s
+DELTA_ACCEPTANCE_MTP3_VS_MTP2=-15.386 percentage points
+DELTA_VRAM_MIN_FREE_MTP3_VS_MTP2=+197.6 MiB
+DELTA_GTT_MTP3_VS_MTP2=+244.0 MiB
+DELTA_WALL_MTP3_VS_MTP2=-37.962 s
+MTP3_VRAM_MIN_FREE_GE_1024_MIB=YES
+MTP3_ACCEPTANCE_GE_95PCT=NO
+MTP3_TG_BEATS_MTP2=YES
+STAGE12C_MTP2_REFERENCE=PP90K=156.792; TG512=12.404; acceptance=336/348 (96.552%); VRAM_MIN_FREE=1775.5 MiB; GTT_PEAK=10376.9 MiB; WALL=615.253 s
+CLEANUP=COMPLETE; port 8099 free; no Qwen llama-server remains; Ornith model service not started by this arm; no later stage was launched.
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+ERROR=
+EXACT_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 3 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+RUN_DIR=/tmp/terra-qwen36-stage13-vulkan90k-dio-q8-mtp3-20260925-031
+BUILD_VERSION=0.2.0-dev build 10709 commit 9a9394a89; GNU 11.4.0
