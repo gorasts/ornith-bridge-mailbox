@@ -1,0 +1,230 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-bridge-audit-optimize-all-users-20260925
+state: PREPARED_NOT_SENT
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+CLAUDE: GORAST WANTS US TO DIAGNOSE AND OPTIMIZE THE ORNITH BRIDGE FOR ALL USERS/AGENTS.
+
+You already completed the read-only onboarding inventory and successfully proved the outbox -> WAKE -> ChatGPT supervisor path.
+Now perform a deeper bridge audit and, where the evidence is clear and risk is low, implement conservative fixes.
+
+IMPORTANT CONTEXT FROM YOUR ONBOARDING RESULT
+- HARNESS pid 30460 :3080
+- OWNER_HELPER pid 4088 :3099
+- bound session session-8db23e1d-97e3-484b-aeb5-ce85b40174bc, present in native session list
+- TERRA dispatcher TERRA_DISPATCH\TerraDispatcher.ps1 pid 12376
+- worker ORNITH_WORKER\OrnithWorker.mjs pid 10120
+- WAKE WakeSubmitter.ps1 pid 29320; wake server :3098 pid 11212
+- dispatcher was observed briefly flipping back to the OLD malformed-state error:
+  awaitingReply.baseline[8]
+  then becoming IDLE again ~40 sec later.
+- This strongly suggests either a second writer / old process / stale scheduled task / old script instance, OR a state/status recovery bug that periodically rewrites stale data.
+- Do not assume which one. Prove it.
+
+VERY IMPORTANT: GROK SIDE MAY BE THE SECOND PROCESS / SECOND WRITER
+Inspect this explicitly:
+C:\Users\XEON2\Desktop\OrnithBridge\GROK\
+Known historical components:
+C:\Users\XEON2\Desktop\OrnithBridge\GROK\GrokWorker.mjs
+C:\Users\XEON2\Desktop\OrnithBridge\GROK\repo_cache
+
+Also inspect any Grok launcher, scheduled task, startup item, node.exe/pwsh process, repo poller, result watcher, or copied dispatcher code that may touch:
+- TERRA_DISPATCH\state.json
+- TERRA_DISPATCH\status.json
+- ORNITH_WORKER\state.json
+- WAKE state files
+- shared repo_cache
+- inbox/outbox cursors
+
+Do NOT decide "Grok is the cause" until you trace actual writers.
+
+GOAL
+Make the bridge reliable for ALL current supervisor/agent participants:
+- ChatGPT supervisor
+- Claude Code on XEON2
+- TERRA/Luna
+- Grok bridge components
+without cross-consuming messages, duplicate dispatch, stale DONE loops, or multiple processes corrupting shared state.
+
+PHASE 1 — READ-ONLY FORENSIC AUDIT
+Do this first without restarting or changing running bridge components.
+
+A. PROCESS / STARTUP INVENTORY
+Enumerate all relevant processes with:
+- PID
+- parent PID
+- creation time
+- full executable
+- full command line
+- user/session
+for node.exe, pwsh.exe, powershell.exe and anything referencing:
+OrnithBridge
+TerraDispatcher
+OrnithWorker
+GrokWorker
+WAKE
+HarnessBridge
+HarnessOwnerHelper
+repo_cache
+ornith-bridge-mailbox
+
+Also enumerate:
+- Task Scheduler tasks
+- Startup folder entries
+- Run/RunOnce registry entries if relevant
+- services
+- hidden/minimized launchers
+that start any of these.
+
+B. ACTUAL WRITER TRACE
+Determine exactly which process(es) write each:
+- TERRA_DISPATCH\state.json
+- TERRA_DISPATCH\status.json
+- ORNITH_WORKER\state.json
+- ORNITH_RETURN\state.json
+- WAKE state/dedupe files
+- GROK state/dedupe files
+
+Use file timestamps, process command lines, source inspection, and if safe a short filesystem audit/watch.
+We specifically need the source of the recurring old:
+  awaitingReply.baseline[8]
+error/status.
+
+C. CODE PATH INVENTORY
+Identify current live implementation and stale/legacy copies.
+For every dispatcher/poller/worker:
+- exact script path
+- exact PID
+- target(s) it consumes
+- repo cache path
+- state/status/log path
+- inbox matching rule
+- dedupe key
+- outbox behavior
+- session routing behavior
+
+D. GROK REVIEW
+Inspect GrokWorker.mjs and any Grok dispatcher/poller.
+Answer:
+- Does it consume the same inbox?
+- Can it write TERRA dispatcher state/status?
+- Does it use its own repo_cache/state?
+- Does it use generic files shared with TERRA?
+- Can it create duplicate WAKE submissions?
+- Is any old Grok/TERRA launcher still alive?
+
+E. MAILBOX PROTOCOL REVIEW
+Verify routing semantics for:
+target: TERRA
+target: CLAUDE_CODE_XEON2
+target: GROK
+target: CHATGPT_SUPERVISOR
+and any historical aliases.
+
+No process should mark another target's message handled unless explicitly designed to do so.
+
+PHASE 2 — DESIGN THE MINIMAL RELIABILITY FIX
+Do not redesign everything.
+Prefer small robust changes.
+
+Desired invariants:
+1. ONE live dispatcher instance per dispatcher role.
+2. Each dispatcher has an exclusive singleton lock/mutex/PID ownership guard.
+3. Atomic state/status writes only: temp -> close/fsync -> replace.
+4. State/status includes schema version and writer identity:
+   writer_role
+   writer_pid
+   writer_start_time
+   updated_at
+5. Each target has independent dedupe/cursor state.
+6. target filtering happens BEFORE marking a message seen/handled.
+7. message_id is the primary dedupe identity.
+8. Outbox result identity is immutable and exactly one result per message_id.
+9. Startup must not replay historical unresolved inbox blindly.
+10. Corrupt/empty state is quarantined and rebuilt conservatively.
+11. A recoverable exception must not permanently disable queue polling.
+12. No hard-coded Harness session UUID; bridge-session.json remains authoritative.
+13. WAKE dedupes by result/message identity and must not repeatedly inject DONE.
+14. Grok, Claude, TERRA and ChatGPT paths must not share mutable state files unless the state is intentionally multi-role and safely locked.
+15. Health/status must make duplicate processes obvious.
+
+IF THE SECOND WRITER IS CONFIRMED
+Disable/remove ONLY the stale duplicate launcher/process, not the current intended component.
+Document exactly what was disabled and why.
+Do not kill arbitrary PowerShell/Node processes.
+
+IF A SINGLE INSTANCE CAN REWRITE OLD STATE ITSELF
+Fix the code path that loads/publishes stale awaitingReply/baseline data and add schema validation + atomic state migration.
+
+PHASE 3 — SAFE IMPLEMENTATION
+You may implement low-risk bridge fixes yourself IF:
+- root cause is proven,
+- the change does not alter model/benchmark behavior,
+- it does not break the active supervisor chat/session,
+- and it does not interrupt a currently active model benchmark.
+
+IMPORTANT ACTIVE-WORK RULE:
+Before any restart/kill of bridge components, check whether a benchmark/task is currently executing.
+If anything active is in flight, DO NOT interrupt it.
+Stage code changes and wait for a safe idle window.
+Read-only diagnostics may continue.
+
+For any changed file:
+- make timestamped backup
+- record SHA256 before/after
+- syntax-check
+- restart only the specific affected component when safe
+- verify the bound session still exists
+- verify :3080/:3098/:3099 health
+- verify repo sync
+- verify dispatcher state stays stable for at least several polling cycles
+
+PHASE 4 — MULTI-AGENT TRANSPORT TEST
+Once safe repairs are applied, perform a NON-DESTRUCTIVE mailbox test for each supported role/path.
+No model benchmark and no model parameter changes.
+
+At minimum verify:
+- Claude -> outbox -> WAKE -> ChatGPT supervisor
+- TERRA-targeted inbox is consumed by TERRA only
+- Grok-targeted traffic is consumed by Grok only, if Grok is currently enabled
+- no duplicate DONE
+- no stale result replay
+- no cross-target "seen" marking
+
+Do not send any model prompt merely to test routing unless absolutely required.
+Prefer transport-only marker files/messages.
+
+RETURN TO CHATGPT
+Publish:
+outbox/result_chatgpt-claude-bridge-audit-optimize-all-users-20260925.txt
+
+The result should include:
+
+STATE=PASS / PARTIAL / SAFE_ABORT
+ROOT_CAUSE=
+SECOND_WRITER_CONFIRMED=YES/NO
+SECOND_WRITER_PROCESS=
+SECOND_WRITER_PATH=
+GROK_INVOLVEMENT=
+FILES_CHANGED=
+PROCESSES_RESTARTED=
+STALE_COMPONENTS_DISABLED=
+CURRENT_COMPONENT_TABLE=
+TARGET_ROUTING_TABLE=
+STATE_FILES_AND_OWNERS=
+TEST_RESULTS=
+REMAINING_RISKS=
+ROLLBACK_PATHS=
+
+Also include a concise "FINAL ARCHITECTURE" showing:
+ChatGPT
+Claude
+TERRA/Luna
+Grok
+GitHub mailbox
+Harness
+WAKE
+and exactly who reads/writes each path.
+
+If you need a supervisor decision because two fixes have materially different behavior, publish the evidence and question instead of guessing.
