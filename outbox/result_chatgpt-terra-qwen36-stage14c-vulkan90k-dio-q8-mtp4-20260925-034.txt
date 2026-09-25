@@ -1,0 +1,57 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage14c-vulkan90k-dio-q8-mtp4-20260925-034
+source: TERRA
+state: COMPLETE
+
+AUTONOMOUS_COMPLETION=YES
+BACKEND=vulkan
+LOAD_MODE=dio
+MTP_DEPTH=4
+KV_K=q8_0
+KV_V=q8_0
+PROMPT_N=90000
+PREDICTED_N=512
+N_CPU_MOE=33
+PP90K=169.874 tok/s
+TG512=11.360 tok/s
+WALL_S=574.830 (observed 575.818)
+LOAD_TIME_S=7.054
+MTP_ACCEPTANCE=364/584 (62.329%)
+MEAN_DRAFT_LEN=1.62
+VRAM_LOAD_FREE=1736888320 bytes (1656.4 MiB)
+VRAM_MIN_FREE=1730052096 bytes (1649.9 MiB)
+GTT_BASELINE=14487552 bytes (13.8 MiB)
+GTT_LOAD=10754732032 bytes (10256.5 MiB)
+GTT_PREFILL_PEAK=10860822528 bytes (10357.7 MiB)
+GTT_GENERATION=10865848320 bytes (10362.5 MiB)
+GTT_PEAK=10865848320 bytes (10362.5 MiB)
+HOST_RSS=841.57 MiB peak
+HOST_RAM_MAX_USED=12.030 GiB
+MAX_EDGE_TEMP_C=75
+MAX_JUNCTION_TEMP_C=109
+MAX_MEMORY_TEMP_C=68
+THERMAL_THROTTLE_EVIDENCE=No explicit throttle flag exposed; max junction 109C. SCLK/MCLK/power telemetry unavailable. Software abort threshold was removed; GPU/driver/SMU thermal protections were not changed.
+FAULT_SCAN=NO_FATAL_SERVER_LOG_MATCH; kernel scan unavailable (dmesg access denied)
+PROMPT_FINGERPRINT=51d6ab03ef0dbf78ef1dc75ea3e6335c11877935dc54661bf54a2eb0edba92c1
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+PROMPT_PROGRESS_TOKENS=90511 (benchmark request was exactly prompt_n=90000; same harness/template accounting as Stage 13)
+SERVER_BUILD=0.2.0-dev build 10709 commit 9a9394a89; GNU 11.4.0
+EXACT_SERVER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 1280 -ub 1024 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 4 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=SEPARATE; dedicated PowerShell window remained open after run
+LIVE_VIEWER_PID=532
+LIVE_VIEWER_TITLE=Qwen Stage14C MTP4 90K Live Viewer
+LIVE_VIEWER_CTRL_C_WIRED=YES; ssh.exe used -tt and the read-only watcher maps KeyboardInterrupt to this run's scoped CANCEL marker (not triggered)
+LIVE_VIEWER_PARENTAGE_CHECK=PASS; PowerShell PID 532 parent pwsh.exe PID 9776; child ssh.exe PID 12036; console handle 0x1FB0380; remote watcher PID 2849302
+DELTA_PP_MTP4_VS_MTP3=+2.675 tok/s
+DELTA_TG_MTP4_VS_MTP3=-1.755 tok/s
+DELTA_WALL_MTP4_VS_MTP3=-2.461 s
+DELTA_ACCEPTANCE_MTP4_VS_MTP3=-18.837 percentage points
+DELTA_VRAM_MIN_FREE_MTP4_VS_MTP3=-323.2 MiB
+DELTA_GTT_MTP4_VS_MTP3=-258.4 MiB
+CLEANUP=COMPLETE; Stage 14C client/server PIDs null; port 8099 free; viewer left open; Ornith was not modified and remains inactive
+OPERATIONAL_FIX_ONLY=YES
+NO_SCIENTIFIC_CHANGES=YES
+NO_HIDDEN_RETRIES=YES
+
+RESULT=The sole exact MTP4 arm completed all 90000 prompt tokens and 512 predicted tokens without software temperature abort, hardware/driver fault, or fallback. No MTP5 or later stage was run.
