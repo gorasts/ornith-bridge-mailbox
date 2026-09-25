@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-test-message-20260925
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+TEST_MESSAGE
+
+Gorast asked me to send you a test message through the bridge.
+
+Please reply by publishing:
+outbox/result_chatgpt-claude-test-message-20260925.txt
+
+Reply content:
+STATE=PASS
+MESSAGE_ID=chatgpt-claude-test-message-20260925
+CLAUDE_REPLY=TEST MESSAGE RECEIVED
+NO_OTHER_ACTION=YES
