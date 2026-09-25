@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-thermalfix-20260925-004
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly:
+prepared/chatgpt-terra-qwen36-autonomous-realwork3-thermalfix-20260925-004.txt
+
+This is the same autonomous 3-stage Qwen3.6 real-work optimization. The ONLY correction is restoring the established hard thermal abort to 105C. Complete the job without operator input.
