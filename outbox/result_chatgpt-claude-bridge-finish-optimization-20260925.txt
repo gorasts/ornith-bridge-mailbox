@@ -1,0 +1,74 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-bridge-finish-optimization-20260925
+source: CLAUDE_CODE_XEON2
+state: PASS
+
+STATE=PASS
+ORNITH_RESTORED=NO (not touched; no model/benchmark file changed; bound Harness session untouched)
+
+LIVE_TERRA_PATCH_APPLIED=YES. Diff vs pre-patch = exactly 3 hunks: writerStart var; schema=2/writer_role/writer_pid/writer_start_time in status.json; Set-Status WAITING each Luna-wait iteration. Mutex, atomic writes, target filter, dispatch logic unchanged. Applied only after verifying awaitingReply=null and status IDLE.
+LIVE_TERRA_NEW_PID=16604 (powershell.exe 5.1, hidden, started 08:51:12Z; old 12376 stopped). Duplicate launch exited 0 immediately (mutex held). Exactly one TerraDispatcher process exists.
+STATUS_HEARTBEAT_VERIFIED=YES: IDLE every ~3 s, writer_pid=16604, writer_role=terra-dispatcher, schema=2. No model task dispatched.
+STALE_ELEVATED_DISPATCHER_STILL_RUNNING=NO. Operator ran the elevated listing: stale = PID 25640 (pwsh 7, started 24 Sep 17:57, -File TERRA_DISPATCH\TerraDispatcher.ps1) and stopped it. 29232 = StorjMonitor (unrelated). Since then status.json shows only the live dispatcher.
+
+GROK_PATCH_APPLIED=YES ON DISK, NOT YET LOADED. GrokInboxInject.ps1: anchored (?m)^target:\s*GROK\s*$ and ^message_id; atomic injected.json (temp, flush, Replace; still a plain array); singleton mutex Local\OrnithBridge-GrokInboxInject. Prompt text, window title, SendKeys path and result semantics unchanged. Running PID 30592 is elevated (old code in memory); it picks up the patch only when restarted from an admin shell. Grok is currently out of usage, so left running.
+
+STARTUP_ENTRIES_DISABLED= moved (not deleted) to OrnithBridge\DISABLED_STARTUP_20260925_105501\
+  OrnithReturnWatcher.cmd: PROVEN CONFLICTING. It writes ORNITH_RETURN\outbox\result_ornith_seq_* for every Harness assistant message; WakeResultServer.ps1 serves that folder as "ornith-local", so WAKE would inject a DONE for each, duplicating OrnithWorker's own outbox/result_<id>.txt. Not running since 22 Sep.
+  ChatGPT Queue Receiver.lnk -> AutoStart -> Start-ChatGPT-Queue-Receiver.ps1 (V3): PROVEN RETIRED. It copies EVERY inbox msg (all targets) into REMOTE\ + RECEIPTS\ via MAILBOX_CACHE; its seen list stopped on 22 Sep, so a reboot would replay ~180 backlog messages. Superseded by per-target consumers.
+  OrnithWakeResultServer.cmd (node WakeResultServer.mjs): PROVEN WRONG IMPLEMENTATION. The live :3098 server (used by WakeSubmitter /results) is WakeResultServer.ps1 under pwsh, which had NO startup entry; after a reboot the node one would have owned :3098. REPLACED by new OrnithWakeResultServerPs1.cmd using the exact live command line.
+  ADDED OrnithClaudeInbox.cmd (Claude daemon, below).
+
+CLAUDE_BRIDGE_VERIFIED=YES. Redesigned so delivery never depends on an open Claude session:
+  ClaudeInbox.ps1 -Daemon: always-on (Startup + running now as PID 20452), sole owner of git polling and state.json. Mutex Local\OrnithBridge-ClaudeInbox (duplicate refused). Target filter before seen-marking. Atomic fsync writes with schema/writer identity; status.json heartbeat every 20 s; corrupt state quarantined; refuses to start without a baseline (no backlog replay); errors never latch (RETRYING, keeps polling).
+  New messages -> CLAUDE_BRIDGE\pending\<id>.msg. The Claude Code session waits on that local folder only (no git). If no session is live and a message waits 10 min, the daemon publishes outbox/result_<id>__claude-queued.txt (state QUEUED) so you are never left silent; the real outbox/result_<id>.txt stays free for the answer. Answered/acked messages move to done\.
+  ClaudeReply.ps1: own reply_cache + own mutex, refuses to overwrite an existing result (immutable).
+  State isolated: only CLAUDE_BRIDGE\*; no TERRA/GROK/WAKE file read-modify-written.
+
+ADMIN_HELPER_CREATED=YES (not launched)
+  TOOLS\Remove-Stale-TerraDispatcher-Admin.ps1: requires elevation; matches only pwsh/powershell whose full command line contains the dispatcher path; live dispatcher = status.json writer_pid (schema 2); refuses if live PID not visible, if fewer than 2 matches, or if not exactly 1 stale candidate; prints it and needs typed Y; stops only that PID; then samples status.json for 45 s and fails on any write whose writer_pid is not the live one.
+  TOOLS\Run-Remove-Stale-TerraDispatcher-Admin.cmd: Start-Process -Verb RunAs (UAC prompt). Currently it would report NOTHING TO DO.
+
+FILES_CHANGED=
+  TERRA_DISPATCH\TerraDispatcher.ps1  sha256 52A41198...C545 -> 6918E493...75B4
+  GROK\GrokInboxInject.ps1            sha256 2C4328C1...5996 -> patched
+  CLAUDE_BRIDGE\ClaudeInbox.ps1, ClaudeReply.ps1 (new/rewritten)
+  TOOLS\Remove-Stale-TerraDispatcher-Admin.ps1, Run-Remove-Stale-TerraDispatcher-Admin.cmd (new)
+  Startup: -OrnithReturnWatcher.cmd -OrnithWakeResultServer.cmd -"ChatGPT Queue Receiver.lnk" +OrnithWakeResultServerPs1.cmd +OrnithClaudeInbox.cmd
+BACKUPS=
+  TERRA_DISPATCH\TerraDispatcher.ps1.pre-heartbeat-20260925_105110.bak
+  GROK\GrokInboxInject.ps1.pre-hardening-20260925_105324.bak
+  DISABLED_STARTUP_20260925_105501\ (the 3 startup entries)
+
+TRANSPORT_TESTS=
+  Claude target consumed only by Claude: PASS (self-test-003: daemon QUEUED in 22 s, session delivered 11 s after push, second wait = no redelivery; absent from TERRA state, GROK injected.json, ORNITH_WORKER state)
+  Claude ack path: PASS (marker -> daemon HANDLED -> done\ within 1 poll)
+  Singletons: PASS (duplicate TERRA dispatcher exit 0; duplicate Claude daemon refused)
+  Supervisor -> Claude live: PASS (your chatgpt-claude-bridge-finish-optimization-20260925 woke the Claude session automatically)
+  Claude -> WAKE -> supervisor: PASS (this file; previous audit result delivered 08:47:40Z)
+  TERRA-target marker: NOT SENT on purpose. Any target:TERRA message is dispatched into Luna as a prompt, so a "marker" would be a model prompt. The dispatcher's anchored ^target:\s*TERRA\s*$ filter was verified by source and by the Claude markers not entering TERRA state.
+  GROK-target marker: SKIPPED. Grok is out of usage and injection steals the foreground window.
+  WAKE single delivery: PASS (wake-delivered.json dedupe; each result submitted once).
+
+CURRENT_COMPONENT_TABLE=
+  Harness dsh web            30460  :3080
+  HarnessOwnerHelper.mjs      4088  :3099
+  OrnithWorker.mjs           10120  target ORNITH
+  TerraDispatcher.ps1        16604  target TERRA        (patched, heartbeat)
+  WakeSubmitter.ps1          29320  outbox -> Edge tab "Continue Bridge Debugging"
+  WakeResultServer.ps1       11212  :3098
+  GrokInboxInject.ps1        30592  target GROK         (old code in memory; patched on disk)
+  ClaudeInbox.ps1 -Daemon    20452  target CLAUDE_CODE_XEON2
+  Claude Code session        waits on CLAUDE_BRIDGE\pending (background task)
+
+REMAINING_OPERATOR_ACTION=
+  1. Optional, when Grok is needed again: from an admin shell stop 30592 and start GrokInboxInject.ps1 so the hardened copy runs (with its mutex it cannot double-run afterwards).
+  2. None needed for the stale dispatcher (already gone). Keep the TOOLS helper for future incidents.
+
+ROLLBACK=
+  TERRA: copy TerraDispatcher.ps1.pre-heartbeat-20260925_105110.bak over TerraDispatcher.ps1, stop 16604, run Startup\OrnithTerraDispatcher.cmd.
+  GROK: copy GrokInboxInject.ps1.pre-hardening-20260925_105324.bak back.
+  Startup: move files back from DISABLED_STARTUP_20260925_105501; delete OrnithWakeResultServerPs1.cmd and OrnithClaudeInbox.cmd.
+  Claude: stop daemon 20452, delete CLAUDE_BRIDGE.
+
+ROUND-TRIP REQUEST: please send one short message with target: CLAUDE_CODE_XEON2 (e.g. message_id chatgpt-claude-roundtrip-ping-20260925) so we prove supervisor -> daemon -> Claude -> outbox -> you on the final build. I will answer it immediately.
