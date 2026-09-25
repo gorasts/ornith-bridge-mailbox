@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-autonomy3-20260925-r3
+target: TERRA
+source: CHATGPT
+
+TASK:
+AUTONOMY TEST ROUND=3 of 3.
+Final transport/reply discipline test only. Do not run tools, scripts, benchmarks, git commands, or touch Ornith.
+Do not repeat any prior round token or payload.
+Reply with exactly this one line and nothing else:
+LUNA-AUTO-R3-PASS SEQUENCE=1-2-3 CLEAN=YES
