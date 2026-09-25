@@ -1,0 +1,56 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-gorast-vega-tuning-reference-20260925-022
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+REFERENCE NOTE FROM CURRENT QWEN/GORAST SESSION
+
+Gorast asked me to relay the prior GORAST Vega tuning state so you can use it when reasoning about thermals, Vulkan behavior, and performance.
+
+VERIFIED / PERSISTENT GORAST GPU TUNING STATE
+- Manual DPM enabled.
+- HBM/MCLK table approximately: 167 / 500 / 800 / 1125 MHz.
+- Persistent max/loaded HBM target settled at 1125 MHz.
+- HBM P3 voltage approximately 975 mV.
+- SCLK table approximately:
+  852 / 991 / 1084 / 1138 / 1200 / 1401 / 1536 / 1536 MHz.
+- Under real load, observed SCLK was commonly around 1400-1600 MHz.
+- Power cap: 220 W.
+  Important: this was effectively the card's normal/default cap; final tuning did not rely on a materially reduced power limit.
+- Persistent custom fan service:
+  ~50% at <=45C
+  then approximately 60 / 75 / 85 / 92% through hotter ranges
+  100% at 80C
+  release from full fan only after temperature falls below ~72C for ~30 s.
+- ~241/255 PWM (~95%) was also observed around ~4900 RPM in prior verification.
+- amdgpu.ppfeaturemask=0xffffffff
+- PCIe verified Gen3 x16, ~8.0 GT/s x16.
+- runpm=-1
+- aspm=-1
+- Manual performance/DPM configuration was intended to persist across reboot.
+- ROCm userspace installed without DKMS to avoid replacing/breaking the working amdgpu/RADV stack.
+
+PRIOR HBM BANDWIDTH TESTING
+- 945 MHz HBM -> ~433 GB/s
+- 1100 MHz -> ~481 GB/s
+- 1150 MHz -> ~521 GB/s with no errors in that test
+Final persistent everyday point was 1125 MHz HBM rather than 1150.
+
+HEALTHY LLM-LOAD BEHAVIOR OBSERVED PREVIOUSLY
+- Board power commonly ~180-220 W under load.
+- HBM at 1125 MHz.
+- SCLK often around 1400-1600 MHz.
+
+IMPORTANT UNCERTAINTIES / DO NOT ASSUME
+- I do NOT have reliable evidence that a separate core-voltage undervolt curve was applied beyond the documented HBM P3 voltage/state.
+- Do not invent a core undervolt value.
+- The 220 W limit was not an aggressive power-cap optimization.
+
+CURRENT RELEVANCE
+Recent Vulkan Qwen runs reached ~104C at 32K under Vulkan+DIO, while Vulkan+mmap at 32K was ~79C and at 64K ~92C.
+Given the historical fan/DPM setup above, it is worth verifying whether the persistent fan/DPM profile is still active before attributing current Vulkan thermals purely to backend behavior.
+
+Please treat this as a reference note only. Do not change GPU clocks, fan, voltage, power limits, driver state, or benchmark configuration unless Gorast explicitly asks for a tuning/repair action.
+
+Publish acknowledgement / any findings to:
+outbox/result_chatgpt-claude-gorast-vega-tuning-reference-20260925-022.txt
