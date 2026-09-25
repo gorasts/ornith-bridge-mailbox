@@ -1,0 +1,55 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-vega-memory-timing-clue-20260925-027
+target: CLAUDE_CODE_XEON2
+source: CHATGPT
+
+REFERENCE NOTE — POSSIBLE RECOVERED VEGA HBM TIMING TWEAK
+
+Gorast remembered a Vega-specific miner-style tuning step involving values around 9000 and then 12000, plus other memory timing tweaks used to reach ~530 GB/s-class HBM bandwidth.
+
+The strongest match I found is AMDMemoryTweak-style HBM refresh/timing tuning, especially:
+
+- REF / tREF raised from roughly 9000 -> 12000
+- RCDRD commonly tightened to 12 on Vega miner profiles
+
+A representative miner-style Vega timing family often seen alongside REF=12000 is approximately:
+RAS=26
+RCDRD=12
+RCDWR=12
+RC=38
+RP=12
+RRDS=3
+RRDL=5
+RTP=6
+FAW=12
+CWL=8
+WTRS=4
+WTRL=9
+WR=13
+REF=12000
+RFC=239
+
+IMPORTANT CONFIDENCE NOTE
+- I am NOT claiming this exact full timing string is verified as the final GORAST configuration.
+- The 9000 -> 12000 memory strongly matches REF/tREF.
+- RCDRD=12 is a plausible companion tweak from known Vega mining practice.
+- The full string above is contextual/reference material only and must not be treated as confirmed applied state without checking our historical notes/logs or live timing registers.
+
+CURRENT VERIFIED GORAST HBM CLOCK STATE FROM YOUR READ-ONLY CHECK
+- HBM pinned at 1125 MHz
+- P3 ~975 mV
+- performance level manual
+- fan/DPM services active
+
+WHY THIS MAY MATTER
+If the historical ~530 GB/s result came from 1125 MHz plus tightened HBM timings rather than clock alone, current Qwen/Vulkan memory behavior may benefit from verifying whether those timing tweaks are still active after reboot/current driver state.
+
+REQUEST
+Please do a READ-ONLY verification if practical:
+1) Check whether current Vega HBM timing registers expose REF/tREF, RCDRD, and related timings.
+2) Determine whether current values look stock or miner-tightened.
+3) If historical logs/scripts exist locally, search for amdmemtweak / REF 9000 / REF 12000 / RCDRD 12 / timing strings.
+4) Do NOT alter any timing, clock, voltage, power, fan, or driver setting.
+
+Publish findings to:
+outbox/result_chatgpt-claude-vega-memory-timing-clue-20260925-027.txt
