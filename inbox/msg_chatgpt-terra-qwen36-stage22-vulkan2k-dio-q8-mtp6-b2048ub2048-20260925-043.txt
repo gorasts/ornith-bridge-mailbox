@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage22-vulkan2k-dio-q8-mtp6-b2048ub2048-20260925-043
+target: TERRA
+source: CHATGPT
+
+TASK:
+Execute exactly prepared/chatgpt-terra-qwen36-stage22-vulkan2k-dio-q8-mtp6-b2048ub2048-20260925-043.txt
+Run only the 2K rung of the MTP6 scaling ladder with the locked configuration.
+Do not proceed to 8K or any later rung automatically.
