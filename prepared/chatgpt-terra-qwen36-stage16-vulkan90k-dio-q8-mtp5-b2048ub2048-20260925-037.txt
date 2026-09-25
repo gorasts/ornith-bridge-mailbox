@@ -1,0 +1,166 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage16-vulkan90k-dio-q8-mtp5-b2048ub2048-20260925-037
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+ETA=50-70 minutes.
+
+PURPOSE
+Single supervisor-controlled Stage 16.
+Test whether MTP5 can improve on the new 90K B/UB=2048/2048 MTP4 winner.
+Do not run any later stage automatically.
+
+STAGE 15 CURRENT WINNER
+Backend=Vulkan
+Load mode=dio
+N_CPU_MOE=33
+B=2048
+UB=2048
+MTP=4
+KV=q8_0/q8_0
+PROMPT=90000
+PREDICTED=512
+PP90K=197.966
+TG512=15.496
+WALL_S=487.645
+MTP_ACCEPTANCE=403/430 (93.721%)
+MEAN_DRAFT_LEN=1.94
+VRAM_MIN_FREE=885.9 MiB
+GTT_PEAK=10913.6 MiB
+MAX_JUNCTION=109C
+MAX_MEMORY_TEMP=69C
+viewer=SEPARATE; Ctrl+C verified
+no fatal faults
+
+IMPORTANT FINDING
+Changing ONLY B/UB from 1280/1024 to 2048/2048 at MTP4 changed:
+PP +28.092 tok/s
+TG +4.136 tok/s
+acceptance +31.392 percentage points
+mean draft +0.32
+wall -87.185 s
+Therefore B/UB strongly interacts with MTP behavior on this configuration.
+
+COMPARE ALSO TO STAGE13 MTP3 B1280/UB1024
+PP90K=167.199
+TG512=13.115
+MTP_ACCEPTANCE=81.166%
+WALL_S=577.291
+
+LOCKED SCIENTIFIC CONFIG
+Use exactly Stage 15:
+same Vulkan binary/model/backend/load mode/N_CPU_MOE/B2048/UB2048/Q8 KV/threads/FA/server context/corpus/hash/prompt construction/viewer/telemetry/cleanup.
+
+CHANGE ONLY
+--spec-draft-n-max 4 -> 5
+Keep --spec-draft-n-min 1.
+
+RULES
+- Exactly one benchmark arm.
+- No hidden retries.
+- No ROCm/ASUS/RPC.
+- No placement/B/UB/KV/load-mode/thread/FA/context changes.
+- Prompt exactly 90000; predicted exactly 512.
+- NO software temperature abort threshold.
+- Do NOT disable/modify GPU/driver/SMU hardware thermal protections.
+- Allow natural throttling.
+- Stop only for actual GPU/device/kernel fault, reset, device lost, hang, loss of control, or hardware/driver shutdown.
+- If MTP5 cannot allocate, report exact failure and stop; no fallback.
+- Leave Ornith inactive after cleanup.
+
+LIVE VIEWER — HARD GATE
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+Use the proven separate XEON2 PowerShell Start-Process method from Stage15.
+Verify PID/title/parentage and Ctrl+C before inference.
+Never use the ChatGPT/Codex embedded terminal panel.
+
+TELEMETRY
+Sample once per second:
+VRAM used/free
+GTT used
+GPU edge/junction/memory temp
+GPU utilization
+host RSS/RAM
+SCLK/MCLK/power if exposed
+HBM state if readable
+thermal-throttle evidence
+
+MEASURE
+PP90K
+TG512
+wall/load time
+MTP generated/accepted/acceptance
+mean draft length
+VRAM load/min-free
+GTT baseline/load/prefill/generation/peak
+host RSS/RAM
+max edge/junction/memory temp
+fault scan
+prompt fingerprint
+
+COMPARE DIRECTLY TO STAGE15 MTP4
+DELTA_PP_MTP5_VS_MTP4
+DELTA_TG_MTP5_VS_MTP4
+DELTA_WALL_MTP5_VS_MTP4
+DELTA_ACCEPTANCE_MTP5_VS_MTP4
+DELTA_MEAN_DRAFT_MTP5_VS_MTP4
+DELTA_VRAM_MIN_FREE_MTP5_VS_MTP4
+DELTA_GTT_MTP5_VS_MTP4
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage16-vulkan90k-dio-q8-mtp5-b2048ub2048-20260925-037.txt
+
+Required:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage16-vulkan90k-dio-q8-mtp5-b2048ub2048-20260925-037
+source: TERRA
+state: COMPLETE | FAILURE | SAFE_ABORT
+AUTONOMOUS_COMPLETION=
+BACKEND=vulkan
+LOAD_MODE=dio
+MTP_DEPTH=5
+KV_K=q8_0
+KV_V=q8_0
+PROMPT_N=90000
+PREDICTED_N=512
+N_CPU_MOE=33
+B=2048
+UB=2048
+PP90K=
+TG512=
+WALL_S=
+LOAD_TIME_S=
+MTP_ACCEPTANCE=
+MEAN_DRAFT_LEN=
+VRAM_LOAD_FREE=
+VRAM_MIN_FREE=
+GTT_BASELINE=
+GTT_LOAD=
+GTT_PREFILL_PEAK=
+GTT_GENERATION=
+GTT_PEAK=
+HOST_RSS=
+HOST_RAM_MAX_USED=
+MAX_EDGE_TEMP_C=
+MAX_JUNCTION_TEMP_C=
+MAX_MEMORY_TEMP_C=
+THERMAL_THROTTLE_EVIDENCE=
+FAULT_SCAN=
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_WINDOW=
+LIVE_VIEWER_PID=
+LIVE_VIEWER_TITLE=
+LIVE_VIEWER_CTRL_C_WIRED=
+LIVE_VIEWER_PARENTAGE_CHECK=
+DELTA_PP_MTP5_VS_MTP4=
+DELTA_TG_MTP5_VS_MTP4=
+DELTA_WALL_MTP5_VS_MTP4=
+DELTA_ACCEPTANCE_MTP5_VS_MTP4=
+DELTA_MEAN_DRAFT_MTP5_VS_MTP4=
+DELTA_VRAM_MIN_FREE_MTP5_VS_MTP4=
+DELTA_GTT_MTP5_VS_MTP4=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
