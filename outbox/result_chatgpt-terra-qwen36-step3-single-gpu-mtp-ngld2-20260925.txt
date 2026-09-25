@@ -1,0 +1,35 @@
+STATE=FAILURE
+MESSAGE_ID=chatgpt-terra-qwen36-step3-single-gpu-mtp-ngld2-20260925
+SINGLE_GPU_GORAST_ONLY=YES
+ASUS_USED=NO
+RPC_USED=NO
+N_CPU_MOE=33
+PROMPT_N=2048
+PROMPT_SHA256=d3ecffe6cfb86c694693bbfdd7d19e55ff06461e7a8a6909274d513cd7085f57
+
+MTP1_STEP2_BASELINE: PP=255.24689403913752 TG=20.42610371312189; 2048/512; stable, no GPU/kernel fault.
+MTP3: PASS; PP=257.7628076209689 TG=18.533428411150947; wall=35.55487325700233s; prompt/predicted=2048/512; draft generated/accepted=497/345; acceptance=69.4165%; stable-load VRAM used/free=8286441472/286715904 bytes; inference peak used/min free=8563380224/9777152 bytes; max temp=54C; max utilization=100%; faults=none.
+MTP4: FAILURE; stable-load VRAM used/free=8352223232/220934144 bytes; max sampled temp=57C; inference did not complete. The server aborted while processing the request and the client got RemoteDisconnected; kernel monitor reported no GPU/kernel fault signature. Exact log evidence: 0.18.502.312 E ROCm error: out of memory | 0.18.502.316 E   current device: 0, in function alloc at /opt/testmodels/prism-llama-mtp/ggml/src/ggml-cuda/ggml-cuda.cu:509 | /opt/testmodels/prism-llama-mtp/build-hip/bin/libggml-base.so.0(ggml_abort+0x15b)[0x754cfab1995b].
+WINNER_BEFORE_NGLD2: MTP3 (only valid completed MTP3/MTP4 arm; TG 18.5334 tok/s).
+WINNER_PLUS_NGLD2: MTP3+NGLD2 completed; PP=260.00620815604435 TG=16.539327867608733; wall=38.8107203049949s; prompt/predicted=2048/512; draft generated/accepted=555/326; acceptance=58.7387%; stable-load VRAM used/free=8285360128/287797248 bytes; inference peak used/min free=8560873472/12283904 bytes; max temp=58C; max utilization=100%; faults=none.
+FINAL_FASTEST_STABLE: MTP1 Step 2 baseline (TG=20.42610371312189 tok/s).
+MEAN_DRAFT_LENGTH: Not emitted by runtime for any completed arm; MTP3/MTP4 target draft max was 3/4 and NGLD2 used MTP3.
+
+EXACT BASE SERVER FLAGS
+env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama-mtp/build-hip/bin /opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device ROCm0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 2048 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 3 or 4 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+For the MTP3 winner NGLD2 control, same base command with --spec-draft-n-max 3 and only -ngld 2 appended.
+
+CONTROL_DEVIATION
+MTP4 server aborted during inference. The runner did not stop before starting the winner-only MTP3+NGLD2 arm; that arm completed before cleanup. This violated the prepared instruction to stop the entire step on a server crash. No further test was run. The result is therefore marked FAILURE despite the completed MTP3 and NGLD2 measurements.
+
+CLEANUP
+QWEN_SERVER_AND_CLIENT=STOPPED
+ORNITH_RESTORED=YES
+THERMAL_ABORT_C=105
+KERNEL_GPU_FAULTS=NONE
+SINGLE_GPU_GORAST_ONLY=YES
+ASUS_USED=NO
+RPC_USED=NO
+N_CPU_MOE=33
+ORNITH_RESTORED=YES
+CAMPAIGN_COMPLETE=YES
