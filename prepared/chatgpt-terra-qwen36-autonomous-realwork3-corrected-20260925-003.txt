@@ -1,0 +1,140 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-corrected-20260925-003
+state: PREPARED_NOT_SENT
+target: TERRA
+source: CHATGPT
+
+GOAL
+Complete the SAME 3-stage Qwen3.6 real-work optimization as the prior job. The prior job recovered the exact corpus successfully but Stage 1 never loaded the model because the server invocation omitted "-m MODEL". This packet corrects ONLY that operational launch defect. No scientific benchmark parameter changes are authorized.
+
+RECOVERED CORPUS — MUST VERIFY, DO NOT RECONSTRUCT
+SOURCE=/home/ubuntu/realwork-01.md
+DEST=/tmp/realwork-01.md
+REQUIRED_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+Before benchmarking, verify DEST exists and has exactly this SHA256. If missing, copy byte-for-byte from SOURCE only if SOURCE matches this SHA256, then verify DEST. No other corpus allowed.
+
+MODEL
+/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+
+SERVER
+/opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server
+
+BENCH_SCRIPT
+/home/ubuntu/realwork_bench.py
+
+SCOPE / SAFETY
+- GORAST single GPU only.
+- NO ASUS. NO RPC.
+- NO GPU reset, PCI rebind, driver reload, clock/voltage/fan/power modification.
+- Thermal abort = 85 C.
+- Exactly THREE benchmark arms maximum. One launch per arm. NO hidden retry.
+- MTP1 only.
+- Do NOT test --n-cpu-moe 32.
+- Do NOT add -ngld.
+- Ornith is expected inactive; verify and leave inactive throughout and at end.
+- On ROCm/kernel GPU fault: stop entire job immediately, clean Qwen processes, report FAILURE.
+- On user-space OOM only: arm INVALID; continue only if process cleanup succeeds and GPU health remains normal.
+- Operational fixes such as quoting/PID handling/log parsing are allowed. Scientific parameters are not.
+
+PREFLIGHT
+1. GPU temperature <70 C.
+2. MODEL readable; SERVER executable; BENCH_SCRIPT readable.
+3. Verify corpus exact SHA256.
+4. Port 8099 free.
+5. Record baseline VRAM + temperature.
+6. Inspect BENCH_SCRIPT usage read-only so it is invoked correctly for exactly 20480 prompt tokens and 512 predicted tokens using /tmp/realwork-01.md. Do not alter the script or prompt methodology.
+
+CRITICAL MODEL-LOAD REQUIREMENT
+Every server arm MUST include exactly:
+-m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+
+Do NOT launch llama-server without -m.
+After launch, positively verify from server log/API that the named Qwen model is loaded before invoking /tokenize or benchmark script.
+If server is in router mode / model not loaded, treat that as an operational launch failure, terminate that server, and FAIL THE JOB. Do not retry.
+
+EXACT SERVER TEMPLATE
+env LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64:/opt/testmodels/prism-llama-mtp/build-hip/bin /opt/testmodels/prism-llama-mtp/build-hip/bin/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device ROCm0 -ngl 99 --n-cpu-moe <ARM_VALUE> -c 131072 -b <ARM_B> -ub <ARM_UB> -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode mmap --spec-type draft-mtp --spec-draft-n-max 1 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+
+BENCHMARK METHOD
+- Use BENCH_SCRIPT with /tmp/realwork-01.md.
+- Exactly PROMPT_N=20480 and PREDICTED_N=512 every valid arm.
+- Same prompt content/order every arm.
+- temperature=0 / deterministic request as supported by existing script.
+- Capture prompt/token fingerprint; prove equality across valid arms.
+- Capture PP20K tok/s, TG512 tok/s, wall time, prompt/predicted counts.
+- Capture MTP generated/accepted/acceptance if emitted.
+- Capture stable-load VRAM used/free and inference peak/min free.
+- Capture GPU temp/max util/power/clocks where available.
+- Scan server/kernel logs for GPU/ROCm faults.
+- Valid = exact 20480 prompt + exact 512 predicted + no fatal GPU/kernel fault.
+
+STAGE 1
+N_CPU_MOE=34
+B=2048
+UB=2048
+Run exactly once.
+
+STAGE 2
+N_CPU_MOE=33
+B=1024
+UB=1024
+Run exactly once.
+
+STAGE 3 DECISION
+Choose faster valid arm by TG512.
+If TG512 differs by <2%, choose higher PP20K.
+If only one valid, choose it.
+If neither valid, STOP; no Stage 3.
+
+STAGE 3
+If Stage 1 wins:
+  N_CPU_MOE=34 B=2048 UB=1024
+If Stage 2 wins:
+  N_CPU_MOE=33 B=2048 UB=1024
+Run exactly once.
+
+FINAL WINNER
+Stability mandatory.
+Highest TG512 wins.
+If TG512 values are within 2%, higher PP20K wins.
+Report deltas versus the parent arm used to derive Stage 3.
+
+CLEANUP
+Always stop Qwen server/client processes.
+Leave Ornith inactive: ORNITH_RESTORED=NO.
+Leave verified /tmp/realwork-01.md in place for reproducibility.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-autonomous-realwork3-corrected-20260925-003.txt
+
+Required fields:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-autonomous-realwork3-corrected-20260925-003
+source: TERRA
+state: COMPLETE | SAFE_ABORT | FAILURE
+
+AUTONOMOUS_COMPLETION=
+CORPUS_SHA256=
+MODEL_LOADED_EACH_ARM=
+STAGES_ATTEMPTED=
+STAGES_VALID=
+PROMPT_N=20480
+PREDICTED_N=512
+PROMPT_FINGERPRINT=
+ORNITH_RESTORED=NO
+ASUS_USED=NO
+RPC_USED=NO
+GPU_RESET=NO
+
+STAGE | N_CPU_MOE | B | UB | PP20K | TG512 | WALL_S | VRAM_LOAD_FREE | VRAM_MIN_FREE | MAX_TEMP_C | MTP_ACCEPTANCE | STABLE
+
+STAGE3_DECISION=
+FINAL_WINNER=
+WINNER_REASON=
+DELTA_TG_VS_PARENT=
+DELTA_PP_VS_PARENT=
+FAULT_SCAN=
+CLEANUP=
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
