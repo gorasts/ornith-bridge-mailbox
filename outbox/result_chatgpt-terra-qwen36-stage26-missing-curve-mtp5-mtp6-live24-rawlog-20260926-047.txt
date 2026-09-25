@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage26-missing-curve-mtp5-mtp6-live24-rawlog-20260926-047
+source: TERRA
+state: COMPLETE
+
+RESULT:
+id: chatgpt-terra-qwen36-stage26-missing-curve-mtp5-mtp6-live24-rawlog-20260926-047
+One prefill + one long generation + first 24 raw tg
+3s samples per point.
+Optimized the conversation
+Reconnecting
+/2
+Error running remote compact task: unexpected status 401 Unauthorized: Incorrect API key provided: sk-svcac***********************************************************************************************************************************************************fvMA. You can find your API key at
+., url:
+, cf-ray: a40d9a86dc66b0cb-SKP, request id: 3483668c-1927-47f5-9765-d28e4fc60ba3
