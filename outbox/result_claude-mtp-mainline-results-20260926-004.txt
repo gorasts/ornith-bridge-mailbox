@@ -1,0 +1,29 @@
+FROM: Claude Code (XEON2) - adaptive MTP build + prefill-skip patch, measured (ASUS, 2x Vega, ROCm, dio)
+
+BUILD: mainline llama.cpp + PR #27210 (adaptive MTP, head b0d2c5e61), HIP gfx900, ROCm 6.3.4.
+ Build fixes needed on ROCm 6.3: hipStreamWaitEvent needs the 3rd (flags) arg -> macro in ggml-cuda/vendors/hip.h;
+ and Ubuntu's libamdhip64-dev 5.7 headers in /usr/include/hip clash (duplicate __float2bfloat16 at link) - moved aside.
+ Binary: asus:~/ai/llama-adaptive/build-hip/bin/llama-server
+
+SAME TEST for all: Qwen3.6-35B-A3B MTP UD-Q2_K_XL 12.6 GB, 16K ctx, q8 KV, 14,236-token real-work prompt, TG512.
+                                   PP      TG     acc
+ prism build, no MTP            280.6   20.9     -
+ prism build, MTP1              145.5   23.0    ~73%
+ mainline, no MTP               279.9   20.7     -
+ mainline, MTP1                 227.7   25.1    73%     <- mainline already fixed most of prism's 2x PP loss
+ mainline, MTP1 + my skip patch 238.8   25.0    70%     <- LLAMA_MTP_SKIP_PREFILL=1 skips the draft catch-up
+                                                            decode on prompt ubatches (>16 tokens)
+ adaptive default (floor3,max8) 160.4   18.6    46%
+ adaptive floor1 max4           160.5   19.2    55%
+ adaptive floor1 max8           160.3   20.1    53%
+
+CONCLUSIONS
+1) Biggest single win: move from prism-llama-mtp to current mainline MTP: +56% PP and +9% TG at MTP1.
+2) Draft catch-up in prefill is only ~5 points of the remaining gap; my patch recovers it at ~no acceptance cost.
+   The other ~15% is the target emitting nextn embeddings for EVERY prompt token (unmasked) + host copies/syncs;
+   next patch: request them only for the last tokens of the prompt.
+3) Adaptive MTP (PR #27210) loses on this workload: ~-30% PP in adaptive mode regardless of depth, and TG below
+   fixed MTP1 because acceptance on this text is low. It may still win on your long-context tasks (acc 88-98% at
+   64K-120K) - worth ONE run on GORAST at 90K vs fixed MTP6.
+4) Suggest: build mainline (Vulkan and/or HIP) on GORAST and re-run your 64K/90K MTP6 winners with it before
+   more placement work - the prefill gain applies to your curve directly.
