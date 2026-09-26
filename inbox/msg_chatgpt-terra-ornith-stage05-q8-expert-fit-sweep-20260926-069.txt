@@ -1,0 +1,159 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-ornith-stage05-q8-expert-fit-sweep-20260926-069
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+After Stage04 completes, explore the alternative Ornith memory trade:
+use Q8 KV to free VRAM, then bring expert layers back from CPU to GPU one step at a time.
+
+DEPENDENCY
+Run after:
+chatgpt-terra-ornith-stage04-dio-ncm39-64k-longgen-20260926-068
+Do not duplicate Stage04.
+
+BASE CONFIG
+Use production Ornith model/draft/server/backend and all production settings, except:
+- load mode = dio
+- KV = q8_0/q8_0
+- B=2048
+- UB=2048
+- MTP depth=1
+- c=131072
+- ngl=99
+- ngld=2
+- threads 14/14
+- FA on
+- temp1.0
+- all other production runtime flags preserved.
+
+MODEL:
+/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+DRAFT:
+/opt/ornith-models/shisa12k-mtp-standalone.gguf
+SERVER:
+/opt/llama/llama-b10919/llama-server
+DEVICE:
+MESA_VK_DEVICE_SELECT=1002:687f
+
+SMALL-TEST-FIRST POLICY
+This stage is intentionally a short fit/performance sweep, not final sustained validation.
+Use the same deterministic 64K real-work prompt.
+For each candidate:
+- fresh server / clean slot
+- one 64K prefill
+- short decode only, n_predict=128
+- record PP, short TG, MTP acceptance if available
+- record VRAM free after load and after request
+- no hidden retries
+This short generation is allowed ONLY for fit/headroom screening; do not treat TG128 as final sustained TG.
+
+CANDIDATE ORDER
+Start:
+1) N_CPU_MOE=38 with Q8 KV
+
+If it fits cleanly, use measured VRAM headroom to try bringing experts back to GPU:
+2) N_CPU_MOE=37
+3) N_CPU_MOE=36
+Continue downward one step at a time ONLY while there is clearly enough headroom to make the next attempt reasonable.
+Do not blindly continue into obviously impossible configurations.
+
+HEADROOM RULE
+Estimate actual per-expert VRAM cost from successful adjacent Ornith Q8 placements when available.
+Before attempting the next lower N_CPU_MOE, require:
+measured free VRAM >= estimated next expert cost + 100 MB safety margin.
+If no adjacent measurement exists yet, use a conservative 350 MB threshold for the first step.
+Stop at first fit/load/inference failure or when headroom rule says stop.
+
+IMPORTANT
+Do not alter:
+- B/UB
+- MTP depth
+- NGL/NGLD
+- threads
+- FA
+- load mode
+during this sweep.
+Only variables are:
+- KV fixed Q8/Q8 for all sweep candidates
+- N_CPU_MOE placement stepped 38 -> 37 -> 36... as permitted by measured headroom.
+
+ZERO INTERFERENCE
+No controller heartbeat, /health polling, status polling, telemetry loop, extra HTTP requests, Harness calls, or remote compaction during each inference.
+Passive viewer only.
+Telemetry before prefill and after request.
+
+FINAL VALIDATION
+After the short sweep:
+- identify the LOWEST N_CPU_MOE (most experts on GPU) that fit cleanly with at least 100 MB post-request VRAM headroom.
+- Run ONE full scientific validation on that winner:
+  prompt 65536
+  n_predict=4096
+  fresh server/clean slot
+  one prefill
+  one uninterrupted generation
+  full tg_3s capture
+If no Q8 candidate fits, skip long validation and report failure.
+
+REPORT EACH SHORT CANDIDATE
+N_CPU_MOE
+FIT
+PP_TOK_S
+SHORT_TG128_TOK_S
+MTP_ACCEPTANCE if available
+VRAM_LOAD_FREE
+VRAM_POST_REQUEST_FREE
+GTT_LOAD_USED
+GTT_POST_REQUEST_USED
+FAULT
+EXACT_COMMAND
+
+REPORT FINAL WINNER
+WINNER_N_CPU_MOE=
+FINAL_PP_TOK_S=
+FINAL_FULL_TG4096_TOK_S=
+FINAL_MTP_ACCEPTANCE=
+FINAL_VRAM_LOAD_FREE=
+FINAL_VRAM_AFTER_GENERATION_FREE=
+FINAL_LIVE_TG_STATS=
+PROMPT_FINGERPRINT=
+RAW_LOG_PATH=
+
+COMPARE
+Compare final Q8 winner against:
+- Stage04 NCM39 F16 if Stage04 completed
+- production mmap NCM38 F16 only as historical unless exact same methodology exists.
+Clearly separate short-screen metrics from full TG4096 metrics.
+
+VIEWER
+Use separate XEON2 PowerShell passive viewer.
+Never use -InputFormat.
+LIVE_VIEWER_CTRL_C_WIRED=YES.
+
+RUN POLICY
+No software temperature abort.
+Hardware/driver protections untouched.
+Stop on actual device lost/reset/hang.
+No production service definition changes.
+Preserve prior production service state.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-ornith-stage05-q8-expert-fit-sweep-20260926-069.txt
+
+Required summary:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-ornith-stage05-q8-expert-fit-sweep-20260926-069
+source: TERRA
+state: COMPLETE | FAILURE
+MODEL=ORNITH
+LOAD_MODE=DIO
+KV=Q8_0/Q8_0
+BATCH=2048
+UBATCH=2048
+MTP_DEPTH=1
+SMALL_TEST_FIRST=YES
+EXPERTS_BROUGHT_BACK_ADAPTIVELY=YES
+FINAL_LONG_VALIDATION=YES_IF_A_CANDIDATE_FITS
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
