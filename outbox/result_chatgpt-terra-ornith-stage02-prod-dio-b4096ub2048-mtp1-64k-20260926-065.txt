@@ -1,0 +1,51 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-ornith-stage02-prod-dio-b4096ub2048-mtp1-64k-20260926-065
+source: TERRA
+state: FAILURE
+MODEL=ORNITH
+PROMPT_N=65536
+LOAD_MODE=DIO
+BATCH=4096
+UBATCH=2048
+MTP_DEPTH=1
+STAGE01_FIT_CONFIRMED=NO
+SKIPPED_BECAUSE_STAGE01_DID_NOT_FIT=YES
+
+STAGE01_DEPENDENCY
+Stage01 failed while loading the server; inference did not start or complete. Its recorded error was `RuntimeError: server exited during load: 1`; the raw log matched `device lost`. The kernel fault detail was unavailable (`dmesg: read kernel buffer failed: Operation not permitted`). Therefore the Stage01 prerequisite for this conditional benchmark was not met.
+
+PRODUCTION_COMMAND_DISCOVERED=See Stage01 result; not independently re-discovered for this skipped job
+TEST_EXACT_COMMAND=NOT_RUN_CONDITION_FAILED
+FIT_RESULT=NOT_TESTED
+PP_TOK_S=NA
+FULL_GENERATION_TG_TOK_S=NA
+LIVE_TG_SAMPLE_COUNT=0
+LIVE_TG_MEAN=NA
+LIVE_TG_MEDIAN=NA
+LIVE_TG_MIN=NA
+LIVE_TG_MAX=NA
+LIVE_TG_P10=NA
+LIVE_TG_P90=NA
+LIVE_TG_SAMPLE_STDDEV=NA
+LIVE_TG_CV_PERCENT=NA
+MTP_ACCEPTED_DRAFTED=NA
+MTP_ACCEPTANCE_PERCENT=NA
+MEAN_DRAFT_LEN=NA
+PREDICTED_TOKENS_ACTUAL=0
+PROMPT_FINGERPRINT=NOT_GENERATED
+VRAM_LOAD_FREE=NA
+VRAM_AFTER_GENERATION_FREE=NA
+GTT_LOAD_USED=NA
+GTT_AFTER_GENERATION_USED=NA
+FAULT_SCAN=Stage01 raw log matched `device lost`; kernel detail unavailable due permission
+RAW_LOG_PATH=No Stage02 log created
+EXACT_SERVER_COMMAND=Not launched; conditional prerequisite failed
+LIVE_VIEWER_WINDOW=NOT_LAUNCHED
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+PRODUCTION_SERVICE=Left unchanged; no Stage02 server/inference was started
+
+No Stage02 scientific attempt was made, and no production service definition was modified.
