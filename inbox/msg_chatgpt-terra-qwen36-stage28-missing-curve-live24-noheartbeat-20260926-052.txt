@@ -1,0 +1,168 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage28-missing-curve-live24-noheartbeat-20260926-052
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+Run the six missing Qwen3.6 MTP5/MTP6 curve points in one sequential batch using the corrected live TPS methodology.
+
+CRITICAL OBSERVATION
+The user observed MTP/TPS drops coinciding with the prior controller heartbeat.
+Therefore during generation there must be ZERO periodic heartbeat, ZERO controller polling, ZERO HTTP health checks, ZERO progress injections, and ZERO active telemetry loops.
+The separate viewer must be passive-only and may only tail the canonical raw llama-server log.
+
+SCIENTIFIC GOAL
+Measure average behavior across the realistic 16K-120K range.
+Do not optimize around one exact context.
+
+LOCKED CONFIG
+Backend=Vulkan / RADV VEGA10 / Vulkan0
+Load mode=dio
+Model=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+Server=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+-ngl 99
+--n-cpu-moe 33
+-c 131072
+-b 2048
+-ub 2048
+-t 14
+-tb 14
+-fa on
+--cache-type-k q8_0
+--cache-type-v q8_0
+--load-mode dio
+--spec-type draft-mtp
+--spec-draft-n-min 1
+--no-spec-draft-backend-sampling
+--fit off
+-np 1
+--prio 2
+--poll 100
+--cpu-strict 1
+--jinja
+--no-webui
+temperature=0
+ignore_eos=true
+cache_prompt=false
+Same deterministic real-work corpus and exact prompt construction used by prior ladder tests.
+
+RUN ALL SIX SEQUENTIALLY
+1) MTP5  PROMPT_N=65536
+2) MTP6  PROMPT_N=16384
+3) MTP6  PROMPT_N=32768
+4) MTP6  PROMPT_N=65536
+5) MTP6  PROMPT_N=90000
+6) MTP6  PROMPT_N=120000
+
+CORRECT METHOD FOR EACH POINT
+- Fresh llama-server process / clean slot for each point.
+- Exactly ONE prefill for that point.
+- Exactly ONE uninterrupted continuous generation.
+- Use n_predict=2560 minimum; use 4096 from the start if needed to ensure at least 24 three-second windows.
+- Collect the FIRST 24 UNIQUE live rolling TPS observations from raw llama-server print_timing lines containing tg_3s.
+- Uniqueness key = n_gen.
+- If duplicate lines with the same n_gen appear, count that n_gen exactly once.
+- Do NOT issue a second request/prefill to obtain more samples.
+- Do NOT perform repeated full TG512 runs.
+- Preserve the 24 selected samples in chronological order, including low/high values.
+- Also record aggregate full-generation TG and final MTP accepted/drafted counts.
+
+ZERO-INTERFERENCE GENERATION WINDOW
+From the moment generation starts until it ends:
+- NO periodic heartbeat output from benchmark controller.
+- NO 30s/60s elapsed messages.
+- NO HTTP /health polling.
+- NO HTTP status polling.
+- NO extra requests to llama-server.
+- NO active telemetry polling loops.
+- NO DeepSeek Harness calls.
+- NO remote compaction.
+- NO progress messages injected into the raw log.
+- NO active viewer commands.
+- Viewer must ONLY passively tail/follow the already-written canonical logfile.
+- Any system telemetry should be measured before prefill and after generation only for this batch.
+
+RAW LOGGING
+- Capture llama-server stdout+stderr to exactly ONE canonical per-point raw logfile.
+- Parser reads that canonical logfile once.
+- Do not tee the same lines back into the canonical source in a way that duplicates them.
+- Viewer may tail the canonical logfile passively.
+
+SAMPLE VALIDATION
+For each point require:
+RAW_TG3S_LINES >= 24
+UNIQUE_N_GEN_TG3S_COUNT >= 24
+LIVE_TG_SAMPLE_COUNT=24
+DUPLICATE_TG3S_LINES_DETECTED=<count>
+DUPLICATES_EXCLUDED=YES
+
+Output exact 24 rows:
+sample,n_gen,tg_3s
+
+COMPUTE PER POINT
+PP_TOK_S
+FULL_GENERATION_TG_TOK_S
+LIVE_TG_MEAN
+LIVE_TG_MEDIAN
+LIVE_TG_MIN
+LIVE_TG_MAX
+LIVE_TG_P10
+LIVE_TG_P90
+LIVE_TG_SAMPLE_STDDEV
+LIVE_TG_CV_PERCENT
+MTP_ACCEPTED_DRAFTED
+MTP_ACCEPTANCE_PERCENT
+MEAN_DRAFT_LEN
+PREDICTED_TOKENS_ACTUAL
+PROMPT_FINGERPRINT
+VRAM_LOAD_FREE
+VRAM_MIN_FREE
+GTT_PEAK
+MAX_EDGE_TEMP_C
+MAX_JUNCTION_TEMP_C
+MAX_MEMORY_TEMP_C
+FAULT_SCAN
+RAW_LOG_PATH
+
+RUN POLICY
+- User explicitly requested all six missing points in one go.
+- Sequential only, never parallel.
+- No hidden retries.
+- No scientific parameter changes.
+- No software temperature abort.
+- Hardware/driver/SMU thermal protections unchanged.
+- On true GPU reset/device-lost/kernel fault/hang, record it and stop/continue only after verified clean recovery.
+- Ornith production untouched/inactive.
+
+LIVE VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_CTRL_C_WIRED=YES
+Use the proven XEON2 Start-Process PowerShell viewer.
+Viewer is PASSIVE-ONLY during generation.
+Verify PID/title/parentage before inference.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage28-missing-curve-live24-noheartbeat-20260926-052.txt
+
+Required top summary:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage28-missing-curve-live24-noheartbeat-20260926-052
+source: TERRA
+state: COMPLETE | PARTIAL | FAILURE
+AUTONOMOUS_COMPLETION=YES
+POINTS_TARGET=6
+POINTS_COMPLETED=
+POINTS_FAILED=
+SAMPLING_METHOD=ONE_PREFILL_ONE_LONG_GENERATION_24_UNIQUE_N_GEN_TG3S_SAMPLES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+PASSIVE_VIEWER_ONLY=YES
+RAW_SERVER_LOG_CAPTURE=YES
+DUPLICATES_DEDUPED_BY_N_GEN=YES
+NO_24X_PREFILLS=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+LATER_STAGES_RUN=NO
+
+Do not mark COMPLETE unless actual scientific metrics for the six points are present.
