@@ -1,0 +1,149 @@
+QWEN3.6 MASTER BENCHMARK REPORT — 2026-09-26
+
+Hardware/software
+- GORAST, single AMD Vega 8GB HBM2
+- Vulkan/RADV
+- Server: /opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+- Model: /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+- c=131072, threads 14/14, FA on, KV q8_0/q8_0, DIO
+- Real-work corpus SHA256: 7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+
+Current validation method
+- fresh server
+- one deterministic prefill
+- one uninterrupted TG4096 generation
+- passive separate XEON2 PowerShell viewer
+- no heartbeat, status polling, health polling, telemetry loop, extra HTTP calls, Harness calls, or remote compaction during generation
+- all unique n_gen/tg_3s lines retained
+
+Important earlier tests
+20K:
+- ROCm+DIO 95.371 PP / 18.781 TG
+- ROCm+mmap 89.099 / 19.149
+- Vulkan+DIO 290.481 / 20.535
+
+32K load:
+- Vulkan+DIO NCM33 MTP1 Q8: 265.187 PP / 18.370 TG
+- Vulkan+mmap: 166.763 / 18.615
+=> DIO huge PP win.
+
+64K older mmap:
+- MTP1 139.465 / 16.693 / acc98.06%
+- MTP2 139.951 / 17.968 / acc96.552%
+- MTP3 138.338 / 16.623 / acc93.781%
+
+64K KV:
+- mmap MTP2 Q8: 139.951 / 17.968
+- mmap MTP2 F16: 152.620 / 19.232
+- DIO F16 MTP2: 223.465 / 19.101
+
+90K B1280/UB1024:
+- MTP2 156.792 / 12.404 / acc96.552%
+- MTP3 167.199 / 13.115 / acc81.166%
+- MTP4 169.874 / 11.360 / acc62.329%
+
+90K B2048/UB2048:
+- MTP4 197.966 / 15.496 / acc93.721%
+- MTP5 199.430 / 16.306 / acc97.241%
+
+MTP5 ladder, older screening:
+- 2K: 502.064 / 28.025 / acc77.927%
+- 8K: 470.404 / 24.130 / acc68.576%
+- 16K: 423.956 / 25.387 / acc84.286%
+- 32K: 347.591 / 14.484 / acc48.327%
+- 90K: 199.430 / 16.306 / acc97.241%
+- 120K: 161.474 / 13.610 / acc96.355%
+
+MTP6 early:
+- 2K: 498.250 / 27.407 / acc73.628%
+- 8K: 471.008 / 22.713 / acc61.941%
+
+Invalid/failed rounds
+- Stage24: accidentally repeated many full 32K TG512 runs; canceled; method discarded.
+- Stage25: collector failed before inference.
+- Stage26/27: remote compaction 401; no scientific data.
+- Stage28: PowerShell viewer preflight failed before inference; no scientific data.
+
+Stage29 clean TG4096 curve, B2048/UB2048, NCM33
+- 64K MTP5: PP247.853 / TG15.630 / acc75.543%
+- 16K MTP6: PP423.182 / TG18.714 / acc56.137%
+- 32K MTP6: PP346.300 / TG14.775 / acc49.045%
+- 64K MTP6: PP240.433 / TG18.345 / acc87.851%
+- 90K MTP6: PP196.526 / TG17.030 / acc97.464%
+- 120K MTP6: PP161.168 / TG14.335 / acc98.315%
+
+Long-generation lesson:
+- 16K first-24 tg_3s mean 26.33 but full TG only 18.71.
+- 32K first-24 mean 18.35 but full TG only 14.78.
+- 64K+ much more stable.
+
+Stage30 90K MTP7
+- PP199.206 / TG13.193 / acc72.201%
+- MTP7 loses badly vs MTP6; rejected.
+
+90K B/UB tests, MTP6 NCM33
+- 2048/2048: PP196.526 / TG17.030
+- 4096/2048: PP198.694 / TG16.948
+- 2048/4096: PP198.748 / TG16.973
+- 4096/4096: PP147.081 / TG16.878
+=> 4096/2048 preferred; 4096/4096 rejected.
+
+32K B4096/UB2048:
+- PP349.872 / TG14.863 / acc49.045%
+=> batch does not fix 32K acceptance hole.
+
+64K B4096/UB4096:
+- PP209.379 / TG18.195
+=> PP collapse; reject 4096/4096.
+
+64K expert placement, MTP6 B4096/UB2048
+- NCM35: PP241.372 / TG18.105 / VRAM free1346.8 MB
+- NCM34: PP239.747 / TG18.242 / VRAM free1045.8 MB
+- NCM33: PP247.897 / TG18.351 / VRAM free770.8 MB
+- NCM32: PP242.118 / TG18.539 / VRAM free495.7 MB
+- NCM31 run1: PP247.811 / TG18.662 / VRAM free220.9 MB
+- NCM31 repeat: PP245.794 / TG18.683 / VRAM free220.9 MB
+=> NCM31 confirmed best fit.
+=> Each extra GPU expert costs roughly 275 MB; NCM30 likely will not fit with current config.
+
+Current best practical Qwen config
+- Vulkan/RADV + DIO
+- ngl99
+- n-cpu-moe31
+- c131072
+- b4096 / ub2048
+- t14 / tb14
+- FA on
+- q8_0/q8_0 KV
+- MTP6
+- np1, prio2, poll100, cpu-strict1, jinja, no-webui
+Validated 64K:
+- PP about 246-248 tok/s
+- sustained TG4096 about 18.67 tok/s
+- acceptance 87.691%
+- VRAM free about 221 MB
+
+Claude ASUS cross-finding already received
+- On Claude's ROCm run, Qwen3.6 16K no MTP: PP280.6 / TG20.9
+- MTP1: PP145.5 / TG23.0
+=> strong reason to investigate skipping MTP work during prefill, then enabling it only for decode.
+- Claude 32K task: MTP1 20.8 TG acc75%; MTP3 13.5 acc43%; MTP6 9.5 acc28%.
+=> adaptive depth should consider actual acceptance/task as well as context.
+
+Future software path
+- investigate whether Prism performs draft/MTP work during prefill
+- skip MTP during prefill if possible
+- enable/request speculative depth only for decode
+- port request-level speculative.n_max/adaptive logic from suitable llama.cpp forks if practical
+
+Ornith queued now
+Stage01:
+- Ornith production placement/KV/MTP preserved
+- 64K
+- change mmap -> DIO
+- B4096/UB2048
+- TG4096
+- exact-fit only, no silent fallback
+
+Stage02 conditional:
+- if Stage01 fits, same config but MTP1
