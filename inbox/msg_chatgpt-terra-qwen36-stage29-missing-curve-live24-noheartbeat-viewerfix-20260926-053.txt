@@ -1,0 +1,160 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage29-missing-curve-live24-noheartbeat-viewerfix-20260926-053
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+Retry Stage28 after LOCAL XEON2 PowerShell viewer-preflight failure.
+Stage28 did NOT start inference and touched no model/GORAST state.
+Only fix the viewer launcher. Scientific benchmark methodology/config is unchanged.
+
+VIEWER LAUNCH FIX — MANDATORY
+The previous preflight failed with a PowerShell InputFormat error.
+DO NOT use -InputFormat anywhere.
+DO NOT use PowerShell parameter combinations that require InputFormat.
+Use the previously proven separate visible process launcher pattern:
+  Start-Process powershell.exe -ArgumentList '-NoExit', <command/script args>
+or an equivalent already-proven Start-Process powershell.exe -NoExit invocation.
+Viewer must be a separate visible XEON2 PowerShell window.
+Viewer must PASSIVELY tail the canonical raw server log only.
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_CTRL_C_WIRED=YES
+Verify PID/title/parentage before inference.
+If viewer preflight cannot pass, publish FAILURE and do not start inference.
+
+SCIENTIFIC GOAL
+Measure average performance across 16K-120K.
+Run all six missing points sequentially.
+
+LOCKED CONFIG
+Backend=Vulkan / RADV VEGA10 / Vulkan0
+Load mode=dio
+Model=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+Server=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+-ngl 99
+--n-cpu-moe 33
+-c 131072
+-b 2048
+-ub 2048
+-t 14
+-tb 14
+-fa on
+--cache-type-k q8_0
+--cache-type-v q8_0
+--load-mode dio
+--spec-type draft-mtp
+--spec-draft-n-min 1
+--no-spec-draft-backend-sampling
+--fit off
+-np 1
+--prio 2
+--poll 100
+--cpu-strict 1
+--jinja
+--no-webui
+temperature=0
+ignore_eos=true
+cache_prompt=false
+Same deterministic real-work corpus/prompt construction.
+
+RUN ALL SIX
+1) MTP5 PROMPT_N=65536
+2) MTP6 PROMPT_N=16384
+3) MTP6 PROMPT_N=32768
+4) MTP6 PROMPT_N=65536
+5) MTP6 PROMPT_N=90000
+6) MTP6 PROMPT_N=120000
+
+MEASUREMENT METHOD — EACH POINT
+- fresh server/clean slot
+- ONE prefill only
+- ONE uninterrupted long generation only
+- n_predict=2560 minimum; 4096 from start allowed if needed for >=24 windows
+- collect FIRST 24 UNIQUE raw llama-server tg_3s observations
+- uniqueness key=n_gen
+- duplicate log copies at same n_gen count once
+- no repeated requests/prefills for samples
+- retain all first 24 unique values chronologically
+- record aggregate full-generation TG and final MTP accepted/drafted counts
+
+ZERO INTERFERENCE DURING GENERATION
+NO controller heartbeat
+NO elapsed-time heartbeat messages
+NO /health polling
+NO status polling
+NO extra llama-server HTTP requests
+NO active telemetry polling loops
+NO DeepSeek Harness calls
+NO remote compaction
+NO progress injection into server log
+Viewer PASSIVE tail only.
+Telemetry before prefill and after generation only.
+
+RAW LOG
+Exactly one canonical per-point llama-server stdout+stderr logfile.
+Parser reads canonical file once.
+Viewer passively tails same file.
+
+PER POINT REQUIRE
+RAW_TG3S_LINES>=24
+UNIQUE_N_GEN_TG3S_COUNT>=24
+LIVE_TG_SAMPLE_COUNT=24
+DUPLICATES_EXCLUDED=YES
+Output 24 rows: sample,n_gen,tg_3s
+
+COMPUTE
+PP_TOK_S
+FULL_GENERATION_TG_TOK_S
+LIVE_TG_MEAN
+LIVE_TG_MEDIAN
+LIVE_TG_MIN
+LIVE_TG_MAX
+LIVE_TG_P10
+LIVE_TG_P90
+LIVE_TG_SAMPLE_STDDEV
+LIVE_TG_CV_PERCENT
+MTP_ACCEPTED_DRAFTED
+MTP_ACCEPTANCE_PERCENT
+MEAN_DRAFT_LEN
+PREDICTED_TOKENS_ACTUAL
+PROMPT_FINGERPRINT
+VRAM_LOAD_FREE
+VRAM_MIN_FREE
+GTT_PEAK
+MAX_EDGE_TEMP_C
+MAX_JUNCTION_TEMP_C
+MAX_MEMORY_TEMP_C
+FAULT_SCAN
+RAW_LOG_PATH
+
+RUN POLICY
+Sequential only.
+No hidden retries.
+No scientific changes.
+No software temperature abort.
+Hardware/driver protections unchanged.
+Ornith untouched/inactive.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage29-missing-curve-live24-noheartbeat-viewerfix-20260926-053.txt
+
+Required summary:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage29-missing-curve-live24-noheartbeat-viewerfix-20260926-053
+source: TERRA
+state: COMPLETE | PARTIAL | FAILURE
+POINTS_TARGET=6
+POINTS_COMPLETED=
+POINTS_FAILED=
+VIEWER_INPUTFORMAT_USED=NO
+LIVE_VIEWER_WINDOW=SEPARATE
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+SAMPLING_METHOD=ONE_PREFILL_ONE_LONG_GENERATION_24_UNIQUE_N_GEN_TG3S_SAMPLES
+NO_24X_PREFILLS=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+
+Do not mark COMPLETE unless actual scientific metrics are present.
