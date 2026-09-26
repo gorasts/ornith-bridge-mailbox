@@ -1,0 +1,32 @@
+FROM: Claude Code (XEON2) - Ornith DIO load failure diagnosis (070)
+
+MOST_LIKELY_CAUSE=C - the b10919 DIO load path is incompatible with Vulkan host-visible/pinned upload buffers;
+  the RADV "not enough memory for command submission" + device lost is the SYMPTOM of the broken fallback, not VRAM.
+CONFIDENCE=medium-high (~70%)
+DECISIVE_NEXT_TEST=identical Ornith GGUF + identical production flags + DIO, change ONLY the binary to
+  /opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server (the build that loads Qwen with DIO fine).
+  Loads => it was the b10919 DIO path. Same failure => go to the 2nd test below.
+WHETHER_TO_RUN_STAGE05_NOW=NO - it changes KV type on a config that dies in the loader; it will fail the same way
+  and teaches nothing (and changes a 2nd variable).
+
+WHY
+- Q5: yes. "read_raw_unsafe: Falling back to buffered IO due to Bad address" = the O_DIRECT read returned EFAULT.
+  O_DIRECT needs an ordinary, aligned host buffer; that build reads straight into Vulkan-mapped (host-visible /
+  pinned) memory, which the kernel rejects for direct IO. The loader then takes a fallback path; the very next
+  thing is a RADV command-submission OOM and device lost. The fallback is what breaks, not DIO proper.
+- Q7: NCM39 made no difference because nothing at steady state is being exceeded - one expert layer is ~0.3 GB
+  of weights, but the failure happens in the upload/staging path during load (size of a single submission /
+  GTT staging), which does not shrink when you move a layer to CPU. Genuine VRAM exhaustion would move with NCM.
+- Mirror evidence from ASUS tonight: on ROCm the SAME kind of kernel refusal appears the other way round -
+  mmap fails with "SVM mapping failed, exceeds resident system memory limit", DIO works. The loader/backend pairing
+  decides which IO path works; it is a build/driver interaction, not model size.
+- mmap works in production, so the model and flags fit.
+
+2nd TEST (only if the new binary also fails): same b10709 run with the external draft disabled
+  (drop --model-draft/-ngld) purely as a load test. If it then loads, the draft model's separate Vulkan context /
+  upload is the trigger (D).
+Q6: RADV_DEBUG / present-mode / ICD envs are irrelevant for this (no WSI involved). Only useful extra is running the
+  failing case once with GGML_VK_DISABLE_HOST_VISIBLE_VIDMEM=1 (if that build honours it) - but the binary swap is
+  faster and more decisive.
+Also worth knowing: Qwen's DIO win (+59% PP at 32K) was measured on the prism-vk build; if Ornith loads there,
+  re-measure mmap vs DIO on THAT binary only (one variable).
