@@ -1,0 +1,438 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage36-ncm33-32-34-64k-longgen-20260926-060
+source: TERRA
+state: COMPLETE
+POINTS_TARGET=3
+POINTS_COMPLETED=3
+POINTS_FAILED=0
+PROMPT_N=65536
+MTP_DEPTH=6
+BATCH=4096
+UBATCH=2048
+NCM_POINTS=33,32,34
+N_PREDICT=4096
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+LIVE_VIEWER_WINDOW=SEPARATE
+LIVE_VIEWER_TITLE=Qwen Stage36 Passive Raw Log Viewer 060
+LIVE_VIEWER_PID=3512
+LIVE_VIEWER_PARENTAGE_CHECK=PASS
+LIVE_VIEWER_CTRL_C_WIRED=YES
+SAMPLING_METHOD=THREE_SEQUENTIAL_FRESH_SERVER_ONE_PREFILL_ONE_GENERATION_EACH
+
+POINT_1
+N_CPU_MOE=33
+STATE=COMPLETE
+PP_TOK_S=247.89741958175898
+FULL_GENERATION_TG_TOK_S=18.351330289501174
+LIVE_TG_SAMPLE_COUNT=70
+LIVE_TG_MEAN=18.351
+LIVE_TG_MEDIAN=18.515
+LIVE_TG_MIN=14.09
+LIVE_TG_MAX=20.74
+LIVE_TG_P10=16.43
+LIVE_TG_P90=20.02
+LIVE_TG_SAMPLE_STDDEV=1.4112
+LIVE_TG_CV_PERCENT=7.6899
+MTP_ACCEPTED_DRAFTED=3442/3918
+MTP_ACCEPTANCE_PERCENT=87.8509
+MEAN_DRAFT_LEN=1.8785
+PREDICTED_TOKENS_ACTUAL=4096
+PROMPT_FINGERPRINT=b80b37955cc5d33dce87d7525f324623a97e1a8a880ad92a683281b9678b19bc
+VRAM_LOAD_FREE=770.8
+VRAM_AFTER_GENERATION_FREE=760.2
+GTT_LOAD_USED=10800.6
+GTT_AFTER_GENERATION_USED=10907.6
+FAULT_SCAN=RAW_LOG=NO_MATCH; KERNEL=UNAVAILABLE:dmesg: read kernel buffer failed: Operation not permitted
+RAW_LOG_PATH=/tmp/terra-qwen36-stage36-ncm33-32-34-64k-longgen-20260926-060/llama-server.raw.log
+RAW_LOG_OFFSET_START=0
+RAW_LOG_OFFSET_END=12136
+EXACT_SERVER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 4096 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 6 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+ERROR=None
+PROMPT_TOKENS_ACTUAL=65536
+DUPLICATE_TG3S_LINES_DETECTED=0
+DUPLICATES_EXCLUDED=YES
+EXACT_SERVER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 33 -c 131072 -b 4096 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 6 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+STARTUP_LOG_BEGIN
+0.00.052.544 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.052.675 I srv          init: The UI is disabled
+0.00.052.677 I srv          init: Use --ui/--no-ui (or deprecated --webui/--no-webui) to enable/disable
+0.00.052.762 W srv  llama_server: -----------------
+0.00.052.764 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.052.764 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.052.765 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.052.765 W srv  llama_server: -----------------
+0.00.054.029 I srv    load_model: loading model '/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf'
+0.01.711.441 W read_raw_unsafe: Falling back to buffered IO due to Bad address
+0.07.465.671 W cmn  set_process_: failed to set process priority 2 : Permission denied (13)
+0.07.465.677 I cmn          init: llama threadpool init, n_threads = 14
+0.07.588.885 I common_speculative_init_result: creating MTP draft context against the target model '/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf'
+0.07.825.792 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 131072, kv_unified = 'false'
+0.07.882.517 I srv          init: chat template supports preserving reasoning, consider enabling it via --reasoning-preserve
+0.07.882.552 I srv  llama_server: model loaded
+0.07.882.556 I srv  llama_server: listening on http://127.0.0.1:8099
+STARTUP_LOG_END
+SAMPLES_BEGIN
+sample,n_gen,tg_3s
+1,101,18.91
+2,146,14.63
+3,202,17.25
+4,255,17.4
+5,311,18.17
+6,370,19.1
+7,436,19.86
+8,491,18.3
+9,542,16.54
+10,609,20.52
+11,668,19.54
+12,728,18.21
+13,786,19.15
+14,841,18.07
+15,900,19.21
+16,968,20.74
+17,1024,17.95
+18,1084,18.99
+19,1146,20.4
+20,1209,20.4
+21,1272,19.08
+22,1329,18.78
+23,1385,18.06
+24,1436,16.29
+25,1491,17.69
+26,1551,19.1
+27,1605,17.44
+28,1660,17.38
+29,1709,16.15
+30,1774,19.78
+31,1832,19.0
+32,1892,19.96
+33,1947,18.26
+34,2009,20.45
+35,2064,17.82
+36,2122,18.48
+37,2184,20.02
+38,2246,18.66
+39,2299,17.19
+40,2358,18.92
+41,2419,19.72
+42,2481,19.57
+43,2539,18.95
+44,2594,17.74
+45,2639,14.09
+46,2691,16.47
+47,2742,16.43
+48,2793,16.17
+49,2851,18.58
+50,2904,17.05
+51,2962,18.39
+52,3023,19.43
+53,3086,20.48
+54,3147,18.2
+55,3204,17.93
+56,3264,19.34
+57,3327,20.38
+58,3380,16.99
+59,3432,16.65
+60,3489,18.55
+61,3547,17.42
+62,3605,18.67
+63,3658,17.28
+64,3718,19.05
+65,3781,19.72
+66,3830,15.53
+67,3887,18.41
+68,3945,18.61
+69,4005,19.31
+70,4059,17.61
+SAMPLES_END
+DELTA_PP_VS_POINT1_ABS=0.0
+DELTA_PP_VS_POINT1_PERCENT=0.0
+DELTA_FULL_GENERATION_TG_VS_POINT1_ABS=0.0
+DELTA_FULL_GENERATION_TG_VS_POINT1_PERCENT=0.0
+DELTA_MTP_ACCEPTANCE_VS_POINT1_ABS=0.0
+DELTA_MTP_ACCEPTANCE_VS_POINT1_PERCENT=0.0
+DELTA_MEAN_DRAFT_LEN_VS_POINT1_ABS=0.0
+DELTA_MEAN_DRAFT_LEN_VS_POINT1_PERCENT=0.0
+DELTA_VRAM_LOAD_FREE_VS_POINT1_ABS=0.0
+DELTA_VRAM_LOAD_FREE_VS_POINT1_PERCENT=0.0
+DELTA_LIVE_TG_CV_VS_POINT1_ABS=0.0
+DELTA_LIVE_TG_CV_VS_POINT1_PERCENT=0.0
+
+POINT_2
+N_CPU_MOE=32
+STATE=COMPLETE
+PP_TOK_S=242.11750794348325
+FULL_GENERATION_TG_TOK_S=18.539097058778363
+LIVE_TG_SAMPLE_COUNT=69
+LIVE_TG_MEAN=18.5288
+LIVE_TG_MEDIAN=18.66
+LIVE_TG_MIN=14.24
+LIVE_TG_MAX=21.16
+LIVE_TG_P10=16.75
+LIVE_TG_P90=20.32
+LIVE_TG_SAMPLE_STDDEV=1.4172
+LIVE_TG_CV_PERCENT=7.6485
+MTP_ACCEPTED_DRAFTED=3441/3924
+MTP_ACCEPTANCE_PERCENT=87.6911
+MEAN_DRAFT_LEN=1.8769
+PREDICTED_TOKENS_ACTUAL=4096
+PROMPT_FINGERPRINT=b80b37955cc5d33dce87d7525f324623a97e1a8a880ad92a683281b9678b19bc
+VRAM_LOAD_FREE=495.7
+VRAM_AFTER_GENERATION_FREE=485.2
+GTT_LOAD_USED=10526.6
+GTT_AFTER_GENERATION_USED=10633.7
+FAULT_SCAN=RAW_LOG=NO_MATCH; KERNEL=UNAVAILABLE:dmesg: read kernel buffer failed: Operation not permitted
+RAW_LOG_PATH=/tmp/terra-qwen36-stage36-ncm33-32-34-64k-longgen-20260926-060/llama-server.raw.log
+RAW_LOG_OFFSET_START=12136
+RAW_LOG_OFFSET_END=24169
+EXACT_SERVER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 32 -c 131072 -b 4096 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 6 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+ERROR=None
+PROMPT_TOKENS_ACTUAL=65536
+DUPLICATE_TG3S_LINES_DETECTED=0
+DUPLICATES_EXCLUDED=YES
+EXACT_SERVER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 32 -c 131072 -b 4096 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 6 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+STARTUP_LOG_BEGIN
+0.00.053.993 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.054.120 I srv          init: The UI is disabled
+0.00.054.121 I srv          init: Use --ui/--no-ui (or deprecated --webui/--no-webui) to enable/disable
+0.00.054.206 W srv  llama_server: -----------------
+0.00.054.209 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.054.209 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.054.209 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.054.210 W srv  llama_server: -----------------
+0.00.055.493 I srv    load_model: loading model '/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf'
+0.01.700.893 W read_raw_unsafe: Falling back to buffered IO due to Bad address
+0.05.624.960 W cmn  set_process_: failed to set process priority 2 : Permission denied (13)
+0.05.624.967 I cmn          init: llama threadpool init, n_threads = 14
+0.05.717.306 I common_speculative_init_result: creating MTP draft context against the target model '/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf'
+0.05.937.755 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 131072, kv_unified = 'false'
+0.05.993.744 I srv          init: chat template supports preserving reasoning, consider enabling it via --reasoning-preserve
+0.05.993.778 I srv  llama_server: model loaded
+0.05.993.782 I srv  llama_server: listening on http://127.0.0.1:8099
+STARTUP_LOG_END
+SAMPLES_BEGIN
+sample,n_gen,tg_3s
+1,101,18.98
+2,146,14.71
+3,202,17.24
+4,255,17.51
+5,318,19.18
+6,384,20.32
+7,441,19.0
+8,499,17.55
+9,561,19.08
+10,623,20.62
+11,684,18.87
+12,742,19.14
+13,803,18.13
+14,862,19.61
+15,920,18.82
+16,982,20.37
+17,1043,18.65
+18,1105,20.15
+19,1167,19.7
+20,1235,20.45
+21,1298,19.04
+22,1352,17.92
+23,1414,19.03
+24,1467,17.14
+25,1524,18.18
+26,1585,20.0
+27,1634,16.0
+28,1693,17.94
+29,1751,19.12
+30,1804,17.44
+31,1874,21.16
+32,1933,17.7
+33,2002,20.93
+34,2057,18.1
+35,2116,19.44
+36,2177,20.29
+37,2239,18.66
+38,2294,17.97
+39,2358,19.44
+40,2419,19.89
+41,2481,20.23
+42,2539,18.42
+43,2594,17.69
+44,2639,14.24
+45,2691,17.19
+46,2749,17.78
+47,2800,16.63
+48,2858,18.95
+49,2911,17.58
+50,2967,18.58
+51,3030,20.21
+52,3093,20.34
+53,3147,17.97
+54,3211,19.18
+55,3271,19.88
+56,3334,19.72
+57,3387,16.65
+58,3439,16.76
+59,3492,16.8
+60,3547,17.87
+61,3605,18.42
+62,3658,17.28
+63,3718,19.2
+64,3776,18.21
+65,3828,16.75
+66,3880,16.72
+67,3939,18.92
+68,4000,19.97
+69,4052,16.88
+SAMPLES_END
+DELTA_PP_VS_POINT1_ABS=-5.779912
+DELTA_PP_VS_POINT1_PERCENT=-2.331574
+DELTA_FULL_GENERATION_TG_VS_POINT1_ABS=0.187767
+DELTA_FULL_GENERATION_TG_VS_POINT1_PERCENT=1.023178
+DELTA_MTP_ACCEPTANCE_VS_POINT1_ABS=-0.1598
+DELTA_MTP_ACCEPTANCE_VS_POINT1_PERCENT=-0.181899
+DELTA_MEAN_DRAFT_LEN_VS_POINT1_ABS=-0.0016
+DELTA_MEAN_DRAFT_LEN_VS_POINT1_PERCENT=-0.085174
+DELTA_VRAM_LOAD_FREE_VS_POINT1_ABS=-275.1
+DELTA_VRAM_LOAD_FREE_VS_POINT1_PERCENT=-35.690192
+DELTA_LIVE_TG_CV_VS_POINT1_ABS=-0.0414
+DELTA_LIVE_TG_CV_VS_POINT1_PERCENT=-0.538369
+
+POINT_3
+N_CPU_MOE=34
+STATE=COMPLETE
+PP_TOK_S=239.74658797357569
+FULL_GENERATION_TG_TOK_S=18.24229073777156
+LIVE_TG_SAMPLE_COUNT=71
+LIVE_TG_MEAN=18.2428
+LIVE_TG_MEDIAN=18.44
+LIVE_TG_MIN=13.26
+LIVE_TG_MAX=20.72
+LIVE_TG_P10=16.48
+LIVE_TG_P90=19.85
+LIVE_TG_SAMPLE_STDDEV=1.4305
+LIVE_TG_CV_PERCENT=7.8415
+MTP_ACCEPTED_DRAFTED=3443/3912
+MTP_ACCEPTANCE_PERCENT=88.0112
+MEAN_DRAFT_LEN=1.8801
+PREDICTED_TOKENS_ACTUAL=4096
+PROMPT_FINGERPRINT=b80b37955cc5d33dce87d7525f324623a97e1a8a880ad92a683281b9678b19bc
+VRAM_LOAD_FREE=1045.8
+VRAM_AFTER_GENERATION_FREE=1035.3
+GTT_LOAD_USED=11074.6
+GTT_AFTER_GENERATION_USED=11181.5
+FAULT_SCAN=RAW_LOG=NO_MATCH; KERNEL=UNAVAILABLE:dmesg: read kernel buffer failed: Operation not permitted
+RAW_LOG_PATH=/tmp/terra-qwen36-stage36-ncm33-32-34-64k-longgen-20260926-060/llama-server.raw.log
+RAW_LOG_OFFSET_START=24169
+RAW_LOG_OFFSET_END=36408
+EXACT_SERVER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 34 -c 131072 -b 4096 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 6 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+ERROR=None
+PROMPT_TOKENS_ACTUAL=65536
+DUPLICATE_TG3S_LINES_DETECTED=0
+DUPLICATES_EXCLUDED=YES
+EXACT_SERVER_COMMAND=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server -m /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf --host 127.0.0.1 --port 8099 --device Vulkan0 -ngl 99 --n-cpu-moe 34 -c 131072 -b 4096 -ub 2048 -t 14 -tb 14 -fa on --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio --spec-type draft-mtp --spec-draft-n-max 6 --spec-draft-n-min 1 --no-spec-draft-backend-sampling --fit off -np 1 --prio 2 --poll 100 --cpu-strict 1 --jinja --no-webui
+STARTUP_LOG_BEGIN
+0.00.053.762 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.053.890 I srv          init: The UI is disabled
+0.00.053.893 I srv          init: Use --ui/--no-ui (or deprecated --webui/--no-webui) to enable/disable
+0.00.053.979 W srv  llama_server: -----------------
+0.00.053.981 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.053.982 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.053.982 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.053.982 W srv  llama_server: -----------------
+0.00.055.198 I srv    load_model: loading model '/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf'
+0.01.742.974 W read_raw_unsafe: Falling back to buffered IO due to Bad address
+0.05.712.444 W cmn  set_process_: failed to set process priority 2 : Permission denied (13)
+0.05.712.450 I cmn          init: llama threadpool init, n_threads = 14
+0.05.811.556 I common_speculative_init_result: creating MTP draft context against the target model '/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf'
+0.06.052.449 I srv    load_model: initializing, n_slots = 1, n_ctx_slot = 131072, kv_unified = 'false'
+0.06.108.929 I srv          init: chat template supports preserving reasoning, consider enabling it via --reasoning-preserve
+0.06.108.962 I srv  llama_server: model loaded
+0.06.108.966 I srv  llama_server: listening on http://127.0.0.1:8099
+STARTUP_LOG_END
+SAMPLES_BEGIN
+sample,n_gen,tg_3s
+1,101,18.7
+2,146,14.69
+3,202,16.83
+4,260,17.44
+5,318,18.87
+6,377,19.07
+7,436,19.26
+8,491,17.51
+9,542,16.2
+10,602,19.61
+11,662,19.44
+12,721,17.81
+13,779,18.92
+14,834,17.96
+15,889,17.41
+16,948,18.42
+17,1009,19.64
+18,1064,17.65
+19,1125,19.76
+20,1188,20.72
+21,1245,18.45
+22,1305,19.86
+23,1359,17.69
+24,1414,17.94
+25,1467,17.37
+26,1524,18.41
+27,1585,19.85
+28,1634,16.05
+29,1691,18.49
+30,1744,17.47
+31,1797,16.91
+32,1860,20.34
+33,1915,17.64
+34,1974,18.72
+35,2037,20.42
+36,2088,16.43
+37,2150,19.74
+38,2211,19.15
+39,2262,16.73
+40,2318,18.56
+41,2379,19.84
+42,2440,19.73
+43,2500,19.29
+44,2560,19.33
+45,2613,16.93
+46,2655,13.26
+47,2711,17.74
+48,2762,16.48
+49,2817,17.46
+50,2875,18.67
+51,2930,17.54
+52,2988,18.81
+53,3051,20.08
+54,3105,17.35
+55,3168,20.11
+56,3223,17.57
+57,3285,19.85
+58,3343,18.39
+59,3401,18.3
+60,3453,16.73
+61,3512,19.07
+62,3564,16.84
+63,3625,19.24
+64,3679,17.32
+65,3739,19.26
+66,3800,19.58
+67,3851,15.74
+68,3908,18.83
+69,3965,18.44
+70,4026,19.55
+71,4076,15.78
+SAMPLES_END
+DELTA_PP_VS_POINT1_ABS=-8.150832
+DELTA_PP_VS_POINT1_PERCENT=-3.287986
+DELTA_FULL_GENERATION_TG_VS_POINT1_ABS=-0.10904
+DELTA_FULL_GENERATION_TG_VS_POINT1_PERCENT=-0.594178
+DELTA_MTP_ACCEPTANCE_VS_POINT1_ABS=0.1603
+DELTA_MTP_ACCEPTANCE_VS_POINT1_PERCENT=0.182468
+DELTA_MEAN_DRAFT_LEN_VS_POINT1_ABS=0.0016
+DELTA_MEAN_DRAFT_LEN_VS_POINT1_PERCENT=0.085174
+DELTA_VRAM_LOAD_FREE_VS_POINT1_ABS=275.0
+DELTA_VRAM_LOAD_FREE_VS_POINT1_PERCENT=35.677218
+DELTA_LIVE_TG_CV_VS_POINT1_ABS=0.1516
+DELTA_LIVE_TG_CV_VS_POINT1_PERCENT=1.971417
