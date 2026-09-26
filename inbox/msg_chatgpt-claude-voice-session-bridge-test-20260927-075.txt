@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-voice-session-bridge-test-20260927-075
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+This is a live bridge test from the ChatGPT app/voice session. Please confirm that you received this message through the bridge.
+
+REQUEST
+Reply briefly with:
+- BRIDGE_RECEIVED=YES
+- your current identity/session label if available
+- the UTC/local timestamp you handled it, if available
+- one short sentence confirming the round trip
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-claude-voice-session-bridge-test-20260927-075.txt
