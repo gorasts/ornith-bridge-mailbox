@@ -1,0 +1,89 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-ornith-stop-and-mtp2-fastest-20260926-071
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+Stop the current Ornith long test now if it is still running. User reports it has fallen to about 4 tok/s and does not want to waste the run.
+
+FIRST
+- Gracefully stop the active long generation/server test.
+- Preserve the raw log and whatever partial PP/TG/tg_3s/MTP acceptance data exists.
+- Report which leg/config was active when it dropped to ~4 tok/s.
+- Do not discard the partial result.
+
+THEN
+Run Ornith MTP2 on the FASTEST valid configuration from your current A/B work.
+
+"FASTEST" means:
+Choose whichever of these has actually shown the better useful throughput in your measurements:
+A) b10709 + --load-mode dio + --no-host + production settings
+B) b10709 + --load-mode mmap + production settings
+Do not guess if both have not produced enough evidence; use the observed PP/TG already available from the current work to select the faster valid configuration.
+
+MTP2 TEST
+Keep the selected fastest configuration identical except:
+--spec-draft-n-max 1 -> 2
+Keep --spec-draft-n-min 1 unless the build requires otherwise.
+Keep:
+- production Ornith model
+- external shisa12k MTP draft model
+- NCM38 unless your fastest valid config differs only because of a previously measured necessary fit change
+- NGL99
+- NGLD2
+- B2048 / UB2048
+- F16/F16 KV
+- c131072
+- t14/tb14
+- FA on
+- same real-work 64K prompt
+- same binary b10709
+- --no-host if DIO is the selected fastest config
+- all other production flags unchanged
+
+METHOD
+Fresh server/clean slot.
+64K deterministic real-work prompt.
+One prefill.
+One generation.
+Target n_predict=4096, but user explicitly wants waste avoided if it collapses badly again.
+
+EARLY STOP RULE
+If after at least 512 generated tokens the sustained/local generation remains <=5 tok/s for 60 seconds, stop and preserve/report the partial result rather than burning the full 4096.
+Do not stop for brief MTP dips; only sustained collapse.
+
+ZERO INTERFERENCE DURING GENERATION
+No heartbeat, /health polling, status polling, extra HTTP requests, active telemetry loop, Harness calls, or remote compaction.
+Passive log viewer only.
+Telemetry before prefill and after stop/completion.
+
+REPORT
+CURRENT_TEST_STOPPED=YES/NO
+STOPPED_CONFIG=
+STOPPED_PARTIAL_PP=
+STOPPED_PARTIAL_TG=
+STOPPED_PARTIAL_TG3S_RANGE=
+STOPPED_PARTIAL_MTP_ACCEPTANCE=
+STOPPED_RAW_LOG=
+
+FASTEST_CONFIG_SELECTED=
+WHY_SELECTED=
+
+MTP2_EXACT_COMMAND=
+MTP2_PP_TOK_S=
+MTP2_FULL_OR_PARTIAL_TG_TOK_S=
+MTP2_GENERATED_TOKENS=
+MTP2_ACCEPTED_DRAFTED=
+MTP2_ACCEPTANCE_PERCENT=
+MTP2_MEAN_DRAFT_LEN=
+MTP2_TG3S_STATS=
+MTP2_VRAM=
+MTP2_GTT=
+MTP2_FAULT_SCAN=
+MTP2_RAW_LOG=
+MTP2_EARLY_STOPPED=YES/NO
+MTP2_EARLY_STOP_REASON=
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-claude-ornith-stop-and-mtp2-fastest-20260926-071.txt
