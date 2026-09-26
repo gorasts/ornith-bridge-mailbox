@@ -1,0 +1,167 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage33-b2048-ub4096-mtp6-90k-longgen-20260926-057
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+Single follow-up requested by user.
+Test Qwen3.6 at 90K with MTP6 using B=2048 / UB=4096.
+Run AFTER all older pending TERRA work, especially Stage32.
+Do not interrupt Stage32.
+
+COMPARISON GOAL
+Compare against:
+A) Stage29 90K MTP6 B2048/UB2048 baseline
+B) Stage31 90K MTP6 B4096/UB2048
+Change only batch/ubatch as specified below.
+
+LOCKED CONFIG
+Backend=Vulkan / RADV VEGA10 / Vulkan0
+Load mode=dio
+Model=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+Server=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+-ngl 99
+--n-cpu-moe 33
+-c 131072
+-b 2048
+-ub 4096
+-t 14
+-tb 14
+-fa on
+--cache-type-k q8_0
+--cache-type-v q8_0
+--load-mode dio
+--spec-type draft-mtp
+--spec-draft-n-max 6
+--spec-draft-n-min 1
+--no-spec-draft-backend-sampling
+--fit off
+-np 1
+--prio 2
+--poll 100
+--cpu-strict 1
+--jinja
+--no-webui
+temperature=0
+ignore_eos=true
+cache_prompt=false
+
+IMPORTANT UB>B CHECK
+Do not silently alter requested -b 2048 -ub 4096.
+Capture exact server command and startup log.
+Report whether server:
+- accepts UB=4096 as-is,
+- clamps/effective-limits UB to B,
+- rejects configuration,
+- or reports some other effective value.
+If rejected at startup, publish FAILURE with exact error and do NOT retry/change parameters.
+
+PROMPT
+PROMPT_N=90000
+Use same deterministic real-work corpus/prompt construction as Stage29/31.
+Expected fingerprint:
+51d6ab03ef0dbf78ef1dc75ea3e6335c11877935dc54661bf54a2eb0edba92c1
+
+GENERATION
+ONE fresh server/clean slot.
+ONE prefill.
+ONE uninterrupted generation.
+n_predict=4096.
+Capture all unique n_gen/tg_3s lines.
+
+ZERO INTERFERENCE DURING GENERATION
+NO controller heartbeat
+NO elapsed-time heartbeat
+NO /health polling
+NO status polling
+NO extra llama-server HTTP requests
+NO active telemetry polling loop
+NO Harness calls
+NO remote compaction
+NO progress injection
+Passive viewer tail only.
+Telemetry before prefill and after generation only.
+
+VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_CTRL_C_WIRED=YES
+Use proven separate XEON2 PowerShell Start-Process path.
+DO NOT use -InputFormat.
+Viewer passively tails canonical raw server log only.
+
+REPORT
+PP_TOK_S
+FULL_GENERATION_TG_TOK_S
+LIVE_TG_SAMPLE_COUNT
+LIVE_TG_MEAN
+LIVE_TG_MEDIAN
+LIVE_TG_MIN
+LIVE_TG_MAX
+LIVE_TG_P10
+LIVE_TG_P90
+LIVE_TG_SAMPLE_STDDEV
+LIVE_TG_CV_PERCENT
+MTP_ACCEPTED_DRAFTED
+MTP_ACCEPTANCE_PERCENT
+MEAN_DRAFT_LEN
+PREDICTED_TOKENS_ACTUAL
+PROMPT_FINGERPRINT
+REQUESTED_BATCH=2048
+REQUESTED_UBATCH=4096
+EFFECTIVE_BATCH=
+EFFECTIVE_UBATCH=
+UB_GT_B_BEHAVIOR=
+VRAM_LOAD_FREE
+FAULT_SCAN
+RAW_LOG_PATH
+EXACT_SERVER_COMMAND
+Also include all raw chronological unique sample rows sample,n_gen,tg_3s.
+
+BASELINES
+Stage29 B2048/UB2048:
+PP=196.52620884657662
+FULL_TG=17.02988054106463
+MTP_ACCEPTANCE=97.4638
+MEAN_DRAFT_LEN=1.9746
+
+Stage31 B4096/UB2048:
+PP=198.69432966541464
+FULL_TG=16.947712156944473
+MTP_ACCEPTANCE=97.4638
+MEAN_DRAFT_LEN=1.9746
+
+Report deltas against both if the run starts successfully.
+
+RUN POLICY
+One run only.
+No hidden retries.
+No scientific parameter changes.
+No software temperature abort.
+Hardware/driver protections unchanged.
+Ornith untouched/inactive.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage33-b2048-ub4096-mtp6-90k-longgen-20260926-057.txt
+
+Required summary:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage33-b2048-ub4096-mtp6-90k-longgen-20260926-057
+source: TERRA
+state: COMPLETE | PARTIAL | FAILURE
+POINTS_TARGET=1
+POINTS_COMPLETED=
+POINTS_FAILED=
+PROMPT_N=90000
+MTP_DEPTH=6
+BATCH=2048
+UBATCH=4096
+N_PREDICT=4096
+UB_GT_B_BEHAVIOR=
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+
+Do not mark COMPLETE unless actual scientific metrics are present.
