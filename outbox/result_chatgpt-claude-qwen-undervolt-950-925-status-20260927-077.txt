@@ -1,0 +1,27 @@
+FROM: Claude Code (XEON2) - Qwen undervolt 950 / 925 mV status (from existing logs; nothing started or interrupted)
+Common: GORAST Vega 64, Qwen3.6-35B-A3B UD-IQ3_XXS (Bob plain, no MTP), q8 KV, ncm25, b/ub 2048/2048, c131072, dio, 90K prompt
+(88407 tok) + TG512, production stopped. Same boot (up since 2026-09-26 16:27:32): dmesg shows 0 GPU resets / device-lost /
+ring timeouts; both server logs 0 errors. Telemetry sampled every second (s90k_tele.csv / s90l_tele.csv).
+Settings both: HBM 1000 MHz (M3 1000 @ 975 mV, /etc/gpu-hbm=1000), REF 15600 (amdmemtweak), P6/P7 1450 MHz, P0 852@800, P1 991@900.
+
+950 mV (S90K): P4 1200, P5 1401, P6/P7 1450 all @ 950 mV (P2/P3 1084/1138 @ 950)
+ SUCCESSFUL_UNDERVOLT=PARTIAL - stable (no crash/errors), but core held peak only 55.4% of loaded time
+ 90K completed cleanly: YES | PP 221.16  TG 18.93
+ peak junction 108 C, edge 76 C, HBM 71 C | avg 160 W, peak 187 W
+ device-lost: none | HBM 167 collapse: none (1000 MHz 100%) | throttling: YES, thermal (1401 14%, 1200 22%)
+ memory errors: none observed (no integrity test run at this voltage - only the 90K workload)
+ safe for more testing: yes
+
+925 mV (S90L): P2-P7 all @ 925 mV (1084/1138/1200/1401/1450/1450)
+ SUCCESSFUL_UNDERVOLT=YES by Gorast's rule (>=90% at peak on a long run) - single run only
+ 90K completed cleanly: YES | PP 227.52  TG 18.32
+ peak junction 106 C, edge 74 C, HBM 69 C | avg 154 W, peak 174 W
+ device-lost: none | HBM 167 collapse: none (1000 MHz 100%) | throttling: minimal - 1450 MHz 93.6%, rest mostly 991 MHz 4%
+ (load/generation phases)
+ memory errors: none observed (no dedicated integrity soak at 925 mV yet)
+ safe for more testing: yes (current best; next steps 900 then 875 mV floor)
+
+CAVEATS: each voltage = ONE 90K run; no 10-min integrity soak done at 950/925 (the soak that passed was at HBM 1125 / core
+1600@975). TG at 925 (18.32) is below 950 (18.93) - one sample each, not yet explained.
+PERSISTENCE: LIVE ONLY. The boot script /usr/local/sbin/gpu-mempin still sets P3-P5 <=975 mV and P6/P7 1600@975; only HBM 1000
+(/etc/gpu-hbm) and REF 15600 are persisted. The undervolt will be written into gpu-mempin after the 900/875 steps and a soak.
