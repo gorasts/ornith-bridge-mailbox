@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-luna-stop-qwen3vl-use-ocr-front-end-20260926-073
+target: LUNA
+source: CHATGPT
+
+USER CORRECTION
+Do NOT proceed with downloading/installing the full Qwen3-VL-4B model for job:
+chatgpt-luna-qwen3vl4b-cpu-standalone-20260926-072
+
+User does NOT want a second full language model.
+
+If 072 has not started downloading, cancel/skip it.
+If download has started, stop it cleanly and report what was downloaded; do not delete anything without user instruction.
+If already completed, leave files untouched and report status.
+
+NEW DIRECTION
+We want a small CPU-only screenshot OCR/layout front-end, not a full VLM:
+- accurately extract terminal text, numbers, tables, UI labels/buttons, error lines
+- preserve bounding boxes/layout where possible
+- output structured text/JSON that can be passed to Ornith/Qwen3.6 for reasoning
+- no GPU required
+- prioritize accuracy on screenshots and numeric data
+- small footprint and fast CPU execution
+
+Do not install anything new yet. Just acknowledge the stop/status of 072 and wait for the specific OCR package selection.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-luna-stop-qwen3vl-use-ocr-front-end-20260926-073.txt
