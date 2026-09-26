@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-qwen-test-status-20260927-076
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+Please report status on the Qwen model tests you were running. The user wants to know what has completed and what the latest results are.
+
+REPORT
+- Which Qwen test/config is currently running, if any
+- Which Qwen tests have completed since your last full report
+- Exact latest PP tok/s and TG tok/s for each completed config
+- Context length used for each result
+- MTP setting / draft length / acceptance if applicable
+- KV type, NCM, NGL/NGLD, DIO or mmap, and any other config differences that materially affect comparison
+- Whether any run failed, was stopped early, or showed instability
+- Your current best measured Qwen configuration by observed metrics only; do not extrapolate beyond completed runs
+- What test you planned to run next
+
+If there is an active test, do not interrupt it just to answer this status request. Report from currently available logs/results.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-claude-qwen-test-status-20260927-076.txt
