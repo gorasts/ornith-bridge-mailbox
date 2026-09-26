@@ -1,0 +1,103 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-luna-qwen3vl4b-cpu-standalone-20260926-072
+target: LUNA
+source: CHATGPT
+
+USER REQUEST
+Install and test Qwen3-VL-4B-Instruct standalone on CPU so we can evaluate screenshot/screengrab understanding accuracy before integrating it with Ornith/Qwen.
+
+GOAL
+CPU-only vision-understanding test.
+This is NOT image generation.
+Primary use case:
+- desktop screenshots
+- terminal output
+- tables
+- charts
+- benchmark numbers
+- UI state/errors
+- OCR-like extraction plus screen understanding
+
+SAFETY / ISOLATION
+- Do NOT modify Ornith production service definition.
+- Do NOT modify current Qwen production/test model files.
+- Do NOT consume the Vega GPU for this test.
+- CPU-only inference: use -ngl 0 and keep mmproj on CPU / do not offload mmproj.
+- Use a separate port and separate working directory.
+- Do not stop unrelated services unless port/resource conflict absolutely requires it; if so, report and stop before changing anything.
+- Prefer XEON2 CPU if that is the host you control for this install; if the vision-capable llama.cpp environment is more practical on GORAST CPU, use that host but remain CPU-only. Report exact host.
+
+MODEL
+Qwen3-VL-4B-Instruct, GGUF quantized.
+Prefer a reputable/official or well-established GGUF distribution compatible with current llama.cpp multimodal support.
+Use a practical CPU quant such as Q4_K_M unless compatibility requires another quant.
+Download the MATCHING vision projector/mmproj for the exact model.
+Verify model + mmproj filenames and source repository before running.
+
+RUNTIME
+Use a recent llama.cpp build with Qwen3-VL multimodal support.
+If no compatible binary is already present, build/install a separate test copy; do not replace existing production binaries.
+CPU-only:
+-ngl 0
+--no-mmproj-offload if supported/current syntax
+Use a modest context sufficient for screenshot testing, e.g. 8192 or 16384.
+Choose sensible CPU threads based on host CPU.
+Expose only localhost unless LAN access is needed for the test.
+
+TEST
+After successful load, run ONE standalone vision test using a local screenshot/image that contains structured text/data (terminal/table/UI) if one is safely available.
+If no suitable screenshot exists, create a simple local test image containing:
+- a small table with several numeric values
+- a terminal-style error line
+- a few UI labels/buttons
+Then ask the model to:
+1) transcribe the visible text/numbers exactly,
+2) summarize what the screen shows,
+3) identify any error/status condition,
+4) explicitly say when uncertain instead of inventing values.
+
+Return the RAW model answer unedited so Gorast can judge it.
+Also report:
+- model filename/quant/size
+- mmproj filename/quant/size
+- exact command
+- host/CPU
+- RAM used at load and peak if available
+- load time
+- prompt/image processing time
+- generation tok/s
+- whether any GPU usage occurred (should be NO)
+- any OCR/numeric mistakes you can objectively verify against the test image
+- local server command/port if left available for another screenshot test
+
+IMPORTANT
+Do not claim success unless an actual image was processed and a raw model answer was produced.
+Do not alter or integrate with Ornith/Qwen yet.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-luna-qwen3vl4b-cpu-standalone-20260926-072.txt
+
+Required summary fields:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-luna-qwen3vl4b-cpu-standalone-20260926-072
+source: LUNA
+state: COMPLETE | FAILURE
+MODEL=Qwen3-VL-4B-Instruct
+CPU_ONLY=YES
+GPU_USED=NO
+MMProj_LOADED=
+TEST_IMAGE_PROCESSED=
+MODEL_QUANT=
+MODEL_SIZE=
+MMPROJ_QUANT=
+MMPROJ_SIZE=
+HOST=
+RAM_LOAD=
+RAM_PEAK=
+IMAGE_PROCESSING_TIME=
+GEN_TOK_S=
+RAW_MODEL_OUTPUT_BEGIN
+...
+RAW_MODEL_OUTPUT_END
+ERROR=
