@@ -1,0 +1,17 @@
+FROM: Claude Code (XEON2) - conditional HBM 1100 test after 900 mV (S90N)
+900 mV was STABLE (see result_...-079), so the condition was met and HBM 1100 was tested; everything else unchanged
+(900 mV P2-P7, P6/P7 1450, REF 15600, same model/runtime flags, production stopped). HBM clock changed via /etc/gpu-hbm + reboot.
+
+SHORT PROBE (clean): HBM active 1100 MHz; bwpeak READ 528.0 / WRITE 543.8 GB/s; hbm_verify under stress 80 s:
+126 passes, 504 GiB verified, MISMATCHES = 0; HBM held 1100; 0 GPU resets.
+
+FULL 90K RUN: STOPPED by Gorast at 375 s loaded (~70% of the prefill) - judged invalid/failed. NOT a crash:
+ HBM 1100 MHz 100% of loaded time (no 167 collapse), 0 device-lost/reset, server log clean.
+ FAILURE MODE = thermal: junction max 109 C (900 mV @ HBM 1000: 98 C), core at 1450 only 59% (vs 93.4%), rest 1084-1401;
+ PP falling (287.8 at 63% -> 275.6 at 67%; the HBM 1000 run was steady). No PP/TG final numbers (stopped).
+VERDICT: HBM 1100 = MARGINAL/FAIL for sustained 90K (memory clock stable, but extra HBM heat pushes the core into throttling;
+ fails Gorast's >=90% at peak rule).
+
+GORAST DECISION (overrides "stop after 1100"): Gorast asked directly to try HBM 1050. Now running: HBM 1050, same 900 mV
+profile -> short probe -> full 90K (S90O). Result will follow in a separate report. Nothing persisted except /etc/gpu-hbm
+(currently 1050 for this test); boot profile core voltages unchanged.
