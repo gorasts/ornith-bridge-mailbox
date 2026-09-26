@@ -1,0 +1,144 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-ornith-stage02-prod-dio-b4096ub2048-mtp1-64k-20260926-065
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+Conditional follow-up requested by user.
+Run AFTER:
+chatgpt-terra-ornith-stage01-prod-dio-b4096ub2048-64k-longgen-20260926-064
+
+CONDITION
+Only run this Stage02 if Stage01 proves that the exact Ornith production placement/KV/thread config with:
+--load-mode dio
+-b 4096
+-ub 2048
+successfully loads and completes inference at 64K.
+
+If Stage01 fails to fit or fails inference, DO NOT run this benchmark.
+Instead publish state=FAILURE with:
+SKIPPED_BECAUSE_STAGE01_DID_NOT_FIT=YES
+and include the Stage01 failure reason.
+
+GOAL
+Test the same exact successful Stage01 Ornith configuration at 64K, but force MTP depth 1 for an apples-to-apples comparison.
+
+DISCOVER / REUSE FROM STAGE01
+Reuse the exact:
+- Ornith model path
+- server binary/build
+- backend/device
+- -ngl
+- --n-cpu-moe
+- KV configuration and KV offload state
+- thread settings
+- FA
+- priority/poll/cpu-strict/jinja/np/etc.
+- deterministic 64K prompt construction/fingerprint
+
+TEST CHANGES RELATIVE TO PRODUCTION
+1) --load-mode dio
+2) -b 4096
+3) -ub 2048
+4) force Ornith speculative depth to MTP1:
+   --spec-draft-n-max 1
+Preserve Ornith's other speculative/MTP flags from production/Stage01 unless incompatible with explicit MTP1.
+Do NOT transplant Qwen MTP6 or Qwen placement settings.
+
+PROMPT
+PROMPT_N=65536
+Use same deterministic real-work prompt as Stage01.
+
+GENERATION
+ONE fresh server/clean slot.
+ONE prefill.
+ONE uninterrupted generation.
+n_predict=4096.
+Capture all unique n_gen/tg_3s lines.
+
+ZERO INTERFERENCE DURING GENERATION
+NO controller heartbeat
+NO elapsed-time heartbeat
+NO /health polling
+NO status polling
+NO extra llama-server HTTP requests
+NO active telemetry polling loop
+NO Harness calls
+NO remote compaction
+NO progress injection
+Passive viewer tail only.
+Telemetry before prefill and after generation only.
+
+VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_CTRL_C_WIRED=YES
+Reuse exact proven separate XEON2 PowerShell viewer-launch implementation.
+DO NOT use -InputFormat.
+Viewer passively tails canonical raw server log only.
+
+REPORT
+STAGE01_FIT_CONFIRMED=
+PRODUCTION_COMMAND_DISCOVERED=
+TEST_EXACT_COMMAND=
+PROMPT_N=
+MTP_DEPTH=1
+PP_TOK_S
+FULL_GENERATION_TG_TOK_S
+LIVE_TG_SAMPLE_COUNT
+LIVE_TG_MEAN
+LIVE_TG_MEDIAN
+LIVE_TG_MIN
+LIVE_TG_MAX
+LIVE_TG_P10
+LIVE_TG_P90
+LIVE_TG_SAMPLE_STDDEV
+LIVE_TG_CV_PERCENT
+MTP_ACCEPTED_DRAFTED if available
+MTP_ACCEPTANCE_PERCENT if available
+MEAN_DRAFT_LEN if available
+PREDICTED_TOKENS_ACTUAL
+PROMPT_FINGERPRINT
+VRAM_LOAD_FREE
+VRAM_AFTER_GENERATION_FREE
+GTT_LOAD_USED
+GTT_AFTER_GENERATION_USED
+FAULT_SCAN
+RAW_LOG_PATH
+EXACT_SERVER_COMMAND
+Include raw chronological unique sample,n_gen,tg_3s rows.
+
+COMPARE
+Compare directly against Stage01 if Stage01 completed successfully.
+Clearly identify any configuration difference besides MTP depth.
+
+RUN POLICY
+One scientific attempt only.
+No hidden retries.
+No silent parameter changes.
+No software temperature abort.
+Hardware/driver protections unchanged.
+Do not modify production service definition.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-ornith-stage02-prod-dio-b4096ub2048-mtp1-64k-20260926-065.txt
+
+Required summary:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-ornith-stage02-prod-dio-b4096ub2048-mtp1-64k-20260926-065
+source: TERRA
+state: COMPLETE | FAILURE
+MODEL=ORNITH
+PROMPT_N=65536
+LOAD_MODE=DIO
+BATCH=4096
+UBATCH=2048
+MTP_DEPTH=1
+STAGE01_FIT_CONFIRMED=
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+
+Do not mark COMPLETE unless actual scientific metrics are present.
