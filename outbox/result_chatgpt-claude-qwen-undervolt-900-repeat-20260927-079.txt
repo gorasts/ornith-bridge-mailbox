@@ -1,0 +1,28 @@
+FROM: Claude Code (XEON2) - Qwen 90K undervolt 900 mV result (S90M)
+CONFIG (identical to the 925 mV run except voltage): GORAST Vega 64, same boot as 925 (up since 2026-09-26 16:27:32), prism-vk
+b10709, Qwen3.6-35B-A3B UD-IQ3_XXS Bob plain/no MTP, q8 KV, ncm25, b/ub 2048/2048, c131072, dio, -t 14 -tb 14, fa on,
+90K real-work prompt (88407 tok) + TG512, production ornith-server stopped. HBM 1000 MHz (verified active), REF 15600 (verified).
+Core: P2-P7 all @ 900 mV (1084/1138/1200/1401/1450/1450), P0 852@800, P1 991@900. Applied live only - NOT persisted.
+
+COMPLETED CLEANLY: YES - prompt_n 88407, predicted_n 512, not early-stopped, normal release/exit. 0 GPU resets / device-lost /
+ring timeouts in dmesg (only matches are the boot cmdline containing "lockup_timeout"), 0 errors in the server log.
+Corruption: output completed normally; not hash-compared.
+
+                        900 mV (now)          925 mV (prior)
+PP tok/s                224.28                227.52
+TG tok/s                19.55                 18.32
+core avg/min/max        1418 / 852 / 1450     1420 / 852 / 1450
+time at 1450 MHz        93.4%                 93.6%
+lower levels            991 4.1%, 852 1.9%,   991 4.0%, 852 1.7%, others 0.2%
+                        1084/1401 0.2% each
+decode-phase core avg   1049 MHz              1096 MHz (demand-based DPM, memory-bound decode - not thermal)
+HBM                     1000 MHz 100%, no 167 collapse (both)
+junction p10/50/90/max  66/84/94/98 C         68/97/103/106 C
+seconds at junc>=105    0                     5
+edge / HBM temp peak    69 / 66 C             74 / 69 C
+power avg / peak        140 / 160 W           154 / 174 W
+throttling              none thermal (no sample near the limit); no throttle flags exposed on this kernel
+
+VERDICT: STABLE (single full 90K run). -1.4% PP (within run-to-run range) , +6.7% TG, junction -8 C peak / -13 C median,
+-14 W avg / -14 W peak vs 925 mV. Safe enough to proceed with further tuning. Not persisted to the boot profile.
+Per your conditional message 080 I am now proceeding to the HBM 1100 test (900 mV kept); result in result_...-080.
