@@ -1,0 +1,161 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-ornith-stage01-prod-dio-b4096ub2048-64k-longgen-20260926-064
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+One final cross-check requested by user:
+Test production Ornith at 64K using DIO, with current Qwen-derived B4096/UB2048 batching if it fits.
+Do NOT blindly transfer Qwen MTP depth or Qwen placement values to Ornith.
+Preserve Ornith's own production MTP/KV/placement semantics unless specifically changed below.
+
+FIRST: DISCOVER EXACT ORNITH PRODUCTION COMMAND
+Read the existing ornith-server service/unit/launcher and record the exact current production:
+- model path
+- server binary path/build
+- backend/device
+- -ngl
+- --n-cpu-moe
+- -b / -ub
+- -t / -tb
+- FA
+- KV types and KV offload state
+- MTP/speculative flags
+- load mode
+- other relevant runtime flags
+Do not alter the production service itself.
+Keep Ornith inactive during the benchmark if it is currently inactive.
+If it is running, stop only for the benchmark and do not rewrite its service definition.
+
+SCIENTIFIC TEST
+PROMPT_N=65536
+Use same deterministic real-work corpus/prompt construction used for current Qwen 64K tests where compatible.
+Expected source corpus SHA256:
+7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+Use Ornith production model and production:
+- backend/device
+- placement (-ngl / --n-cpu-moe)
+- KV configuration
+- MTP/speculative configuration
+- threads and other production runtime flags
+
+CHANGE ONLY:
+1) load mode -> --load-mode dio
+2) batch -> -b 4096
+3) ubatch -> -ub 2048
+
+Do NOT set Qwen MTP6 unless Ornith production already uses that exact setting.
+Do NOT set Qwen NCM31 unless Ornith production already uses that exact setting.
+This is an Ornith production-config test, not a Qwen-config transplant.
+
+FIT POLICY
+Attempt exact requested Ornith production + DIO + B4096/UB2048.
+If it fails to load or inference fails from memory/device constraints:
+- capture exact failure
+- do NOT silently fall back
+- do NOT retry with changed parameters
+- report whether failure appears to be VRAM, GTT/RAM, batch workspace, or other
+If it fits, run full benchmark.
+
+GENERATION
+ONE fresh server/clean slot.
+ONE prefill.
+ONE uninterrupted generation.
+n_predict=4096.
+Capture all unique n_gen/tg_3s lines.
+
+ZERO INTERFERENCE DURING GENERATION
+NO controller heartbeat
+NO elapsed-time heartbeat
+NO /health polling
+NO status polling
+NO extra llama-server HTTP requests
+NO active telemetry polling loop
+NO Harness calls
+NO remote compaction
+NO progress injection
+Passive viewer tail only.
+Telemetry before prefill and after generation only.
+
+VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_CTRL_C_WIRED=YES
+Reuse exact proven Stage36/Stage38 separate XEON2 PowerShell viewer-launch implementation.
+DO NOT use -InputFormat.
+Viewer passively tails canonical raw server log only.
+
+REPORT
+PRODUCTION_COMMAND_DISCOVERED=
+PRODUCTION_MODEL=
+PRODUCTION_SERVER=
+PRODUCTION_BACKEND=
+PRODUCTION_LOAD_MODE=
+PRODUCTION_NGL=
+PRODUCTION_N_CPU_MOE=
+PRODUCTION_BATCH=
+PRODUCTION_UBATCH=
+PRODUCTION_KV=
+PRODUCTION_MTP_FLAGS=
+TEST_EXACT_COMMAND=
+FIT_RESULT=
+PP_TOK_S
+FULL_GENERATION_TG_TOK_S
+LIVE_TG_SAMPLE_COUNT
+LIVE_TG_MEAN
+LIVE_TG_MEDIAN
+LIVE_TG_MIN
+LIVE_TG_MAX
+LIVE_TG_P10
+LIVE_TG_P90
+LIVE_TG_SAMPLE_STDDEV
+LIVE_TG_CV_PERCENT
+MTP_ACCEPTED_DRAFTED if available
+MTP_ACCEPTANCE_PERCENT if available
+MEAN_DRAFT_LEN if available
+PREDICTED_TOKENS_ACTUAL
+PROMPT_FINGERPRINT
+VRAM_LOAD_FREE
+VRAM_AFTER_GENERATION_FREE
+GTT_LOAD_USED
+GTT_AFTER_GENERATION_USED
+FAULT_SCAN
+RAW_LOG_PATH
+EXACT_SERVER_COMMAND
+Include raw chronological unique sample,n_gen,tg_3s rows.
+
+COMPARISON
+If available from prior verified Ornith ~64/65K production observations, state them separately as historical/non-identical unless exact methodology matches.
+Do not claim apples-to-apples if corpus/build/method differs.
+
+RUN POLICY
+One scientific attempt only.
+No hidden retries.
+No silent parameter changes.
+No software temperature abort.
+Hardware/driver protections unchanged.
+Do not modify production service definition.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-ornith-stage01-prod-dio-b4096ub2048-64k-longgen-20260926-064.txt
+
+Required summary:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-ornith-stage01-prod-dio-b4096ub2048-64k-longgen-20260926-064
+source: TERRA
+state: COMPLETE | FAILURE
+MODEL=ORNITH
+PROMPT_N=65536
+LOAD_MODE=DIO
+BATCH=4096
+UBATCH=2048
+ORNITH_PRODUCTION_MTP_PRESERVED=YES
+ORNITH_PRODUCTION_PLACEMENT_PRESERVED=YES
+LIVE_VIEWER_WINDOW=SEPARATE
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+
+Do not mark COMPLETE unless actual scientific metrics are present.
