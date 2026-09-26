@@ -1,0 +1,65 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-ornith-stage05-q8-expert-fit-sweep-20260926-069
+source: TERRA
+state: FAILURE
+MODEL=ORNITH
+PROMPT_N=65536
+LOAD_MODE=DIO
+KV=Q8_0/Q8_0
+BATCH=2048
+UBATCH=2048
+MTP_DEPTH=1
+SMALL_TEST_FIRST=YES
+EXPERTS_BROUGHT_BACK_ADAPTIVELY=YES
+FINAL_LONG_VALIDATION=YES_IF_A_CANDIDATE_FITS
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+CORPUS_PATH=/tmp/realwork-01.md
+CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+PROMPT_CONSTRUCTION=repeat tokenized corpus IDs, truncate to exactly 65536; fingerprint is SHA256(JSON compact token-ID array)
+PROMPT_TOKENS_ACTUAL=NA
+PROMPT_FINGERPRINT=NA
+PRODUCTION_SERVICE_STATE_BEFORE=inactive
+PRODUCTION_SERVICE_STATE_AFTER=inactive
+PRODUCTION_SERVICE_DEFINITION_CHANGED=NO
+STAGE04_COMPARISON=FAILURE; NCM39/F16/DIO failed during load with RADV not-enough-memory and Vulkan device lost; no scientific metrics
+STAGE03_COMPARISON=FAILURE_DURING_LOAD; no measurements
+SWEEP_STOP_REASON=FIRST_SCREEN_FAILURE_NCM38: RuntimeError: server exited during load: 1
+LOWEST_ELIGIBLE_N_CPU_MOE=NA
+ESTIMATED_NEXT_EXPERT_COST_MIB=350_MB_CONSERVATIVE
+LIVE_VIEWER_TITLE=Ornith Stage05 Passive Raw Log Viewer 069
+LIVE_VIEWER_PID=11372
+LIVE_VIEWER_WINDOW=SEPARATE
+LIVE_VIEWER_CTRL_C_WIRED=YES
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+
+SHORT_CANDIDATE_1_BEGIN
+N_CPU_MOE=38
+FIT=NO
+PP_TOK_S=NA
+SHORT_TG128_TOK_S=NA
+MTP_DRAFTED=NA
+MTP_ACCEPTED=NA
+MTP_ACCEPTANCE_PERCENT=NA
+VRAM_LOAD_FREE=NA
+VRAM_POST_REQUEST_FREE=NA
+GTT_LOAD_USED=NA
+GTT_POST_REQUEST_USED=NA
+PROMPT_TOKENS_ACTUAL=NA
+PROMPT_FINGERPRINT=NA
+FAULT=device lost
+ERROR=RuntimeError: server exited during load: 1
+LOAD_TIME_S=NA
+REQUEST_WALL_S=NA
+EXACT_COMMAND=MESA_VK_DEVICE_SELECT=1002:687f /opt/llama/llama-b10919/llama-server -m /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf -md /opt/ornith-models/shisa12k-mtp-standalone.gguf --temp 1.0 --host 0.0.0.0 --port 8099 -fa on -t 14 -tb 14 -ub 2048 -b 2048 -c 131072 --cache-type-k q8_0 --cache-type-v q8_0 --n-cpu-moe 38 --load-mode dio -ngl 99 -ngld 2 --prio 2 --poll 100 --cpu-strict 1 --spec-draft-n-max 1 --spec-draft-n-min 1 -np 1 --jinja --no-webui
+RAW_LOG_PATH=/tmp/terra-ornith-stage05-q8-expert-fit-sweep-20260926-069/llama-server.raw.log
+SAMPLES_BEGIN
+sample,n_gen,tg_3s
+SAMPLES_END
+SHORT_CANDIDATE_END
+
+ALL_CANDIDATE_RAW_LOG=/tmp/terra-ornith-stage05-q8-expert-fit-sweep-20260926-069/llama-server.raw.log
+SAMPLING_METHOD=one prefill and one short request per screen candidate; at most one full validation on eligible winner
+CLEANUP=each fresh server stopped after its one request; production service definition unchanged
