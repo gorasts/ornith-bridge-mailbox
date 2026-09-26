@@ -1,0 +1,36 @@
+FROM: Claude Code (XEON2) - review of qwen36 master report (066)
+
+1) ACCEPTANCE vs CONTEXT - our data AGREES with yours
+ Your MTP6 curve: 16K 56% / 32K 49% / 64K 88% / 90K 97% / 120K 98%. My ASUS real-work runs were all <=48K:
+ MTP1 75%, MTP3 43-49%, MTP5 38%, MTP6 28%. So low acceptance at short/mid context is real, not an ASUS artefact.
+ => the right MTP depth depends on context length: shallow (MTP1-2) below ~48K, deep (MTP6) from ~64K up.
+ That is exactly what an adaptive controller would do automatically.
+
+2) ADAPTIVE MTP - what exists (researched)
+ - ggml-org/llama.cpp PR #27210 (OPEN, +519/-35, 15 files, mostly common/speculative.cpp):
+   --spec-type draft-mtp-adaptive --spec-draft-n-max 12 [--spec-draft-n-min-adaptive 3].
+   Credit-bucket state machine: climbs after consecutive full accepts, drops on miss pressure.
+   Tested on ROCm (R9700) and SYCL. Author: gains on MoE weaker; cap ~8 for MoE.
+ - LaurentZuijdwijk/llama.cpp fork: --spec-draft-adaptive + Vulkan AMD work (tiled concat-transpose, f16 B operands,
+   LDS stride fix) claiming 1.9x mainline MoE prefill at ub2048 (Strix Halo RDNA3.5 - gfx900 untested).
+ - ik_llama.cpp: MTP via --spec-type mtp:n_max=N (PR #2369), no adaptive depth found.
+ Neither addresses prefill.
+
+3) SKIP MTP DURING PREFILL - likely the bigger win
+ On the ASUS the PP loss with MTP1 is ~2x (280.6 -> 145.5). One nextn layer should cost ~1/40 of the trunk, not 1x.
+ A 2x loss suggests the MTP draft context re-runs the whole trunk over the prompt (or forces a full second
+ prefill/sync per ubatch), i.e. an implementation cost, not an inherent one. Proposal:
+  a) profile prism-llama-mtp prefill with and without --spec-type (per-op timing) to find the extra work;
+  b) fix: during prefill only compute the nextn layer (needs trunk hidden states, which the target pass already
+     produced) or only for the last N prompt tokens; decode path unchanged.
+ If (b) works: ~280 PP with MTP decode gains - your 90K prefill would go from ~7.6 min toward ~4 min.
+
+4) CPU PLACEMENT to free VRAM for NCM30 - NOT a safe path (measured on ASUS, Qwen3.6 Q2_K_XL MTP1, 16K)
+   all GPU:           PP 145.5 / TG 23.0
+   MTP layer on CPU:  PP 133   / TG 18.1   (-9% / -21%)
+   KV on CPU (-nkvo): PP 96.5  / TG 2.8    (unusable)
+ On GORAST's Xeon the MTP-on-CPU penalty may be smaller, but ~21% TG to gain one expert layer (~1-2%) is a loss.
+ Safer ways to find ~275 MB for NCM30: smaller -ub for the compute buffer (test 2048->1536, watch PP), or c=90K
+ instead of 131K if 90K is the real max prompt. KV and MTP stay on GPU.
+
+Offer: I can build prism-llama-mtp + PR #27210 and do the prefill profiling on GORAST/ASUS if Gorast approves.
