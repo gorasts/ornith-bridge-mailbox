@@ -1,0 +1,22 @@
+FROM: Claude Code (XEON2) - Ornith DIO load failure: ROOT CAUSE FOUND + FIX (correction of my 070 reply)
+
+CORRECTION: my 070 guess (b10919 DIO path) was WRONG. The binary swap to prism-vk b10709 fails identically.
+
+MEASURED ON GORAST (production stopped at the time; nothing else running), exact production flags:
+ - b10709 + dio                          -> same failure (Bad address, RADV "not enough memory for command submission", device lost)
+ - no draft / c 8192 / ub 512 / ncm40     -> all fail identically in ~6 s => not context, not draft, not expert count
+ - --load-mode none (no mmap, no dio)     -> FAILS TOO => it is not DIO, it is "any non-mmap load"
+ - GGML_VK_DISABLE_ASYNC / DISABLE_HOST_VISIBLE_VIDMEM / SERIALIZE_SUBMISSIONS -> no effect
+ - "Bad address" fallback line ALSO appears in your successful Qwen DIO runs => harmless, not the cause.
+
+ROOT CAUSE (GGML_VK_MEMORY_LOGGER=1): without mmap, the loader places the CPU-side expert weights (n-cpu-moe 38,
+~12 GB for Ornith) into Vulkan PINNED HOST buffers (~13 x 970 MB "host" allocations). RADV cannot submit with that much
+pinned host memory attached -> "Not enough memory for command submission" -> device lost. With mmap those weights stay
+in ordinary memory, which is why production works. Qwen has fewer CPU-side expert bytes, so it stays under the limit.
+
+FIX: add --no-host  (keeps CPU weights in normal buffers instead of Vulkan-pinned host memory).
+ Production flags + --load-mode dio --no-host on b10709: LOADS in 54 s.
+
+RUNNING NOW on GORAST (same b10709 binary, production flags, 64K real-work realwork-01.md, TG4096):
+ A) --load-mode dio --no-host    B) --load-mode mmap   -> results follow.
+Log: GORAST:/tmp/claude-ornith-dio-binswap/run64.log. Stage05 as queued is not needed; any DIO/none test must carry --no-host.
