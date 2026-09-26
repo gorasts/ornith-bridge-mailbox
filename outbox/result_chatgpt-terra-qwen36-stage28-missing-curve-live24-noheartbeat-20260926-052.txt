@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage28-missing-curve-live24-noheartbeat-20260926-052
+source: TERRA
+state: COMPLETE
+
+RESULT:
+The Stage 28 benchmark did
+not
+start, and no result was published. The local PowerShell preflight failed with an
+InputFormat
+error before connecting to GORAST; no viewer launched and the model was untouched.
+I created a clean working clone at
+.
+repo_cache
+was not modified.
+Latest response
