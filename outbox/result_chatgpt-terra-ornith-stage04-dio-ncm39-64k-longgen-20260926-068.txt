@@ -1,0 +1,108 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-ornith-stage04-dio-ncm39-64k-longgen-20260926-068
+source: TERRA
+state: FAILURE
+MTP_DEPTH=1
+N_CPU_MOE=39
+NGL=99
+NGLD=2
+ONLY_CHANGE_FROM_STAGE03=N_CPU_MOE_38_TO_39
+STAGE03_COMPARISON=FAILURE_DURING_MODEL_LOAD; NO_MEASUREMENTS
+MODEL=ORNITH
+PROMPT_N=65536
+LOAD_MODE=DIO
+BATCH=2048
+UBATCH=2048
+ORNITH_PRODUCTION_MTP_PRESERVED=YES
+ORNITH_PRODUCTION_PLACEMENT_PRESERVED=YES
+LIVE_VIEWER_WINDOW=SEPARATE
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+PRODUCTION_COMMAND_DISCOVERED=/opt/llama/llama-b10919/llama-server -m /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf -md /opt/ornith-models/shisa12k-mtp-standalone.gguf --temp 1.0 --host 0.0.0.0 --port 8099 -fa on -t 14 -tb 14 -ub 2048 -b 2048 -c 131072 --cache-type-k f16 --cache-type-v f16 --n-cpu-moe 38 --load-mode mmap -ngl 99 -ngld 2 --prio 2 --poll 100 --cpu-strict 1 --spec-draft-n-max 1 --spec-draft-n-min 1 -np 1 --jinja --no-webui
+PRODUCTION_MODEL=/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+PRODUCTION_DRAFT_MODEL=/opt/ornith-models/shisa12k-mtp-standalone.gguf
+PRODUCTION_SERVER=/opt/llama/llama-b10919/llama-server
+PRODUCTION_BACKEND=MESA_VK_DEVICE_SELECT=1002:687f; Vulkan RADV VEGA10 (production unit device selection)
+PRODUCTION_LOAD_MODE=MMAP
+PRODUCTION_NGL=99
+PRODUCTION_NGLD=2
+PRODUCTION_N_CPU_MOE=38
+PRODUCTION_BATCH=2048
+PRODUCTION_UBATCH=2048
+PRODUCTION_KV=K=f16,V=f16; no explicit --no-kv-offload; see startup log for effective placement
+PRODUCTION_MTP_FLAGS=-md /opt/ornith-models/shisa12k-mtp-standalone.gguf --spec-draft-n-max 1 --spec-draft-n-min 1; no explicit --spec-type in effective drop-in
+PRODUCTION_THREADS=-t 14 -tb 14
+PRODUCTION_FA=-fa on
+PRODUCTION_SERVICE_STATE=inactive before test; definition unchanged
+PRODUCTION_CORPUS_PATH=/tmp/realwork-01.md
+PRODUCTION_CORPUS_SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+PRODUCTION_HISTORICAL_64K_COMPARISON=NONE_VERIFIED_FOUND
+TEST_EXACT_COMMAND=MESA_VK_DEVICE_SELECT=1002:687f /opt/llama/llama-b10919/llama-server -m /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf -md /opt/ornith-models/shisa12k-mtp-standalone.gguf --temp 1.0 --host 0.0.0.0 --port 8099 -fa on -t 14 -tb 14 -ub 2048 -b 2048 -c 131072 --cache-type-k f16 --cache-type-v f16 --n-cpu-moe 39 --load-mode dio -ngl 99 -ngld 2 --prio 2 --poll 100 --cpu-strict 1 --spec-draft-n-max 1 --spec-draft-n-min 1 -np 1 --jinja --no-webui
+FIT_RESULT=FAILURE
+LIVE_VIEWER_TITLE=Ornith Stage04 Passive Raw Log Viewer 068
+LIVE_VIEWER_PID=25660
+LIVE_VIEWER_PARENTAGE_CHECK=PASS
+LIVE_VIEWER_CTRL_C_WIRED=YES
+SAMPLING_METHOD=ONE_FRESH_SERVER_ONE_PREFILL_ONE_UNINTERRUPTED_GENERATION
+STATE=FAILURE
+PRODUCTION_SERVICE_PROPERTIES=Nice=-10; LimitRTPRIO=99
+TEST_LAUNCH_WRAPPER=sudo -n systemd-run --wait --pipe --collect --unit=terra-ornith-stage04-064 --uid=ubuntu --property=Nice=-10 --property=LimitRTPRIO=99 --setenv=MESA_VK_DEVICE_SELECT=1002:687f --setenv=TERRA_VIEWER_PID=25660 /usr/bin/python3 -u /tmp/terra-ornith-stage04-runner.py
+PP_TOK_S=NA
+FULL_GENERATION_TG_TOK_S=NA
+LIVE_TG_SAMPLE_COUNT=0
+LIVE_TG_MEAN=None
+LIVE_TG_MEDIAN=None
+LIVE_TG_MIN=None
+LIVE_TG_MAX=None
+LIVE_TG_P10=None
+LIVE_TG_P90=None
+LIVE_TG_SAMPLE_STDDEV=None
+LIVE_TG_CV_PERCENT=None
+MTP_ACCEPTED_DRAFTED=NA
+MTP_ACCEPTANCE_PERCENT=NA
+MEAN_DRAFT_LEN=NA
+PREDICTED_TOKENS_ACTUAL=NA
+PROMPT_TOKENS_ACTUAL=NA
+PROMPT_FINGERPRINT=NA
+VRAM_LOAD_FREE=NA
+VRAM_AFTER_GENERATION_FREE=NA
+GTT_LOAD_USED=NA
+GTT_AFTER_GENERATION_USED=NA
+FAULT_SCAN=RAW_LOG=MATCH:device lost; KERNEL=UNAVAILABLE:dmesg: read kernel buffer failed: Operation not permitted
+DEVICE_STATUS=FAULT
+LOAD_TIME_S=NA
+REQUEST_WALL_S=NA
+RAW_LOG_PATH=/tmp/terra-ornith-stage04-dio-ncm39-64k-longgen-20260926-068/llama-server.raw.log
+RAW_LOG_OFFSET_START=0
+RAW_LOG_OFFSET_END=1591
+EXACT_SERVER_COMMAND=MESA_VK_DEVICE_SELECT=1002:687f /opt/llama/llama-b10919/llama-server -m /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf -md /opt/ornith-models/shisa12k-mtp-standalone.gguf --temp 1.0 --host 0.0.0.0 --port 8099 -fa on -t 14 -tb 14 -ub 2048 -b 2048 -c 131072 --cache-type-k f16 --cache-type-v f16 --n-cpu-moe 39 --load-mode dio -ngl 99 -ngld 2 --prio 2 --poll 100 --cpu-strict 1 --spec-draft-n-max 1 --spec-draft-n-min 1 -np 1 --jinja --no-webui
+ERROR=RuntimeError: server exited during load: 1
+DUPLICATE_TG3S_LINES_DETECTED=0
+DUPLICATES_EXCLUDED=YES
+STARTUP_LOG_BEGIN
+0.00.161.591 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.161.736 I srv          init: The UI is disabled
+0.00.161.739 I srv          init: Use --ui/--no-ui (or deprecated --webui/--no-webui) to enable/disable
+0.00.161.812 W srv  llama_server: -----------------
+0.00.161.814 W srv  llama_server: CORS is set to allow all origins ('*') and no API key is set
+0.00.161.814 W srv  llama_server: this can be a security risk (cross-origin attacks)
+0.00.161.814 W srv  llama_server: more info: https://github.com/ggml-org/llama.cpp/pull/25655
+0.00.161.815 W srv  llama_server: -----------------
+0.00.257.568 I srv    load_model: loading model '/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf'
+0.01.778.621 W common_fit_params: failed to fit params to free device memory: n_gpu_layers already set by user to 99, abort
+0.05.040.317 W read_raw_unsafe: Falling back to buffered IO due to Bad address
+radv/amdgpu: Not enough memory for command submission.
+0.06.216.068 E ggml_vulkan: device lost on Vulkan0
+0.06.383.864 E llama_model_load: error loading model: vk::Queue::submit: ErrorDeviceLost
+0.06.383.873 E llama_model_load_from_file_impl: failed to load model
+0.06.383.895 E cmn  common_init_: failed to load model '/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf'
+0.06.383.899 E srv    load_model: failed to load model, '/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf'
+0.06.383.901 I srv    operator(): operator(): cleaning up before exit...
+0.06.384.827 E srv  llama_server: exiting due to model loading error
+STARTUP_LOG_END
+SAMPLES_BEGIN
+sample,n_gen,tg_3s
+SAMPLES_END
