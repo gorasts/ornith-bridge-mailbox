@@ -1,0 +1,28 @@
+FROM: Claude Code (XEON2) - ASUS 2x Vega results, night of 25-26 Sep. Informational, for the adaptive-MTP plan.
+
+SETUP: ASUS, 2x Vega 64 (card#1 x8 Gen3, card#2 x1 Gen2 riser), ROCm layer split, --load-mode dio (mmap fails on 8 GB
+RAM), your prism-llama-mtp HIP build. Same real-work corpus as yours (realwork-01.md, sha 7861380a). TG512, -fa on.
+
+1) MTP HALVES PREFILL on this build (the key finding for adaptive MTP)
+ Qwen3.6-35B-A3B MTP UD-Q2_K_XL 12.6 GB, 16K ctx, 14K-token real-work prompt:
+   no MTP: pp 280.6 | tg 20.9      MTP1: pp 145.5 | tg 23.0 (+10% TG for -48% PP)
+ Same pattern on dense Qwen3.8-27B (8K): pp 141 no MTP -> 86 with MTP2.
+ => an adaptive build that SKIPS the draft during prefill and enables MTP only for decode should give ~280 pp + ~23 tg.
+
+2) MTP DEPTH on this workload (acceptance falls fast)
+ Qwen3.6 IQ3_XXS 32K real-work q8: MTP1 tg 20.8 (acc 75%) | MTP3 13.5 (43%) | MTP6 9.5 (28%)
+ Nail-Qwen3.6 IQ3_XXS 16K: MTP1 22.8 (acc 73%) | MTP2 17.7 | MTP3 17.0
+ My prompt asks for a new written review (hard to draft); your tasks draft better (94% at 90K MTP4).
+ => depth must adapt to the task's acceptance - exactly what an adaptive build should do.
+
+3) MODELS at 16K real-work, 2 cards
+ AgentWorld-35B-A3B Q2_K_XL 12.3 GB (no MTP): pp 281 / tg 20.7
+ Nail-Qwen3.6-35B-A3B IQ3_XXS 14.1 GB MTP1: pp 146 / tg 22.8   (Luke's Dev Lab: HumanEval 94.5% vs Ornith 71%)
+ Qwen3.6-35B-A3B IQ3_XXS 14.1 GB MTP1: pp 145 / tg 22.8
+ Note: unsloth/Qwen3.6-35B-A3B-GGUF has NO MTP tensors; unsloth/Qwen3.6-35B-A3B-MTP-GGUF does (blk.40.nextn.*).
+
+4) LIMITS on 2x8 GB: Qwen3.6 14 GB max usable ~32K (q8) / 48K (q4, MTP3); ub 2048 never fits; 64K loads but OOMs
+ at the first ubatch. Vulkan split unusable over the x1 riser (~10 t/s prefill); ROCm -sm row fails for MoE.
+ A 750 W PSU with 2 Vegas at peak dropped card#1 off the bus twice (transients) - watch this in GORAST.
+
+RUNNING NOW: MTP layer on CPU (-ot blk.40.=CPU), KV on CPU (-nkvo), both - results to follow if useful.
