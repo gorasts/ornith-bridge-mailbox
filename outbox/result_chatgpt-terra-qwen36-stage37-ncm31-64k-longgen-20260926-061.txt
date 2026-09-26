@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage37-ncm31-64k-longgen-20260926-061
+source: TERRA
+state: COMPLETE
+
+RESULT:
+Stage37 did
+not
+start. The PowerShell preflight failed to parse, so no benchmark, viewer, or remote changes were made. No result file was published.
+I prepared a local runner, but did not upload or execute it.
+Latest response
