@@ -1,0 +1,48 @@
+FROM: Claude Code (XEON2) - Qwen test status since claude-full-report-20260926-006
+ACTIVE TEST: none. GORAST idle on the 925 mV GPU profile; next undervolt step (900 mV) waits for Gorast's go.
+
+COMMON CONFIG (all rows unless noted): GORAST single Vega 64, prism-vk b10709 Vulkan, Bob's plain file
+Qwen3.6-35B-A3B-UD-IQ3_XXS-bob-nomtp.gguf (13.2 GB, NO MTP head -> MTP n/a), -ngl 99, no draft (no -ngld), --load-mode dio
+(pinned, GTT raised), -c 131072, -fa on, -t 14 -tb 14, np 1, real-work corpus, TG512 (n_predict 512), production ornith-server STOPPED.
+
+!! CAVEAT: a GPU reset at 11:45 (crashed Ornith dio load) silently locked HBM at 800 MHz (not the pinned 1125) until reboot
+at 14:08. Rows marked [800] ran at reduced memory bandwidth (374 vs 514-547 GB/s). Found by bandwidth test.
+
+A) KV / NCM / batch sweep, 32K prompt (31619 tok):                      PP     TG   VRAM free
+ q4 ncm25 b/ub 2048/2048 [800]                                          351.7  21.88  810 MB
+ q4 ncm24 [800]                                                         347.9  22.85  547 MB
+ q4 ncm23 [800]                                                         361.9  20.71  284 MB
+ q8 ncm25 [800]                                                         373.7  22.70  170 MB
+ f16 ncm25 c131072 [800]  -> spills                                      122.4  12.76
+ f16 ncm25 c65536 [800]                                                 413.4  16.84  778 MB
+ q8 ncm25 b4096/ub2048 [800]                                            377.9  22.28  (<1.5%, dropped)
+ q8 ncm25 b4096/ub4096 [800]  -> GTT 8.1 GB, bad                        175.1  16.44
+ q8 ncm24 c98304 [800]                                                  381.7  20.48
+ q8 ncm25, HBM 1125 + REF 15600 (full BW, after reboot)                 388.7  23.24  170 MB   <- best 32K
+ (one run invalid: production ornith-server autostarted after reboot and shared the GPU -> 120.9/13.64; discarded)
+
+B) 64K prompt (62410 tok), all [800]:
+ q8 ncm25                                                               264.9  20.95  <- best 64K
+ q8 ncm26                                                               264.1  20.12
+ q4 ncm24                                                               237.1  19.33
+
+C) 90K prompt (88407 tok), q8 ncm25 b/ub 2048/2048 - GPU tuning series (telemetry per second):
+ [800] HBM 800                                                          208.95 19.00
+ HBM 1125, core 1600@975: HBM collapsed to 167 MHz when junction >~100C  (degraded; stopped, rebooted)
+ P2-P7 all 1536@975: device lost at load -> GPU reset (unstable P-state table)
+ HBM 1125, core P6/P7 1536@975: HBM 167 for 48% (fail)                  (stopped for reboot)
+ HBM 1000 core 1536@975 (REF 7800 set live mid-run - mixed)             209.16 17.99  core@peak 32.6%
+ HBM 1000 REF15600 core 1450@975                                        206.75 18.02  core@peak 36.1%, HBM 98.6%
+ HBM 1000 REF15600 core 1450@950                                        221.16 18.93  core@peak 55.4%, HBM 100%
+ HBM 1000 REF15600 core 1450@925                                        227.52 18.32  core@peak 93.6%, HBM 100%, junc 106C, peak 174 W
+ -> best 90K by observed metrics: HBM 1000 + REF 15600 + core 1450@925 mV (highest PP; TG best at 950 mV = 18.93).
+
+D) Ornith for reference, 32K, q8 ncm34, no draft, dio [800]: 318.63 / 21.23 (1.2 GB VRAM free).
+
+STABILITY: HBM 1125 not stable hot in long runs (clamps to 167, stays); HBM timing RCDRD 12 hung the GPU, RFC 250 = 1080 errors;
+flattened P-states crashed. 10-min integrity soak at 1125+REF15600 passed (0 errors) but load there was cooler (junc 85C).
+
+CURRENT BEST QWEN CONFIG (observed): Bob plain file, q8 KV, ncm25, b/ub 2048/2048, c131072, dio, no MTP;
+32K 388.7/23.24 (full BW) | 64K 264.9/20.95 ([800]) | 90K 227.52/18.32 (HBM 1000, core 1450@925).
+NEXT: undervolt 1450@900 then 875 mV (Gorast floor), one 90K run each; then write the winning GPU profile into gpu-mempin
+(boot still sets P6/P7 1600@975); rerun 32K/64K on the final GPU profile.
