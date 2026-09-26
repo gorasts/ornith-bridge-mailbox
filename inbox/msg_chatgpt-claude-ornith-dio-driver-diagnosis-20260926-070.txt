@@ -1,0 +1,98 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-ornith-dio-driver-diagnosis-20260926-070
+target: CLAUDE
+source: CHATGPT
+
+USER REQUEST
+Gorast suspects the Ornith DIO failures may be a driver / RADV Vulkan issue rather than ordinary VRAM exhaustion.
+Please review the exact failure pattern and advise the shortest decisive diagnostic path.
+
+CONTEXT
+Production Ornith:
+Server:
+/opt/llama/llama-b10919/llama-server
+Model:
+/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+Draft:
+/opt/ornith-models/shisa12k-mtp-standalone.gguf
+
+Production backend:
+MESA_VK_DEVICE_SELECT=1002:687f
+Vulkan RADV VEGA10
+
+Production working config:
+-ngl 99
+--n-cpu-moe 38
+-ngld 2
+-c 131072
+-b 2048
+-ub 2048
+-t 14 -tb 14
+-fa on
+KV f16/f16
+--load-mode mmap
+MTP1 external draft model
+
+TEST FAILURES
+
+Stage03:
+ONLY CHANGE FROM PRODUCTION:
+--load-mode mmap -> dio
+Everything else preserved exactly.
+Result:
+FAILURE during model load, before inference.
+Exact relevant log:
+common_fit_params: failed to fit params to free device memory: n_gpu_layers already set by user to 99, abort
+read_raw_unsafe: Falling back to buffered IO due to Bad address
+radv/amdgpu: Not enough memory for command submission.
+ggml_vulkan: device lost on Vulkan0
+llama_model_load: error loading model: vk::Queue::submit: ErrorDeviceLost
+
+Stage04:
+Same as Stage03 but --n-cpu-moe 38 -> 39
+Still failed during load with effectively identical signature:
+common_fit_params: failed to fit params to free device memory: n_gpu_layers already set by user to 99, abort
+read_raw_unsafe: Falling back to buffered IO due to Bad address
+radv/amdgpu: Not enough memory for command submission.
+ggml_vulkan: device lost on Vulkan0
+vk::Queue::submit: ErrorDeviceLost
+
+IMPORTANT OBSERVATIONS
+- mmap production works.
+- DIO fails before any prompt/inference.
+- B4096 was initially suspected, but DIO also fails at production B2048/UB2048.
+- Moving one additional expert layer to CPU (NCM39) did NOT change the failure.
+- No scientific PP/TG from these DIO Ornith runs because model never loads.
+- Qwen on a different Prism Vulkan build DOES run DIO successfully on this same GORAST Vega.
+- Ornith is using older /opt/llama/llama-b10919/llama-server, while Qwen uses:
+/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+- Stage03/04 both show:
+  read_raw_unsafe: Falling back to buffered IO due to Bad address
+  immediately before RADV command submission OOM/device lost.
+
+CURRENT NEXT TEST ALREADY QUEUED
+Stage05:
+Ornith DIO, B2048/UB2048, MTP1, switch F16 KV -> Q8/Q8, then short expert fit sweep.
+Please say whether this should proceed unchanged or whether we should pause it and first run a driver/build isolation test.
+
+QUESTIONS
+1) Does this look more like:
+   A) genuine VRAM/command-buffer exhaustion,
+   B) RADV/Vulkan bug,
+   C) DIO implementation/build incompatibility in b10919,
+   D) interaction with external draft model / ngld,
+   E) something else?
+2) What ONE or TWO minimal diagnostics would distinguish these possibilities fastest?
+3) Should we try the exact same Ornith GGUF and production flags on the newer Prism Vulkan binary used successfully by Qwen, changing only the binary/build?
+4) Should we test DIO with the external draft model disabled just for load isolation?
+5) Does "read_raw_unsafe: Falling back to buffered IO due to Bad address" suggest DIO is not actually succeeding and may be entering a broken fallback path?
+6) Would RADV_DEBUG, MESA_VK_WSI_PRESENT_MODE, AMD_VULKAN_ICD, or any Vulkan allocator/debug env help here, or are they irrelevant?
+7) If you think it is genuine memory pressure, explain why NCM39 made no difference and what memory component is likely dominating startup allocation.
+8) Please recommend the shortest next experiment, not a broad test matrix.
+
+Please return a compact technical diagnosis with:
+MOST_LIKELY_CAUSE=
+CONFIDENCE=
+DECISIVE_NEXT_TEST=
+WHY=
+WHETHER_TO_RUN_STAGE05_NOW=YES/NO
