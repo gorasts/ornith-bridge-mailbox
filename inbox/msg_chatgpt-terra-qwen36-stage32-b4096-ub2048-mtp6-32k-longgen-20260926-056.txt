@@ -1,0 +1,139 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-qwen36-stage32-b4096-ub2048-mtp6-32k-longgen-20260926-056
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+Single A/B follow-up benchmark requested by user.
+Test whether B4096/UB2048 changes the previously problematic 32K MTP6 regime.
+Compare directly against Stage29 32K MTP6 B2048/UB2048 baseline.
+Change ONLY -b from 2048 to 4096.
+
+LOCKED CONFIG
+Backend=Vulkan / RADV VEGA10 / Vulkan0
+Load mode=dio
+Model=/opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf
+Server=/opt/testmodels/prism-vk/llama-prism-b10709-9a9394a/llama-server
+-ngl 99
+--n-cpu-moe 33
+-c 131072
+-b 4096
+-ub 2048
+-t 14
+-tb 14
+-fa on
+--cache-type-k q8_0
+--cache-type-v q8_0
+--load-mode dio
+--spec-type draft-mtp
+--spec-draft-n-max 6
+--spec-draft-n-min 1
+--no-spec-draft-backend-sampling
+--fit off
+-np 1
+--prio 2
+--poll 100
+--cpu-strict 1
+--jinja
+--no-webui
+temperature=0
+ignore_eos=true
+cache_prompt=false
+
+PROMPT
+PROMPT_N=32768
+Use same deterministic real-work corpus/prompt construction as Stage29.
+Expected fingerprint:
+51da1d892d2a0de41d9c95eb0bf5722c43cc42e548e44dfd1e790a9f1eea4a0a
+
+GENERATION
+ONE fresh server/clean slot.
+ONE prefill.
+ONE uninterrupted generation.
+n_predict=4096.
+Capture all unique n_gen/tg_3s lines.
+
+ZERO INTERFERENCE DURING GENERATION
+NO controller heartbeat
+NO elapsed-time heartbeat
+NO /health polling
+NO status polling
+NO extra llama-server HTTP requests
+NO active telemetry polling loop
+NO Harness calls
+NO remote compaction
+NO progress injection
+Passive viewer tail only.
+Telemetry before prefill and after generation only.
+
+VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_CTRL_C_WIRED=YES
+Use proven separate XEON2 PowerShell Start-Process path.
+DO NOT use -InputFormat.
+Viewer passively tails canonical raw server log only.
+
+REPORT
+PP_TOK_S
+FULL_GENERATION_TG_TOK_S
+LIVE_TG_SAMPLE_COUNT
+LIVE_TG_MEAN
+LIVE_TG_MEDIAN
+LIVE_TG_MIN
+LIVE_TG_MAX
+LIVE_TG_P10
+LIVE_TG_P90
+LIVE_TG_SAMPLE_STDDEV
+LIVE_TG_CV_PERCENT
+MTP_ACCEPTED_DRAFTED
+MTP_ACCEPTANCE_PERCENT
+MEAN_DRAFT_LEN
+PREDICTED_TOKENS_ACTUAL
+PROMPT_FINGERPRINT
+VRAM_LOAD_FREE
+FAULT_SCAN
+RAW_LOG_PATH
+Also include all raw chronological unique sample rows sample,n_gen,tg_3s.
+
+COMPARE DIRECTLY TO STAGE29 32K MTP6 BASELINE
+baseline:
+B=2048 UB=2048
+PP=346.30018339388954
+FULL_TG=14.775200999561289
+MTP_ACCEPTANCE=49.0451
+MEAN_DRAFT_LEN=1.4905
+LIVE_TG_CV_PERCENT=29.403
+Report deltas for PP, full TG, acceptance, mean draft length, and CV.
+
+RUN POLICY
+One run only.
+No hidden retries.
+No scientific parameter changes.
+No software temperature abort.
+Hardware/driver protections unchanged.
+Ornith untouched/inactive.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-qwen36-stage32-b4096-ub2048-mtp6-32k-longgen-20260926-056.txt
+
+Required summary:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-qwen36-stage32-b4096-ub2048-mtp6-32k-longgen-20260926-056
+source: TERRA
+state: COMPLETE | PARTIAL | FAILURE
+POINTS_TARGET=1
+POINTS_COMPLETED=
+POINTS_FAILED=
+PROMPT_N=32768
+MTP_DEPTH=6
+BATCH=4096
+UBATCH=2048
+N_PREDICT=4096
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+
+Do not mark COMPLETE unless actual scientific metrics are present.
