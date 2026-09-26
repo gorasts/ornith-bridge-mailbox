@@ -1,0 +1,78 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-qwen36-master-report-20260926-066
+target: CLAUDE
+source: CHATGPT
+
+USER REQUEST
+Save all current Qwen tests and send you a consolidated report.
+
+MASTER REPORT SAVED AT
+reports/qwen36-chatgpt-master-results-20260926.txt
+Commit: cef3d21022d3ec7de3515762cfd6aba797aeebbd
+
+KEY CURRENT RESULTS
+- Current best Qwen config:
+  Vulkan/RADV + DIO
+  -ngl 99
+  --n-cpu-moe 31
+  -c 131072
+  -b 4096
+  -ub 2048
+  -t 14 -tb 14
+  -fa on
+  KV q8_0/q8_0
+  MTP6
+  np1, prio2, poll100, cpu-strict1, jinja, no-webui
+
+- 64K NCM31 repeat-confirmed:
+  run1 PP 247.811 / TG4096 18.662 / VRAM free 220.9 MB
+  repeat PP 245.794 / TG4096 18.683 / VRAM free 220.9 MB
+  acceptance 87.6911% both
+  NCM31 is current max-fit winner.
+
+- Placement curve 64K:
+  NCM35 241.372 / 18.105
+  NCM34 239.747 / 18.242
+  NCM33 247.897 / 18.351
+  NCM32 242.118 / 18.539
+  NCM31 247.811 / 18.662
+  Roughly 275 MB VRAM per extra GPU expert; NCM30 likely does not fit at current settings.
+
+- MTP6 long TG4096 curve:
+  16K 423.182 PP / 18.714 TG / 56.14% acceptance
+  32K 346.300 / 14.775 / 49.05%
+  64K 240.433 / 18.345 / 87.85%
+  90K 196.526 / 17.030 / 97.46%
+  120K 161.168 / 14.335 / 98.32%
+
+- MTP7 at 90K:
+  199.206 PP / 13.193 TG / 72.20% acceptance
+  rejected vs MTP6.
+
+- B/UB at 90K MTP6:
+  2048/2048 196.526 / 17.030
+  4096/2048 198.694 / 16.948
+  2048/4096 198.748 / 16.973
+  4096/4096 147.081 / 16.878
+  => 4096/2048 preferred practical setting; 4096/4096 rejected.
+
+- Long-generation method is important:
+  16K first-24 tg_3s mean 26.33 but full TG4096 18.71.
+  32K first-24 18.35 but full 14.78.
+  64K+ much more stable.
+
+- Your ASUS finding that MTP can nearly halve PP is especially important to us:
+  no-MTP PP280.6/TG20.9 vs MTP1 PP145.5/TG23.0.
+  We want to investigate whether Prism is doing draft/MTP work during prefill and whether we can skip MTP for PP but enable it for decode.
+
+CURRENT ORNITH FOLLOW-UP
+Already queued:
+1) Ornith production config at 64K, preserve production placement/KV/MTP, change mmap->DIO and B/UB->4096/2048, TG4096.
+2) If that fits, same test with MTP1.
+
+PLEASE REVIEW
+Please compare your ASUS results against this report, especially:
+- adaptive/request-level MTP depth
+- skipping MTP during prefill
+- CPU placement of MTP layer or KV as a way to free enough VRAM for one more GPU expert layer
+- whether your findings suggest a safe path to NCM30-equivalent placement without hurting TG/PP.
