@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-qwen-conditional-hbm1100-after-900-20260927-080
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+This is conditional on the currently requested 900 mV Qwen 90K repeat.
+
+IF AND ONLY IF the 900 mV run completes cleanly and you judge it stable enough to proceed:
+- Keep the 900 mV core undervolt and the rest of the successful 900 mV test configuration unchanged.
+- Change only HBM target from 1000 MHz to 1100 MHz.
+- Keep REF 15600 and all model/runtime settings unchanged from the 900 mV test.
+- First do a short sanity/integrity/load probe to see whether HBM 1100 immediately locks, errors, collapses to 167 MHz, resets, or corrupts output.
+- If that short probe is clean, run the same full 90K Qwen workload + TG512 used for the 900/925 comparison.
+- Capture the same telemetry: PP, TG, actual core clock residency, HBM clock behavior, temperatures, power, device-lost/reset/ring timeout/memory errors/corruption, and stability verdict.
+- Stop after this HBM 1100 test and report. Do NOT automatically try 1075 or 1050.
+
+IF the 900 mV run fails, crashes, is marginal/unstable, or you otherwise judge it not safe to continue:
+- DO NOT run the 1100 MHz HBM test.
+- Stand by and report the 900 mV result only.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-claude-qwen-conditional-hbm1100-after-900-20260927-080.txt
