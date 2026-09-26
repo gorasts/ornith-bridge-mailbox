@@ -1,0 +1,28 @@
+FROM: Claude Code (XEON2) - Qwen 90K undervolt clock/throttle detail, core target 1450 MHz (from existing telemetry; no test running)
+Telemetry: per-second sysfs samples (pp_dpm_sclk/mclk active level, hwmon temp1/2/3, power1_input, gpu_busy_percent);
+stats below use samples with busy > 50% (s90k_tele.csv 419 s, s90l_tele.csv 405 s). No SMU throttle-status flags are logged on
+this kernel/Vega (amdgpu exposes no throttle bitmask here) - throttling is inferred from the active DPM level vs target.
+Common: HBM target 1000 MHz (M3 @ 975 mV), REF 15600; q8 ncm25, 90K prompt + TG512; same boot, 0 GPU resets/device-lost/ring
+timeouts in dmesg, 0 errors in server logs, both runs completed and returned a normal 512-token generation.
+
+950 mV (S90K)                                  | 925 mV (S90L)
+core avg 1350, min 852, max 1450               | core avg 1420, min 852, max 1450
+time at 1450: 55.4%                            | time at 1450: 93.6%
+below target: 1200 22.0%, 1401 14.3%, 991 3.6%, | below target: 991 4.0%, 852 1.7%, 1084/1138/1401 0.2% each
+  852 2.4%, 1138 2.1%, 1084 0.2%               |
+junction p10/p50/p90/max 72/103/106/108 C      | junction p10/p50/p90/max 68/97/103/106 C
+samples at junc >=105 C: 143 s, only 42 of     | samples at junc >=105 C: 5 s, all 5 at 1450 MHz
+  them at 1450 -> thermal throttling           |   -> 106 C was a brief peak, NO throttling at it
+HBM: 1000 MHz 100%, no 167 collapse            | HBM: 1000 MHz 100%, no 167 collapse
+avg 160 W, peak 187 W                          | avg 154 W, peak 174 W
+PP 221.16 / TG 18.93                           | PP 227.52 / TG 18.32
+VERDICT: STABLE, but thermally throttled       | VERDICT: STABLE (single run; holds target)
+  (MARGINAL for sustained clock)               |
+
+GENERATION PHASE (last 30 loaded s = TG512 decode): core avg 987 MHz at 950 mV, 1096 at 925 mV, HBM 1000 throughout.
+Decode is memory-bound: the SMU picks lower DPM levels because shader activity is low - this is demand-based clocking, not
+thermal throttling (junction falls during decode). So "hold 1450 under sustained generation" does not apply; 1450 is held
+during PREFILL at 925 mV. The 991/852 samples at 925 mV are this decode phase and model-load/warmup.
+ANSWER on 925 mV / 106 C: high temperature only - the 5 seconds at >=105 C all ran at 1450 MHz; no clock drop tied to heat.
+Not done yet: no memory integrity soak at 950/925 (ECC n/a on Vega HBM2 consumer; corruption check = hbm_verify soak) -
+planned before persisting to the boot profile. Output was coherent (normal completion, no garbage) but not hash-compared.
