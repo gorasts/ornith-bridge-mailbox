@@ -1,0 +1,100 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-luna-paddleocr-cpu-standalone-20260926-074
+target: LUNA
+source: CHATGPT
+
+USER REQUEST
+Install and test a standalone CPU-only OCR pipeline on XEON2 for the user's normal screenshot workflow:
+PowerShell, terminal windows, benchmark output, tables, numbers, error messages, UI labels.
+
+IMPORTANT
+This test must NOT involve Ornith, Qwen3.6, Qwen3-VL, or any other LLM.
+PaddleOCR's own small OCR detector/recognizer models are allowed/expected.
+Do not use GPU.
+
+HOST
+Prefer XEON2 Windows desktop, because this is where PowerShell/terminal screenshots will normally originate.
+If impossible, report why before switching host.
+
+INSTALL
+Install PaddleOCR CPU-only in a separate isolated Python environment.
+Do not alter existing production Python environments or LLM installs.
+Prefer a current stable PaddleOCR/PaddlePaddle CPU combination that works on this Windows host.
+Record exact package versions and environment path.
+
+TEST IMAGE
+Create a deterministic local PowerShell-style PNG containing:
+- header: "QWEN BENCHMARK"
+- PP_TOK_S=247.811
+- TG_TOK_S=18.662
+- VRAM_FREE=220.9 MB
+- GTT_USED=10360.1 MB
+- ERROR: radv/amdgpu: Not enough memory for command submission
+- a small 3-column table:
+  NCM31 | 247.811 | 18.662
+  NCM32 | 242.118 | 18.539
+  NCM33 | 247.897 | 18.351
+- PowerShell prompt:
+  PS C:\bench\qwen>
+
+Use a normal terminal-like monospace font available on the system and a dark-background screenshot style.
+Save the exact ground-truth text separately.
+
+RUN
+CPU-only OCR.
+No GPU.
+No LLM post-processing.
+Return the OCR engine's raw extracted text/lines and bounding boxes/confidences if available.
+
+VERIFY
+Compare OCR output programmatically against the exact ground-truth strings.
+Pay special attention to:
+- decimal points
+- 0/O confusion
+- 1/l/I confusion
+- slash/backslash
+- colon
+- "="
+- "MB"
+- NCM31/32/33
+- radv/amdgpu text
+
+REPORT
+HOST=
+CPU=
+OCR_ENGINE=
+PADDLEOCR_VERSION=
+PADDLEPADDLE_VERSION=
+ENV_PATH=
+OCR_MODEL_FILES_AND_SIZES=
+TOTAL_OCR_MODEL_DISK_SIZE=
+INSTALL_DISK_SIZE_APPROX=
+RAM_IDLE_BEFORE=
+RAM_PEAK_DURING_OCR=
+CPU_ONLY=YES
+GPU_USED=NO
+TEST_IMAGE_PATH=
+GROUND_TRUTH_PATH=
+OCR_TIME_S=
+RAW_OCR_OUTPUT_BEGIN
+...
+RAW_OCR_OUTPUT_END
+MISTAKES_BEGIN
+...
+MISTAKES_END
+EXACT_LINE_MATCH_COUNT=
+TOTAL_LINE_COUNT=
+CHARACTER_ACCURACY_PERCENT=
+NUMBER_ACCURACY_PERCENT=
+ERROR_LINE_EXACT=YES/NO
+TABLE_EXACT=YES/NO
+POWERSHELL_PATH_EXACT=YES/NO
+
+LEAVE AVAILABLE
+If successful, leave the isolated OCR environment installed for follow-up screenshot tests.
+Do not integrate with Ornith/Qwen yet.
+Do not modify production services.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-luna-paddleocr-cpu-standalone-20260926-074.txt
