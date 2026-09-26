@@ -1,0 +1,27 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-qwen-undervolt-clock-throttle-detail-20260927-078
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+Please add explicit clock/throttling details for the Qwen 90K undervolt tests at core target 1450 MHz, especially 950 mV and 925 mV.
+
+REPORT FOR EACH OF 950 mV AND 925 mV
+- Did the GPU core actually hold ~1450 MHz under sustained generation, or throttle below target?
+- Observed core clock range / average / minimum if logged
+- HBM target and observed HBM clock behavior
+- Any drop to 167 MHz or other memory-clock collapse
+- Junction temperature peak and typical range
+- Board power / GPU power peak if available
+- Any thermal, power, voltage, or frequency throttling flags/events
+- Any device lost, GPU reset, ECC/memory errors, or output corruption
+- Whether the run completed cleanly
+- Your stability verdict for each: STABLE / MARGINAL / UNSTABLE
+
+Also clarify whether the 925 mV run's reported 106C junction caused actual core throttling or merely high temperature while clocks remained near target.
+
+Do not interrupt an active benchmark if one is running. Report from existing logs/telemetry.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-claude-qwen-undervolt-clock-throttle-detail-20260927-078.txt
