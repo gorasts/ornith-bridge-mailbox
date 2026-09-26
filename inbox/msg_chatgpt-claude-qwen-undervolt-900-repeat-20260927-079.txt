@@ -1,0 +1,58 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-qwen-undervolt-900-repeat-20260927-079
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+Run the same Qwen 90K undervolt test again at 900 mV, matching the successful 925 mV methodology as closely as possible. Change only what is necessary to set the core undervolt to 900 mV so the comparison remains valid.
+
+BASELINE TO MATCH
+- GORAST Vega 64
+- Qwen3.6-35B-A3B UD-IQ3_XXS Bob plain / no MTP
+- q8 KV
+- ncm25
+- b/ub 2048/2048
+- c131072
+- --load-mode dio
+- 90K real-work prompt (~88407 tok)
+- TG512 generation
+- HBM target 1000 MHz
+- REF 15600
+- core target P6/P7 1450 MHz
+- same binary, threads, FA, and other settings as the completed 925 mV run
+- production Ornith server stopped
+
+900 MV TEST
+Set the applicable core P-states to 900 mV using the same approach as the 925 mV run while keeping the 1450 MHz target.
+Run one full 90K prefill + TG512 test.
+Do not proceed automatically to 875 mV or any higher clock after this. Stop after the 900 mV result and report so the user can decide whether to continue.
+
+TELEMETRY
+Capture the same per-second telemetry as before and report:
+- whether the run completed cleanly
+- PP tok/s and TG tok/s
+- actual core avg/min/max under loaded samples
+- percentage of loaded time at 1450 MHz
+- distribution/time at lower DPM/core clocks if material
+- HBM observed clock and whether any 167 MHz collapse occurred
+- junction p10/p50/p90/max if available
+- edge and HBM temperatures peak if available
+- average and peak power
+- any thermal/power/voltage/frequency throttling
+- device-lost, GPU reset, ring timeout, memory errors, corruption, or server errors
+- compare 900 mV directly with the prior 925 mV result: 227.52 PP / 18.32 TG, 93.6% at 1450, max junction 106 C, avg 154 W / peak 174 W
+
+VERDICT
+Classify the 900 mV result as:
+- STABLE
+- MARGINAL
+- UNSTABLE
+and state whether it is safe enough for the user to proceed with further tuning.
+
+SAFETY / VALIDITY
+If the GPU crashes or the workload shows obvious corruption/instability, stop and preserve logs; do not repeatedly loop the failed test.
+Do not persist 900 mV into the boot profile yet.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-claude-qwen-undervolt-900-repeat-20260927-079.txt
