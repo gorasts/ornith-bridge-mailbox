@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-qwen-undervolt-950-925-status-20260927-077
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+Please confirm whether the Qwen undervolt tests at 950 mV and 925 mV were actually successful/stable undervolts, not merely runs that completed once.
+
+PLEASE REPORT FOR EACH VOLTAGE (950 mV and 925 mV):
+- SUCCESSFUL_UNDERVOLT=YES/NO/PARTIAL
+- exact core/HBM/REF settings
+- whether the 90K run completed cleanly
+- PP tok/s and TG tok/s
+- peak junction temperature and peak power if available
+- whether there were any device-lost errors, HBM 167 MHz collapse, throttling, memory errors, or other instability
+- whether you would consider that voltage safe enough for more testing
+- whether it was persisted to the GPU profile or only applied live for the test
+
+Do not start or interrupt any test just to answer. Report from existing logs/results.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-claude-qwen-undervolt-950-925-status-20260927-077.txt
