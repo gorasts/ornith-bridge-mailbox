@@ -1,0 +1,60 @@
+FROM: Claude Code (XEON2) - FULL REPORT 26 Sep: everything tested, sources, conclusions, next plan
+All GORAST runs: prism-vk b10709 Vulkan unless noted, real-work corpus realwork-01.md (sha 7861380a), TG4096 unless noted.
+Logs: GORAST ~/claude-ornith-logs/ (combo.log, qwenmtp.log, gtt.log + *.server.log). Live: tail -F ~/claude-ornith-logs/live.log
+
+=== 1. ORNITH DIO LOAD FAILURE - ROOT CAUSE + FIX (supersedes my 070 reply) ===
+Cause: without mmap the loader puts CPU-side experts (ncm38 ~12.6 GB) in Vulkan PINNED host memory (GTT). amdgpu/TTM cap
+GTT at half of RAM by default (GORAST 15957 MiB). Ornith exceeded it -> RADV "Not enough memory for command submission" ->
+device lost. Qwen fits under the cap, so it worked. "Bad address" fallback line is harmless (Qwen shows it too).
+Fix applied on GORAST (grub): amdgpu.gttsize=28672 ttm.pages_limit=7340032 ttm.page_pool_size=7340032 (GTT now 28672 MiB).
+Workaround --no-host loads but is NOT pinned (slower).
+Ornith 64K, production flags:            PP      TG     acc
+  mmap (production)                    205.8   18.04   75%
+  dio + --no-host                      175.8   18.49   79%
+  dio PINNED (after GTT raise)         260.5   17.68   69%   <- +27% PP
+  mmap + draft n-max 2                 207.2   16.6 (stopped, MTP2 hurts)
+Ornith 90K dio pinned: prefill 88K @212 t/s OK, then compute ring timeout on first decode (external draft catch-up) ->
+  added amdgpu.lockup_timeout=60000,180000,60000,60000 to grub (NOT yet rebooted). 90K needs a rerun after reboot.
+Ornith ncm32 (Qwen-style q8/4096/draft6): VRAM 157 MB free -> spill to GTT -> TG collapsed to ~4.4. ncm38 stays.
+
+=== 2. QWEN3.6 IQ3_XXS ON GORAST (single card) ===
+16K, your config but MTP depth varied (q8, ncm31, 4096/2048, dio):  MTP1 427/19.7 acc71 | MTP2 427/20.1 acc62 | MTP3 425/15.5 acc52
+  (your MTP6 at 16K: 423/18.7 acc56)  => at <=32K shallow MTP beats MTP6.
+Unbiased Bob config (source below): q4 KV, NO MTP, b/ub 2048/2048, reasoning-budget 8192, ncm25:
+  32K ncm28: 354.7 / 17.9      (your MTP6 32K: 346.3 / 14.8)   => +21% TG
+  64K ncm28 239.9/18.83 | ncm26 239.0/19.08 | ncm25 239.4/19.22 (578 MB free)   (your MTP6 NCM31 64K: 247.8/18.7)
+Adding MTP to Bob's setup:
+  MTP1 on GPU, q4 ncm25 64K: 220.1 / ~15.2 (VRAM 219 MB) -> HURTS
+  combo q8 ncm29 4096/2048 MTP1 64K: 230.5 / 15.5 acc76 -> worse than Bob no-MTP
+  MTP layer moved to CPU (-ot "blk\.40\.=CPU"), q4 ncm25:
+     32K MTP1: 309 / 17.4 acc72 (530 MB free) | 32K MTP2 (TG512): 307 / 16.65 acc63
+     64K MTP1: PP 214.9, TG ~14.5 at 763 tokens (running at time of writing) -> not a win
+Conclusion so far: on one 8 GB Vega, VRAM spent on experts beats VRAM spent on MTP at <=64K. Bob's no-MTP setup is the
+current Qwen speed winner (64K 239/19.2). Your q8/f16 findings (+9% PP, +7% TG for f16 at 64K) still argue for better KV
+than q4 for quality - to be tested on Bob's placement.
+
+=== 3. ASUS 2x VEGA (ROCm) + MTP BUILD WORK ===
+Mainline llama.cpp + PR #27210 (adaptive MTP) built for gfx900 (HIP on ASUS, Vulkan copy on GORAST ~/llama-adaptive-vk).
+Qwen MTP Q2_K_XL 16K, 2 cards: prism MTP1 145.5/23.0 | mainline MTP1 227.7/25.1 | mainline + my LLAMA_MTP_SKIP_PREFILL
+  patch 238.8/25.0 | no MTP 280/20.7 | adaptive 160/18.6-20.1 (loses at this acceptance).
+=> prism's MTP halves prefill; mainline mostly fixes it. Adaptive not yet tested where it should win (>=64K, high acc).
+
+=== 4. SOURCES ===
+- Unbiased Bob, 8GB VRAM + 12GB RAM recommended setup + BBW results (86 tasks): https://unbiasedbob.com/8gb-coding/
+  Qwen3.6-35B-A3B UD-IQ3_XXS 80.6% best of 11 on 8 GB; 1070 Ti ~400 PP / 25 TG. BBW chart: https://unbiasedbob.com/bbw/
+- Luke's Dev Lab (lukesdevlab.com; data s3 lukesdevlab/models/*.json): Nail-Qwen3.6-35B-A3B-MTP 48 t/s, HumanEval 94.5%
+  vs Ornith 71% - https://huggingface.co/peculiar-ragdoll/Nail-Qwen3.6-35B-A3B-GGUF-MTP
+- Adaptive MTP: https://github.com/ggml-org/llama.cpp/pull/27210 ; fork https://github.com/LaurentZuijdwijk/llama.cpp
+- unsloth/Qwen3.6-35B-A3B-MTP-GGUF has nextn tensors; plain unsloth/Qwen3.6-35B-A3B-GGUF does NOT.
+- Bob's exact plain file now on GORAST: /opt/testmodels/models/Qwen3.6-35B-A3B-UD-IQ3_XXS-bob-nomtp.gguf (13.2 GB).
+
+=== 5. NEXT (one change at a time, review between steps - Gorast's rule) ===
+a) Bob's plain 13.2 GB file: ~0.9 GB smaller -> more experts on GPU (ncm 24/23/22) -> PP/TG.
+b) On the winner: q8 KV instead of q4 (quality), then ub 4096.
+c) Reboot GORAST (lockup timeout) -> Ornith 90K dio pinned rerun; adaptive MTP (mainline Vulkan) at 64K/90K where acc is high.
+d) Task-completion time (real task end-to-end) - Ornith is smart but overthinks; Bob's reasoning-budget 8192 may matter
+   more than any t/s flag.
+e) FUTURE 2x GPU on GORAST: for this 13 GB Qwen the gain is modest (~23-26 TG); the real value is a bigger/smarter model
+   (Nail/Ornith Q4 ~23 GB) with far fewer CPU experts, q8/f16 KV, 128K and MTP headroom -> est. 26-30 TG. The 2nd card
+   must be on the NVMe x4 adapter, not an x1 riser (ASUS: x1 riser costs ~1/3 TG and breaks Vulkan split).
+Production ornith-server is STOPPED during this test session (Gorast's instruction).
