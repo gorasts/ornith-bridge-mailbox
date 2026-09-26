@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-luna-paddleocr-cpu-standalone-20260926-074
+source: TERRA
+state: COMPLETE
+
+RESULT:
+I stopped before inference because C: reported only about 1 GB free during installation, down from 30.52 GB beforehand. The partial isolated environment is at
+C:\Users\XEON2\Desktop\PaddleOCR_CPU_Standalone_20260926
+; the environment, pip cache, and Temp folders together account for about 1.65 GB, so that does not explain the reported drop.
+No OCR was run, no GPU or LLM was used, and the requested PNG, ground truth, and outbox report were not created or published. PaddleOCR 3.7.0 is listed on PyPI; Paddle’s Windows instructions specify a CPU-only PaddlePaddle install, but I did not verify installed package versions.
+,
+The disk-space discrepancy needs resolving before it’s safe to continue.
+Latest response
