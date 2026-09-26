@@ -1,0 +1,172 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-ornith-stage04-dio-ncm39-64k-longgen-20260926-068
+target: TERRA
+source: CHATGPT
+
+PURPOSE
+Test whether moving ONE additional Ornith expert layer to CPU frees enough VRAM for DIO to fit.
+
+BASELINE / PRIOR RESULT
+Stage03 exact production Ornith + DIO failed during model load:
+- N_CPU_MOE=38
+- NGL=99
+- NGLD=2
+- B=2048
+- UB=2048
+- F16/F16 KV
+- MTP1 external draft model
+Error:
+radv/amdgpu: Not enough memory for command submission
+ggml_vulkan: device lost on Vulkan0
+
+SCIENTIFIC CHANGE
+Relative to Stage03, change ONLY:
+--n-cpu-moe 38 -> 39
+
+KEEP EXACTLY
+Server:
+/opt/llama/llama-b10919/llama-server
+Model:
+/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+Draft:
+/opt/ornith-models/shisa12k-mtp-standalone.gguf
+
+Environment:
+MESA_VK_DEVICE_SELECT=1002:687f
+
+Flags:
+--temp 1.0
+-fa on
+-t 14
+-tb 14
+-ub 2048
+-b 2048
+-c 131072
+--cache-type-k f16
+--cache-type-v f16
+--load-mode dio
+-ngl 99
+-ngld 2
+--prio 2
+--poll 100
+--cpu-strict 1
+--spec-draft-n-max 1
+--spec-draft-n-min 1
+-np 1
+--jinja
+--no-webui
+
+PROMPT
+PROMPT_N=65536
+Use same deterministic real-work corpus:
+SHA256=7861380a2ce4f0ba73d6dda4e5eebd09f8a981579831f64ea29a181db5e76b7c
+Use the same 64K construction as current campaign.
+Report actual prompt token count and fingerprint.
+
+GENERATION
+If model fits:
+ONE fresh server / clean slot
+ONE prefill
+ONE uninterrupted generation
+n_predict=4096
+Capture all unique n_gen/tg_3s rows.
+
+ZERO INTERFERENCE DURING GENERATION
+NO controller heartbeat
+NO elapsed-time heartbeat
+NO /health polling
+NO status polling
+NO extra llama-server HTTP requests
+NO active telemetry polling loop
+NO Harness calls
+NO remote compaction
+NO progress injection
+Passive viewer tail only.
+Telemetry before prefill and after generation only.
+
+VIEWER
+LIVE_VIEWER_MUST_BE_SEPARATE_WINDOW=YES
+LIVE_VIEWER_CTRL_C_WIRED=YES
+Reuse exact proven separate XEON2 PowerShell viewer launch.
+DO NOT use -InputFormat.
+Viewer passively tails canonical raw log only.
+
+FIT / FAILURE POLICY
+One scientific attempt only.
+No hidden retries.
+No silent parameter changes.
+If NCM39+DIO still fails:
+- capture exact failure
+- do not fall back to mmap
+- do not change KV
+- do not change batch
+- do not change MTP
+No software temperature abort.
+Hardware/driver safeguards unchanged.
+
+REPORT
+TEST_EXACT_COMMAND=
+FIT_RESULT=
+PP_TOK_S
+FULL_GENERATION_TG_TOK_S
+LIVE_TG_SAMPLE_COUNT
+LIVE_TG_MEAN
+LIVE_TG_MEDIAN
+LIVE_TG_MIN
+LIVE_TG_MAX
+LIVE_TG_P10
+LIVE_TG_P90
+LIVE_TG_SAMPLE_STDDEV
+LIVE_TG_CV_PERCENT
+MTP_ACCEPTED_DRAFTED if available
+MTP_ACCEPTANCE_PERCENT if available
+MEAN_DRAFT_LEN if available
+PREDICTED_TOKENS_ACTUAL
+PROMPT_TOKENS_ACTUAL
+PROMPT_FINGERPRINT
+VRAM_LOAD_FREE
+VRAM_AFTER_GENERATION_FREE
+GTT_LOAD_USED
+GTT_AFTER_GENERATION_USED
+FAULT_SCAN
+RAW_LOG_PATH
+EXACT_SERVER_COMMAND
+Include raw chronological unique sample,n_gen,tg_3s rows.
+
+COMPARE
+Compare to Stage03 fit failure.
+If exact historical Ornith mmap 64K scientific result exists, report separately and label methodology.
+Do not invent apples-to-apples numbers.
+
+PRODUCTION SERVICE
+Do not modify production service definition.
+Preserve prior running/inactive state.
+
+RETURN
+Publish exactly:
+outbox/result_chatgpt-terra-ornith-stage04-dio-ncm39-64k-longgen-20260926-068.txt
+
+Required summary:
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-terra-ornith-stage04-dio-ncm39-64k-longgen-20260926-068
+source: TERRA
+state: COMPLETE | FAILURE
+MODEL=ORNITH
+PROMPT_N=65536
+LOAD_MODE=DIO
+BATCH=2048
+UBATCH=2048
+MTP_DEPTH=1
+N_CPU_MOE=39
+NGL=99
+NGLD=2
+KV=F16/F16
+ONLY_CHANGE_FROM_STAGE03=N_CPU_MOE_38_TO_39
+LIVE_VIEWER_WINDOW=SEPARATE
+PASSIVE_VIEWER_ONLY=YES
+ZERO_ACTIVE_HEARTBEAT_DURING_GENERATION=YES
+ZERO_ACTIVE_POLLING_DURING_GENERATION=YES
+NO_HIDDEN_RETRIES=YES
+NO_UNAPPROVED_PARAMETER_CHANGES=YES
+
+Do not mark COMPLETE unless actual scientific metrics are present.
