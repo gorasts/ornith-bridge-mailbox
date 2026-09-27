@@ -1,0 +1,44 @@
+FROM: Claude Code (XEON2) - REPORT 27 Sep evening: GORAST 3-GPU tests + Tiel high-effort + Ornith anti-overthink
+(follows 081 result and 087 addendum; all numbers measured, raw lines in GORAST ~/claude-ornith-logs/combo.log)
+
+=== HARDWARE CHANGE ===
+GORAST now has 3x Vega 64 (2 moved from ASUS). Main 05:00 = x16 PCIe3 (10.1 GB/s H2D). New cards 0c/0f are on
+chipset x1 PCIe2 slots (0.35-0.40 GB/s). VRAM read all 3 ~380 GB/s. ASUS tune applied at boot to both new cards
+(P2-P7 900 mV, top 1536, HBM 1000 @ floor 975, REF 15600) via /usr/local/sbin/gpu-mempin-extra; per-card fan curve
+service gorast-fan@<pci>. Grub: removed quiet splash, fbcon=nodefer + video=HDMI-A-1 (blank-screen fix), Above 4G on.
+Gorast ordered M.2->PCIe adapters: the 2nd M.2 is very likely CPU x4 PCIe3 (~3.5 GB/s, ~9x the x1 slots).
+
+=== ORNITH: EXPERT OFFLOAD TO THE x1 CARDS (32K, production flags) ===
+main only 392.2/19.72 | +GPU2 16 layers 313.2/20.70 | A: GPU2+GPU3 16+16 (CPU 2) 261.6/21.73 |
+B: same, no experts on main 253.2/19.90 | C: 6/14/14 (26% free) 272.6/21.35.  -> +10% TG for -33% PP = NET LOSS.
+x1 link measured ~380 MB/s during prefill = saturated. Rejected until cards sit on x4+.
+
+=== TIEL IQ3_XXS FULLY ON GPUs (layer split, no CPU) ===
+32K: 3GPU even 537/28.4 | main-heavy 1.5,1,1 537/28.7 | main-light 0.6,1,1 587.6/28.1 |
+2GPU b/ub2048 spills (104/30.3), q4 KV still spills (194/29.4), 2GPU ub1024 701/30.5 but 64K 267/27.3 (steep decay:
+small ubatch = more KV re-reads). ub3072 spills on every split tried (216/28.1). b4096/ub2048 = same as 2048.
+WINNER: 3 GPUs, -ts 0.6,1,1, b/ub 2048, q8 KV, c131072:
+            32K 587/28.0   64K 455/25.2   90K 377/23.1   (b10919; v0.5.0 identical within noise)
+vs Tiel best single GPU (ncm26): 440/21.2, 326/18.7, 262/18.5  -> +33..44% PP, +25..35% TG.
+ik_llama.cpp would not start with these flags (skipped). Ornith fully on 3 GPUs: ~96% VRAM, est. only +15% -> not pursued.
+
+=== TIEL reasoning_effort=HIGH on the 3-GPU winner (v0.5.0, T0.6 top_p .95 top_k 20 seed 42, no cap) ===
+Previously failed on medium, now:  T3 CORRECT (39.2K tok, 22 min) | T8 CORRECT 35 (52.2K, 30 min) | K1 CORRECT HBGFCADE (2.7K)
+Rest (running): T1 CORRECT (10.0K; medium 4.4K) | T2 CORRECT 118|48|D,E,F,H,I,L,M (39.5K; medium 38.0K) |
+T4 running; then 5,6,7,9(manual),K4,finale. K2/K3 left for overnight.
+=> high effort 5/5 so far, incl. all 3 medium failures. No GPU hang in >1.5 h (b10919 hung Tiel twice earlier).
+Behaviour: high effort reasons like Ornith - reaches the answer early (22-64% into reasoning) then verifies;
+tokens vs Ornith temp0 on same tasks: T1 10.0K vs 9.9K, T3 39.2K vs 31.6K, T8 52.2K vs 49.7K, K1 2.7K vs 2.7K.
+So: same token cost as Ornith, better accuracy (Ornith 3/4 strict on those, format slip on T3). Wall time only faster
+because of 3 GPUs (~30 vs ~21 t/s).
+
+=== ORNITH ANTI-OVERTHINK SYSTEM PROMPT (option A, no cap; XEON2, temp 0) ===
+"Solve the problem, verify your answer once, then give the final answer. Do not re-check a result you have already verified."
+T1 CORRECT but 14.4K tok vs 9.9K baseline (+45%); T3 at 18K+ still searching -> stopped by Gorast. FAILED.
+(XEON2 used ncm38 vs 34 - placement can shift temp-0 path slightly, but no sign of shortening.)
+Ornith at T0.6 earlier: T2 wrong (117), K2 no answer 75 min -> Ornith stays temp 0.
+
+=== CURRENT STATE / PROPOSED ===
+Production ornith-server STOPPED (test session). Candidate decision for Gorast: Tiel IQ3_XXS high effort on 3 GPUs as
+main model if the remaining tasks + finale pass. Next: Tiel high finale (88K) in this run; overnight K2/K3;
+then Tiel Q4_K_XL (+ mmproj vision file present) precision A/B. Pending from before: drop --prio flags (+10.4% PP).
