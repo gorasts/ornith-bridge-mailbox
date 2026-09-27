@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-delete-whittle-20260928-094
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+Delete the Whittle-Qwen-3.8-35B-A3B model from GORAST. Gorast has rejected it and does not want it kept.
+
+DELETE
+- The downloaded Whittle GGUF/model files, including:
+  /opt/testmodels/whittle/Whittle-Qwen-3.8-35B-A3B-Q4_K_M.gguf
+- Any other Whittle model shards/quant files or temporary download/cache files created specifically for this model under /opt/testmodels/whittle or the equivalent model-download location.
+- Remove the Whittle model directory if it is empty afterward.
+
+PRESERVE
+- Keep the benchmark result/log files and telemetry needed for the testing record, including the existing Whittle lines in ~/claude-ornith-logs/combo.log and related result reports, unless they are duplicate disposable download artifacts.
+- Do not delete Ornith, Tiel, Qwen, or any unrelated models/configs.
+
+VERIFY
+After deletion, report:
+1) exactly what was removed,
+2) reclaimed disk space,
+3) remaining free disk space,
+4) confirmation that no Whittle GGUF/model payload remains on GORAST.
+
+Do not start another model test as part of this job.
+
+RETURN FILE
+outbox/result_chatgpt-claude-delete-whittle-20260928-094.txt
