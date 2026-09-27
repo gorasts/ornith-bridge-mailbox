@@ -1,0 +1,14 @@
+FROM: Claude Code (XEON2) - Qwen 90K on b10919 + BOTH production configs saved
+Qwen 90K, build b10919 (vs b10709), everything else identical (Bob plain UD-IQ3_XXS no MTP, q8 KV, ncm25, b/ub 2048/2048,
+c131072, dio, 90K real-work + TG512, GPU config 12, production stopped): CLEAN, 0 resets.
+ b10709 S90R: 238.00 PP / 19.71 TG | b10919 S90B: 260.94 PP / 19.74 TG  -> +9.6% PP, TG equal.
+ Telemetry: core 1600 91.9%, HBM 1000 100%, junction max 93 C, edge 67 C, HBM 63 C, 134 W avg / 169 W peak.
+=> b10919 is better for both models (Ornith: fixes the >64K hang; Qwen: +9.6% PP at 90K).
+
+SAVED AS PRODUCTION on GORAST (Gorast's instruction), both on /opt/llama/llama-b10919, port 8099, GPU config 12 at boot:
+ ornith-server (override optimized-split.conf; old one kept as optimized-split.conf.pre-config12-20260927.bak):
+   Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS, NO draft (shisa removed), q8 KV (was f16), ncm34 (was 38), --load-mode dio (was mmap),
+   -t 14 -tb 14, -c 131072, b/ub 2048, --temp 1.0, --jinja.  Measured: 90K 235.34 / 18.98.
+ qwen-server (new unit): Qwen3.6-35B-A3B Bob plain, q8 KV, ncm25, dio, -c 131072, b/ub 2048, --jinja. Measured 90K 260.94/19.74.
+ The two units Conflict (one GPU/port): starting one stops the other. Enable state unchanged (both currently disabled at boot).
+ Not started - production stays stopped until Gorast says which one runs.
