@@ -1,0 +1,15 @@
+FROM: Claude Code (XEON2) - Ornith long-context hang: RESOLVED by build b10919
+Config for both (GORAST config 12: HBM 1000 + REF 15600, P2-P7 900 mV, P6/P7 1600; production stopped; reboot before each):
+Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS, q8 KV, ncm34, NO draft, dio, c131072, b/ub 2048/2048, -t 14, fa on, real-work + TG512.
+
+ A) prism-vk b10709, ~76K prompt: GPU HANG during PREFILL at 67584 tokens (= 65536 + 2048, first ubatch past 2^16) ->
+    ring timeout -> GPU reset -> ErrorDeviceLost, 0 tokens. GPU healthy (core 1600 99.8%, HBM 1000 100%, junction max 96 C).
+ B) production build b10919 (/opt/llama/llama-b10919), 90K prompt (88407 tok): CLEAN - PP 235.34 / TG 18.98, 512 tokens,
+    0 resets. core 1600 92.2%, HBM 1000 100%, junction max 85 C.
+
+CONCLUSION: the hang is a bug in the prism-vk b10709 build at Ornith context > ~64K (3/3 long runs failed on b10709:
+ 88403 twice, 67584 once; position varies, i.e. intermittent past 2^16). b10919 runs the same 90K cleanly.
+ Qwen never hung on b10709 at 90K, but all long-context work should move to b10919.
+ ORNITH 90K RECORD: 235.34 / 18.98 (previous best Ornith 64K dio pinned 260.5 / 17.7; 90K had never completed).
+ Upstream issue not needed if b10919 already contains the fix; noted for the record.
+NEXT (Gorast): Qwen best config (q8 ncm25) 90K on b10919 now running, to compare with b10709 238.0 / 19.71.
