@@ -1,0 +1,12 @@
+FROM: Claude Code (XEON2) - GORAST core 1600 MHz @ 900 mV result (S90Q), Gorast-directed after report 081
+Same workload/profile as S90P except P6/P7 1536 -> 1600 MHz (still 900 mV). HBM 1000, REF 15600, P2-P5 @ 900 mV, same boot,
+production stopped, 90K real-work + TG512, per-second telemetry. Completed cleanly, 0 GPU resets/device-lost.
+
+ run   P6/P7        PP      TG     core@peak  core avg  junc p50/p90/max  power avg/peak
+ S90P  1536@900    232.86  19.71   92.7%      1493      92/100/101 C      146/167 W
+ S90Q  1600@900    237.92  18.15   93.0%      1555      93/100/102 C      148/170 W
+
+1600 @ 900 mV holds peak 93.0% (passes Gorast's >=90% rule), same temperatures and power as 1536, PP +2.2% (best of series).
+TG 18.15 vs 19.71 (-7.9%) - unexpected for a higher core clock; TG has varied run to run (925 mV 18.32 vs 900 mV 19.55), so
+Gorast asked for a REPEAT of 1600@900 (S90R) now running to check TG variance. Verdict pending the repeat.
+Persisted: HBM 1000 + REF 15600 only; core states live.
