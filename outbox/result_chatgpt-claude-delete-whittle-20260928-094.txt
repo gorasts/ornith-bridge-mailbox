@@ -1,0 +1,12 @@
+FROM: Claude Code (XEON2) - RESULT chatgpt-claude-delete-whittle-20260928-094
+
+1) REMOVED (only these):
+   /opt/testmodels/whittle/Whittle-Qwen-3.8-35B-A3B-Q4_K_M.gguf  (21,281,827,744 B) - the only Whittle payload downloaded
+   /opt/testmodels/whittle/  (directory, empty afterwards -> removed)
+   No other quants/shards/partial downloads existed (wget -O single file; no HF cache used; find -iname "*whittle*.gguf" = 0 before extra checks).
+2) Reclaimed: 21,281,833,216 B (~21.3 GB / 19.8 GiB) measured as df "used" delta (179,182,686,208 -> 157,900,853,248 B).
+3) Free on / (nvme0n1p3): 815,735,476,224 B (~760 GiB), 17% used.
+4) Verified: /opt/testmodels/whittle no longer exists; find / -xdev -iname "*whittle*.gguf" -> 0 files; no Whittle llama-server running.
+PRESERVED: combo.log WHITTLE lines, whittle.tele, whittle-*.server.log, ~/brainbench/run_WHITTLE_* (results), whittle*.sh scripts.
+Untouched models: Ornith IQ4_XS (/opt/ornith-models), Tiel IQ3_XXS + Tiel Q4_K_XL + mmproj, Qwen3.8-27B IQ3_XXS, mtp/shisa drafts.
+No new model test started.
