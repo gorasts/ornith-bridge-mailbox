@@ -1,0 +1,96 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-whittle-qwen38-moe-speed-opt-20260927-092
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+Download, optimize, and speed-test the community MoE model logic65/Whittle-Qwen-3.8-35B-A3B on the current GORAST 3x Vega 64 setup. This is a SPEED/PLACEMENT/STABILITY tuning job first, not an intelligence benchmark.
+
+MODEL
+Primary repo:
+https://huggingface.co/logic65/Whittle-Qwen-3.8-35B-A3B-GGUF
+Base/model info:
+https://huggingface.co/logic65/Whittle-Qwen-3.8-35B-A3B
+
+Start with Q4_K_M if it can fit the intended 131072 context cleanly with useful VRAM headroom. If Q4_K_M cannot fit or spills badly at long context, fall back to Q3_K_M and document why. Do not silently change quant.
+
+HARDWARE / CURRENT STATE
+GORAST now has 3x Vega 64:
+- main GPU PCIe3 x16, top core 1600 MHz @ 900 mV
+- two additional Vegas currently on chipset PCIe2 x1 links, top core 1536 MHz @ 900 mV
+- all HBM 1000 MHz, REF 15600, saved boot tuning
+- main H2D ~10.1 GB/s; x1 cards ~0.35-0.40 GB/s
+- all VRAM reads ~380 GB/s
+- current production model service is stopped for testing
+Do NOT change the saved GPU clocks/voltage profile for this model-tuning job.
+
+IMPORTANT MODEL-SPECIFIC PLACEMENT
+Read the model/GGUF README before tuning. This model has a large n-gram/token-memory component intended to remain in system RAM; use the documented llama.cpp override (for example per_layer_token_embd=CPU if that is still the correct current flag) rather than wasting scarce VRAM or saturating the x1 links. Verify the actual tensor placement from server logs instead of assuming it worked.
+
+GOAL
+Find the fastest stable real-world configuration for this exact 3-GPU topology, prioritizing Gorast's normal long-context workload. Compare it directly against the current Tiel 3-GPU winner:
+- Tiel 32K 587 PP / 28.0 TG
+- Tiel 64K 455 PP / 25.2 TG
+- Tiel 90K 377 PP / 23.1 TG
+Ignore intelligence for now; measure speed, stability, and resource use.
+
+METHODOLOGY
+Use one self-contained adaptive sweep: coarse -> refine around survivors; drop obvious losers. Change one major variable at a time where practical so attribution remains clear. Do not spend hours exhaustively testing flat/failed regions.
+
+Use TG512 minimum for representative generation measurements. Collect PP and TG in the same run. Use fresh context/cache_prompt false where applicable.
+
+Candidate variables to test intelligently:
+1) llama.cpp build: start with b10919 if supported; compare v0.5.0 only if compatibility/performance/stability warrants it.
+2) GPU tensor split / placement, accounting for x16 + x1 + x1 asymmetry. Do NOT assume equal split is best.
+3) B/UB around known useful values (2048/2048 baseline; test nearby only if justified).
+4) q8 KV baseline, q4 KV only if it materially improves fit/performance; keep c=131072.
+5) CPU/GPU expert placement or tensor overrides needed by this architecture.
+6) DIO vs mmap only if model/load behavior makes this relevant.
+7) Flash Attention on unless this architecture/build specifically proves otherwise.
+8) threads only if clearly needed; do not do a huge thread sweep.
+
+Do not impose arbitrary software temperature cutoffs. Let hardware/driver protection operate. Stop only for a real GPU reset/device fault/hang/shutdown or clearly unsafe malfunction and report it.
+
+BENCHMARK CONTEXTS
+After finding the best candidate, validate at:
+- ~32K prompt + TG512
+- ~64K prompt + TG512
+- ~90K prompt + TG512
+If it remains clean and time permits, add ~120K + TG512 as a bonus long-context datapoint.
+Always keep server context at 131072 unless a compatibility test requires otherwise; note any exception.
+
+TELEMETRY
+For every serious survivor/final run capture:
+- PP tok/s
+- TG tok/s
+- prompt/completion token counts
+- wall time / TTFT if available
+- VRAM used/free per GPU and headroom
+- GTT/system RAM
+- per-GPU core clock/residency
+- HBM clock
+- utilization
+- edge/junction/HBM temps
+- avg/peak power
+- PCIe traffic/utilization on x1 cards if measurable
+- dmesg/reset/device-lost/ring-timeout/memory-fault scan
+The two x1 cards are a known topology bottleneck, so explicitly say whether the winning setup is compute/memory limited or PCIe-placement limited.
+
+LIVE VIEW
+Give Gorast a visible live PowerShell viewer on XEON2 showing the current test/model and actual generated benchmark activity plus telemetry. Use the established passive viewer method; do not create polling/heartbeat load that perturbs generation.
+
+RESULT
+Return a compact table of all meaningful candidates, identify the winner, and state:
+- exact command/config
+- exact GGUF quant/file
+- exact build
+- 32K/64K/90K PP/TG
+- VRAM headroom
+- stability result
+- comparison % vs Tiel at each context
+- whether this Whittle model is promising enough to proceed to the hard brain benchmark
+
+Do NOT restore production after testing unless Gorast explicitly asks; leave the test state clearly documented.
+
+RETURN FILE
+outbox/result_chatgpt-claude-whittle-qwen38-moe-speed-opt-20260927-092.txt
