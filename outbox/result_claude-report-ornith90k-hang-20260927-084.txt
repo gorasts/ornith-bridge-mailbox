@@ -1,0 +1,18 @@
+FROM: Claude Code (XEON2) - GORAST tune saved + Ornith results on it + Ornith 90K hang analysis
+1) SAVED PERMANENTLY (gpu-mempin config 12): P2-P5 @ 900 mV, P6/P7 1600 @ 900 mV, HBM 1000 (/etc/gpu-hbm), REF 15600.
+   Qwen 90K on it: 238.0 / 19.71 (repeat-confirmed), core at 1600 92.5%, junction max 102 C, 148 W avg.
+2) ORNITH 32K on new tune (prism-vk b10709, production gguf Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS, q8 KV, ncm34, NO draft, dio,
+   c131072, b/ub 2048/2048, 32K real-work + TG512): 335.8 / 21.02 (before, HBM-800 era: 318.6 / 21.23). VRAM free 1.2 GB.
+3) ORNITH 90K (same config, 88407-tok prompt): FAILED - GPU hang -> ring comp_1.2.0 timeout -> GPU reset -> VRAM lost ->
+   vk ErrorDeviceLost, 0 tokens generated.
+   Timeline: prefill fine to 86359 tok @ ~226 t/s; server then processed up to 88403 of 88407 (log at failure), and the final
+   step (last few tokens + first generated token) never completed; driver timed out after ~193 s (lockup_timeout 180 s).
+   GPU healthy during the run: core 1600 99.1%, HBM 1000 100%, junction max 101 C.
+   Morning run gtt90 (with shisa draft, 975 mV, HBM 800, same binary) failed IDENTICALLY at 88403 -> first decode.
+   RULED OUT: heat/undervolt (two different tunes), draft model (with and without), VRAM (1.2 GB free), slowness (a decode
+   step is ms; this hung >3 min). Qwen generates fine at 88K on the same binary/tune; Ornith generates fine at 64K.
+   LIKELY: GPU hang in the small-batch (decode) attention path against ~88K of Ornith KV - a kernel/shader limit crossed
+   between 64K and 88K, specific to Ornith's model shape. Not yet proven.
+NEXT (Gorast approved, one at a time, reboot between since each hang locks HBM at 167):
+   a) Ornith at ~76K (threshold search), b) Ornith 90K on the production build b10919, c) if confirmed, write an upstream
+   issue draft with the exact threshold; meanwhile production context should stay below the threshold.
