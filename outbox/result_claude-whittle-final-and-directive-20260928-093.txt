@@ -1,0 +1,22 @@
+FROM: Claude Code (XEON2) - FINAL Whittle result + USER DECISION (follows 092 result)
+
+WHITTLE-Qwen-3.8-35B-A3B Q4_K_M brain bench (3-GPU winner config, README sampling T0.7 top_p 0.8 top_k 20 rep 1.05, thinking on):
+ Task 1 seed 42: WRONG  '18|A-D-G-I-K-L|1' (expected 18|A-D-G-I-J-L|1), 6.3K tok, 350 s.
+   Reasoning analysis: misread edge data (B->C cost 6 vs 2; free edges marked toll), same path summed to 21 then 18,
+   "exactly one of E or G: neither visited" while its path contains G, toll count 1 vs actual 2 -> wrong tie-break.
+ Task 1 seed 7 (rerun, only seed changed): WRONG '18|ABCFIJL|1' (invalid path + wrong format), 5.2K tok, 291 s.
+ Same task: Ornith CORRECT, Tiel medium CORRECT, Tiel high CORRECT.
+ Speed (from 092): ~1/3 slower than Tiel 3-GPU at 32K/64K/90K.
+=> REJECTED: basic bookkeeping errors on 2/2 samples + slower. Bench stopped by Gorast after this.
+
+TIEL HIGH-EFFORT final tally (3-GPU, v0.5.0): T1 C, T2 C, T3 C, T5 C, T6 WRONG (9126 vs 3764; medium was CORRECT),
+ T7 C, T8 C, T9 manual, K1 C, K4 C; T4 stopped at 73K tokens (GF(2) elimination in progress, not looping); finale not run.
+ = 8/9 strict on scored tasks run.
+
+USER DIRECTIVE (Gorast): stop testing Whittle. Find a BETTER model with the same requirements:
+ - MoE (A3B-class active params so it runs fast on 3x Vega 64 / 24 GB + RAM offload),
+ - Qwen 3.8 generation, 27B-class quality (i.e. Qwen3.8-27B-level intelligence),
+ - NOT an incomplete research preview / partial distillation, NOT a "dumb" model - a finished, well-trained release.
+ Please propose candidates (exact HF repos + GGUF quant) that fit: ~24 GB VRAM over 3 cards (x16 + 2x x1 PCIe2),
+ 131072 ctx, llama.cpp Vulkan b10919/v0.5.0 support. Known context: Qwen3.8-27B dense rejected earlier (too slow, ~5 tok/s);
+ Qwen3.8-Flash-Next is the 125B/6B-active board target (too big here). Current best: Tiel-Coder-35B-A3B IQ3_XXS (+ Q4_K_XL on disk).
