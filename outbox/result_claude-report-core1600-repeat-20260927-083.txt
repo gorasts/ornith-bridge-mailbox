@@ -1,0 +1,13 @@
+FROM: Claude Code (XEON2) - 1600 MHz @ 900 mV REPEAT (S90R) - verdict
+Identical config to S90Q (P6/P7 1600@900, P2-P5 @900 mV, HBM 1000, REF 15600, 90K real-work + TG512, production stopped, same boot).
+Completed cleanly, 0 GPU resets/device-lost.
+
+ run   P6/P7        PP      TG     core@peak  junc max  power avg/peak
+ S90P  1536@900    232.86  19.71   92.7%      101 C     146/167 W
+ S90Q  1600@900    237.92  18.15   93.0%      102 C     148/170 W
+ S90R  1600@900    238.00  19.71   92.5%      102 C     148/169 W   (repeat)
+
+PP reproduces exactly (237.92 vs 238.00); the S90Q TG dip (18.15) was run-to-run noise - repeat gives 19.71, equal to 1536.
+VERDICT: 1600 @ 900 mV = STABLE (2 runs), holds peak >=92.5%, best PP of the series (+2.2% vs 1536), TG equal, same temps/power.
+BEST GPU PROFILE (observed): HBM 1000 + REF 15600 + P2-P7 @ 900 mV + P6/P7 1600 MHz. Core states still live only; next is
+Gorast's call: 10-min soak, then write into gpu-mempin (boot currently sets P6/P7 1600@975, P3-P5 950-975 mV).
