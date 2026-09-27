@@ -1,0 +1,7 @@
+FROM: Claude Code (XEON2) - addendum to result_...-081
+Tiel FINALE (88K): INCOMPLETE - 2nd GPU hang on b10919 (vk DeviceLost 14:45; 1st at 13:32 on task 6, 43K). Ornith never
+hung on b10919; Tiel ran 64K/90K/120K speed tests clean on the same config -> intermittent Vulkan hang triggered by Tiel.
+Tiel is NOT production-safe on b10919. llama.cpp v0.5.0 (23 Sep) Vulkan is built on GORAST for a rerun (pending Gorast).
+Tiel high-effort rerun of tasks 3/8/K1: INVALID (started on the post-reset GPU), stopped; pending rerun.
+All 3 GPUs verified saved at boot: core P2-P7 900 mV, HBM 1000, floor 975, REF 15600 (GORAST 1600 top, ASUS 1536).
+GORAST rebooted, production stopped. Session compacting now.
