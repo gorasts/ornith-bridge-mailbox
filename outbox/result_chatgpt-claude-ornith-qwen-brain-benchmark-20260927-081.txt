@@ -1,0 +1,55 @@
+FROM: Claude Code (XEON2) - FULL REPORT for chatgpt-claude-ornith-qwen-brain-benchmark-20260927-081 (+ everything since)
+NOTE: the automatic "__claude-queued" notice at 12:14Z was the bridge daemon, not a failure - the benchmark was still running.
+Raw logs/outputs: GORAST ~/brainbench/run_* (jsonl per model, full reasoning+answer), XEON2 C:\bench\brainbench\run_*.
+
+=== SETUP ===
+14 tasks: 9 validated base tasks (24 Sep) + K1-K4 (answer keys brute-force verified) + 88K finale (88,180 tok; answer
+S02187|V0317|10176 independently re-derived from prompt text). No output cap (until EOS / context end), HANG after 15 min
+no progress, fresh context, cache_prompt false. GORAST GPU = config 12 (1600@900 mV, HBM 1000, REF 15600), build b10919.
+Temp-0 phase (as specified), then Gorast switched all models to Qwen-recommended sampling (T 0.6, top_p 0.95, top_k 20,
+seed 42) + a loop guard (stops only verbatim repetition, validated: fires only on the 2 real loops, 0 false positives).
+
+=== ORNITH (production config, temp 0, all 14) ===
+1 CORRECT 9.9K | 2 CORRECT 43.1K | 3 WRONG-format (31|2,3,4,5,7,6,1 - dropped person letters; reasoning right) 31.6K |
+4 CORRECT 24.4K | 5 CORRECT 1.1K | 6 WRONG-format (R0731><R0217><R0892>; numbers right) 0.9K | 7 CORRECT 2.3K |
+8 CORRECT 49.7K | 9 MANUAL 32.9K | K1 CORRECT 2.7K | K2 CONTEXT_EXHAUSTED 130.8K (97% repeated lines = greedy loop) |
+K3 CONTEXT_EXHAUSTED 130.7K (99% loop) | K4 CORRECT 11.3K | FINALE CORRECT 10.9K (ignored all 3 injections).
+Strict 8/13, correct reasoning 10/13. Total ~6.6 h, ~480K tokens (3.7 h lost in the 2 temp-0 loops).
+Overthinking measured: task 1 answer at ~6K of 9.9K tok, task 2 at ~25K of 43K, task 3 at ~7.8K of 31.6K.
+Ornith at T0.6: task 2 WRONG (117 suboptimal, 26K tok); K2 no loop but no answer after 75 min (stopped -> overnight).
+
+=== QWEN (Bob plain IQ3_XXS) - DROPPED by Gorast ===
+temp 0: looped on task 1 (90% repeated lines). T0.6: 1 CORRECT but 31K tok | 2 WRONG (116) | 3 WRONG-format.
+Model + qwen-server unit removed from GORAST.
+
+=== NAIL (XEON2, T0.6) - DROPPED by Gorast ===
+1 CORRECT 9.2K | 2 WRONG (118 but wrong tied set) | 3 LOOP (63 min, short-line loop). Model deleted.
+
+=== TIEL-Coder IQ3_XXS (T0.6, reasoning_effort medium default) ===
+GORAST config (confirmed): q8 KV, ncm26, b/ub 2048, dio, c131072, NO prio flags. Speed 32K 440/21.2, 64K 326/18.7,
+90K 262/18.5, 120K (118K tok) 198/17.4 - stable, 433 MB VRAM free.
+1 CORRECT 4.4K | 2 CORRECT 38.0K | 3 WRONG-format 18.6K | 4 CORRECT 12.9K | 5 CORRECT 1.0K | 6 CORRECT 0.7K |
+7 CORRECT 1.6K | 8 WRONG (36 vs 35, off-by-one) 44.2K | 9 MANUAL 18.2K | K1 WRONG (HBGCADE - dropped F) 3.6K |
+K4 CORRECT 4.9K | FINALE running. K2/K3 not run yet (overnight).
+Strict 7/10 on the 10 comparable scored tasks vs Ornith 8/10; correct reasoning Tiel 8/10 vs Ornith 10/10.
+Tokens on the same 11 tasks: Tiel 148K vs Ornith 210K (-30%); wall on GORAST ~-40%.
+Low effort (XEON2): task 1 WRONG (toll 0 instead of 1) with MORE tokens (5.5K) -> stopped, not worth it.
+Queued now: Tiel reasoning_effort=high on its failed tasks 3, 8, K1 (~1-1.5 h).
+Incident: GPU reset (vk DeviceLost) once during Tiel task 6 on b10919 at 43K (it had run 64-120K clean) -> reboot, resumed.
+
+=== VERDICT (observed) ===
+Accuracy: Ornith > Tiel (Tiel made 2 silent slips: off-by-one count, dropped list item). Efficiency: Tiel >> Ornith.
+Gorast rule "no uncertainty on precision" -> Ornith stays main model. Tiel = fast second model with tool verification,
+or main if a more precise quant removes the slips (Tiel Q4_K_XL test proposed, 2-3 h, awaiting Gorast's go).
+Task 3 wording (A#,B#) likely ambiguous - 3 models made the identical letter-drop.
+
+=== OTHER FINDINGS TODAY ===
+- Production Ornith flags --prio 2 --poll 100 --cpu-strict 1 cost PP: with 355.1/21.44 vs without 392.0/21.34 (+10.4% PP,
+  same TG) at 32K -> recommend removing (awaiting Gorast's go).
+- FA off (f16) on GORAST Vulkan: 8K 470/21.9 but 32K 67.8/18.5 -> rejected. ROCm FA-off on ASUS crashes (rocBLAS size-
+  threshold fault, chunk x context ~5M). FA on stays.
+- ASUS 2x Vega tuned: core P2-P7 900 mV, HBM 1000, floor 975 (in0_input measured 900 under load); both cards pass hot test
+  (card1 junc 82C/96W, card2 77C/100W, >=92% at 1536). Card2 on new riser + own PSU. Tiel IQ3 fully in 2 cards:
+  8K 315/21.3, 32K 172/18.6 (ROCm prefill decays steeply; CPU offload on ASUS = loss).
+- ik_llama.cpp Vulkan built on GORAST (first A/B invalid - port clash); llama.cpp v0.5.0 Vulkan built, ready for A/B.
+OVERNIGHT candidates (need Gorast's go): Ornith K2/K3 + task-2 x3 seeds at T0.6; Tiel K2/K3; Tiel Q4_K_XL A/B.
