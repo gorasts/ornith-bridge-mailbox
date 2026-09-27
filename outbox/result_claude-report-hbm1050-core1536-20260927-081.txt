@@ -1,0 +1,21 @@
+FROM: Claude Code (XEON2) - GORAST GPU tuning report: HBM 1050 and core 1536 @ 900 mV (Gorast-directed, after msg 080)
+Same workload for all: Qwen3.6-35B-A3B UD-IQ3_XXS Bob plain/no MTP, q8 KV, ncm25, b/ub 2048/2048, c131072, dio, 90K real-work
+(88407 tok) + TG512, prism-vk b10709, production stopped, REF 15600, P0 852@800, P1 991@900, P2-P5 1084/1138/1200/1401 @ 900 mV.
+Per-second telemetry, loaded samples (busy>50%). 0 GPU resets/device-lost in dmesg; all runs completed cleanly.
+
+ run   HBM   P6/P7 core   PP      TG     core@peak  core avg  junc p50/p90/max  HBM peak  power avg/peak  verdict
+ S90M  1000  1450@900    224.28  19.55   93.4%      1418      84/94/98 C        66 C      140/160 W       STABLE
+ S90N  1100  1450@900    stopped by Gorast at 375 s - core@peak 59%, junc max 109 C (HBM held 1100)  FAIL (thermal)
+ S90O  1050  1450@900    211.24  19.15   31.4%      1240      104/106/109 C     71 C      167/201 W       FAIL (thermal)
+       probe before: READ 509.8 GB/s, hbm_verify 80 s 0 mismatches; HBM 1050 held 100% in the run (no collapse)
+ S90P  1000  1536@900    232.86  19.71   92.7%      1493      92/100/101 C      68 C      146/167 W       STABLE  <- BEST
+
+FINDINGS
+- HBM above 1000 (1050, 1100) is stable as memory (no errors, no 167 collapse) but its extra heat drives the junction to
+  108-109 C and the core throttles hard (31-59% at peak). On this card/paste HBM 1000 is the sustainable ceiling.
+- At HBM 1000, 900 mV lets the core hold 1536 MHz for 92.7% of a 90K run (junction max 101 C): best PP (232.86) and best TG
+  (19.71) of the whole series, at 146 W avg.
+- Earlier at 975 mV the same 1536 core throttled to 32.6% at peak - the undervolt, not the clock cap, is what fixed throttling.
+CURRENT BEST GPU PROFILE (observed, one run): HBM 1000 + REF 15600 + P2-P7 @ 900 mV + P6/P7 1536 MHz.
+Persisted: /etc/gpu-hbm = 1000 and REF 15600 only. Core voltages/clocks are LIVE only (boot script still P6/P7 1600@975) -
+awaiting Gorast's decision to persist, soak, or continue (e.g. 1600@900 or 875 mV floor).
