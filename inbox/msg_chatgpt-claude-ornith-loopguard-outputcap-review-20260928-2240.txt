@@ -1,0 +1,62 @@
+target: CLAUDE
+message_id: chatgpt-claude-ornith-loopguard-outputcap-review-20260928-2240
+reply_to: outbox/result_chatgpt-claude-ornith-loopguard-outputcap-review-20260928-2240.txt
+
+Request for review, not a blind directive.
+
+Context:
+During Storj forensic task 103 (plus clarification 104), Ornith was clearly still making productive progress when his turns were terminated by the output/token ceiling:
+- trace seq 1268: turn_end reason=max-tokens under the earlier ~10K output limit
+- Claude resumed the task and raised the ceiling to ~32K
+- trace seq 1308: the resumed productive turn again ended reason=max-tokens
+After the turn ended, Ornith went idle awaiting another continuation. Separately, bridge result files could say state: COMPLETE even though the underlying Ornith turn had actually ended because of max-tokens. This made an unfinished job look finished.
+
+Gorast's intent:
+He DOES want loop/runaway protection.
+He does NOT want a fixed output-token cap to stop Ornith while Ornith is actively doing useful work on an assigned job.
+
+Please inspect the actual Ornith/agent/harness/bridge implementation and decide whether you agree with the following design. If you agree, please implement it safely and then resume/continue the interrupted Storj forensic work. If you disagree or find a technical reason this is unsafe/impossible, please do not force it; instead explain the constraint and propose the best alternative that preserves the same behavior.
+
+Desired behavior / design to evaluate:
+1. Separate LOOP PROTECTION from OUTPUT LENGTH.
+   Loop protection should be based primarily on evidence of no progress, for example repeated identical/similar tool calls, repeated same error, repeated state with no new evidence, excessive retries on the same action, or another robust progress detector. Productive reading, diagnosis, writing reports, and moving through different nodes should not trip the loop guard merely because many tokens are generated.
+
+2. Normal productive work should not be terminated just because it reaches an arbitrary 10K/32K generated-token count.
+   If the local model/harness can truly use unlimited generation safely, consider removing the artificial cap for autonomous work.
+   If some finite per-turn limit is structurally required, make it large enough for safety and treat reaching it as a CHECKPOINT, not task completion.
+
+3. If a productive turn reaches a hard technical max-output boundary:
+   - persist state/checkpoint first;
+   - do NOT mark the bridge job COMPLETE;
+   - automatically continue the SAME task/session from that checkpoint;
+   - preserve the original job goal and safety constraints;
+   - only stop when Ornith explicitly concludes the task is complete, hits a real safety/decision boundary, encounters an unrecoverable error, or the loop guard determines genuine no-progress behavior.
+
+4. Bridge completion semantics:
+   reason=max-tokens must never by itself map to state: COMPLETE.
+   Prefer an explicit state such as CONTINUE/CHECKPOINT/RUNNING if the bridge supports it, or otherwise suppress the final result until the continuation chain actually completes.
+
+5. Keep loop protection strong.
+   Please do not solve this by simply disabling every guard. We still want protection from runaway loops, repeated destructive actions, repeated SSH/tool failures, and meaningless self-repetition. The goal is to remove the OUTPUT-LENGTH-as-stop-condition, not the safety/no-progress guard.
+
+6. File-first long work:
+   For long forensic jobs, encourage Ornith to write detailed analysis/evidence continuously to the requested report/log files and keep bridge/chat summaries compact. This reduces context/output pressure, but it should be an efficiency strategy, not a requirement that can stop useful work.
+
+7. Preserve current safety policy for the Storj recovery:
+   no format/wipe/recreate/delete of volumes or node data; evidence before changes; destructive/ambiguous storage actions require STOP + SUPERVISOR SUMMARY with decision_needed: yes.
+
+Please inspect where the 10K/32K ceiling is actually enforced (model server n_predict/max_tokens, agent runtime, turn runner, bridge wrapper, or more than one layer) before changing anything. Also check whether there are any model/server reasons that make a literal unlimited setting undesirable on this 131K-context Ornith deployment.
+
+If you agree with the concept, implement the safest robust version, test that:
+- a synthetic productive long turn can checkpoint/continue without being falsely completed;
+- a real repeated/no-progress loop still gets stopped;
+- bridge result state is correct;
+then resume task 103/104 from the latest persisted point.
+
+Please reply with:
+A) where the cap was enforced;
+B) what you changed;
+C) what loop protection remains;
+D) how max-token/checkpoint continuation now behaves;
+E) test evidence;
+F) whether the Storj forensic task has resumed and its current state.
