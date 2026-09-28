@@ -1,0 +1,71 @@
+FROM: Claude Code (XEON2) - FULL STATE REPORT 28 Sep: production change, all test results since 095, bridge architecture + fixes
+(follows 095; raw data GORAST ~/claude-ornith-logs/combo.log + ~/brainbench/run_*; memory: gorast_3gpu_placement_recipe.md, feedback_slope_metric.md)
+
+=== 1) PRODUCTION NOW (Gorast's decision) ===
+Model: Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS (AtomicChat, 15.5 GB; KLD 0.087 / top-1 88.1% vs prod IQ4 0.032 / 92.7%)
+GORAST ornith-server: /opt/llama/llama-b10919/llama-server -m /opt/testmodels/models/Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS.gguf
+ --temp 0.1 --host 0.0.0.0 --port 8099 -dev Vulkan0,Vulkan1,Vulkan2 -ts 0.8,1,1 -ngl 99 -fa on -t 14 -tb 14 -ub 2048 -b 2048
+ -c 131072 --cache-type-k q8_0 --cache-type-v q8_0 --load-mode dio -np 1 --jinja --no-webui   (fully on 3 GPUs, no CPU layers)
+ temp 0.1 default because temp 0 loops on this quant. Rollback file: optimized-split.conf.pre-small3gpu-20260928.bak.
+ Live check: 31.6 t/s. Note: as a service the main GPU loaded 8019 MiB (test run 7.0 GB) -> very long prompts may spill.
+Ready alternative (my recommendation): old IQ4_XS file on 3 GPU + 4 CPU expert layers (5,8,20,35): 424.6 PP / 26.1 TG @32K.
+
+=== 2) SMALL ORNITH (AD-IQ3_S-IQ3_XXS) FULL TEST, 3 GPU, temp 0.1 ===
+Speed: 32K 606 PP / 27.2 TG (0.8,1,1; 0.6,1,1 spills 204), slope 16.2 us/1K (flat like Tiel); real generation 29-31 t/s;
+ 88K finale prompt only ~196 t/s (near-full cards spill at long ctx - projection said ~400: confirms long runs are needed for finalists).
+Accuracy vs production Ornith IQ4 (temp 0), same tasks:
+ T1 C (temp 0 LOOPED; temp 0.1 C 11.3K) | T2 C 44.0K | T3 answer C/format WRONG (same slip as IQ4) | T4 skipped at 30K (hand GF(2), on track)
+ T5 C | T6 answer C/format WRONG (same as IQ4) | T7 C | T8 LOOP at temp 0.1 (method-indecision loop, 5x same 4 lines) | T9 manual 20.8K
+ K1 C | K4 C (13K at temp0 / 7.6K at 0.1) | FINALE C (S02187|V0317|10176, 16.9K tok, 21.9 t/s)
+ Strict 7/10 vs IQ4 8/10 on the same scored set; extra weakness = 2 loops.
+
+=== 3) OTHER CANDIDATES TESTED (since 095) ===
+- Empero Qwen3.8-35B-A3B-Distill Q4_K_M (21.7 GB): 3 GPU ladder 6->4->3->2 CPU layers, each step BOTH_UP:
+  2 CPU layers (20,35) 424.4/26.73 @32K (proj 90K ~255). Short set T0.6: T1 C 7.9K, T5 C, T6 C (exact, long ctx OK), T7 C, K1 C,
+  K4 WRONG (5,45: one arithmetic slip 49^2+4=2409). 6/7. Long tasks untested. Verification-prompt experiments: universal
+  "re-derive" prompt -> 14K+ brute force (4x tokens); targeted-check prompt -> K4 CORRECT but 2.7x tokens and not caused by the
+  check -> Gorast rejected prompt tuning ("check system flawed out of the box").
+- Tiel Q4_K_XL: 3-GPU layer split STALLS (x1 card 100% busy, no first chunk in 4 min, not a spill - likely UD tensor type on Vulkan
+  gfx900); 1 GPU + ncm36: T1 C, T5 C, T6 WRONG (same R0217->R0218 neighbour misread as IQ3 high) -> Tiel family trait. REJECTED.
+- Ornith IQ3_M (bartowski 17.4): 3 GPU + 2 CPU layers 424/25.4 - no faster than IQ4 on 3 GPU, more drift. Rejected.
+- Production Ornith IQ4_XS: 3 GPU + 4 CPU layers 424.6/26.1 (6 layers 393/24.9 worse); 2 GPU(x16+x1) + 15 CPU layers 363.4/22.8.
+- Whittle: rejected + deleted (094).
+
+=== 4) TEST METHOD NOW IN PLACE (GORAST ~/claude-ornith-logs) ===
+project.py: slope fit from one 32K run's progress lines -> PROJECT line (64K/90K/120K), SLOPE ALERT (confirm with real runs;
+ one false alert from a mixed-prompt log). judge.py: step verdicts (both up/flat/one up -> continue; trade-off -> continue if
+ dPP+2*dTG>0; down -> stop). score.py: long-weighted score. cfglog.sh: CONFIG + CHANGED-vs-previous per server start.
+progress.sh: passive PROGRESS line every 30 s (task, tokens, t/s). Permanent live view C:\bench\gorast_live.ps1.
+Sizing lesson: fully-on-GPU runs need ~8.5 GiB runtime at c131072 (not 3.8); per CPU expert layer ~-2% TG; --n-cpu-moe with a
+ layer split takes MAIN-card layers (x1 card overfills); llama.cpp already ignores unused MTP (nextn) tensors.
+
+=== 5) BRIDGE / HARNESS ARCHITECTURE AS IT RUNS NOW (XEON2) ===
+Mailbox repo gorasts/ornith-bridge-mailbox (inbox/msg_*, outbox/result_*).
+- Supervisor -> Claude: CLAUDE_BRIDGE\ClaudeInbox.ps1 -Daemon (startup OrnithClaudeInbox.cmd) queues; Claude session answers with
+  ClaudeReply.ps1 (-> outbox/result_<id>.txt).
+- Supervisor -> Terra/Luna/Sol: TERRA_DISPATCH\TerraDispatcher.ps1 (startup).
+- Supervisor -> ORNITH: ORNITH_WORKER\OrnithWorker.mjs polls every 5 s (git sync), takes the first unanswered inbox message with
+  "target: ORNITH", sends it into the bound DSH session via HarnessOwnerHelper :3099 -> DSH web :3080, waits for turn end, writes
+  outbox/result_<id>.txt and pushes. FIXED 28 Sep: (a) worker was not running since 26 Sep -> started + new scheduled task
+  "OrnithWorkerWatchdog" (every 5 min, restarts it unless ORNITH_WORKER\STOP exists) + startup OrnithOutboundWorker.cmd;
+  (b) it silently ignored messages without PROMPT_BEGIN/PROMPT_END or "TASK:" -> now falls back to the body after the header,
+  with the "RETURN FILE" routing block removed (your test 096 came back confused by that line; fixed after).
+  Message format that always works: PROMPT_BEGIN / PROMPT_END or a TASK: section.
+- Harness: HARNESS\HarnessOwnerHelper.mjs (startup OrnithHarnessOwner.cmd) launches the SEPARATE DSH copy
+  C:\bench\gorast_dsh\...\@deepseek-ai\dsh (v0.1.5-rc.1, DSH_HOME C:\bench\gorast_dsh\.dsh) as `dsh web --no-open` on 127.0.0.1:3080,
+  captures the login token, exposes /rpc,/follow,/health on :3099 (bound session session-8db23e1d...). FIXED: helper now saves the
+  login link to HARNESS\harness-url.txt (no way to open the UI before); disabled third-party plugin dsh-response-meta (needs a
+  service 0.1.5 lacks -> "Failed to load plugins"). Global npm dsh updated to 0.1.7-rc.2 but the harness does NOT use it (own copy).
+- Results -> Supervisor chat: WAKE\WakeSubmitter.ps1 types new outbox results into the Edge "Continue bridge debugging" chat via UIA.
+  FIXED: recovery (select chat tab without focus steal) was skipped whenever Edge was foreground -> Ornith's 096 reply waited for a
+  click. Now it recovers in every Edge window except the one Gorast is using. Keep the supervisor chat in its OWN Edge window for
+  fully hands-off delivery.
+- Voice: ASUS listen_asus.py (mic = Samsung ClusterVoice via adb; ASUS paired for wireless debugging; phone_link.py self-heals the
+  port after a phone reboot) -> XEON2 voice_bridge.py (tray watchdog) -> "Hey Ornith" = dsh_voice.js into the DSH session (FIXED:
+  reads harness-url.txt; old launch log token gave 401) ; "Hey Claude" = too slow from a turn-based Claude session (60 s window).
+  Output now Bluetooth speaker SPK-BT-03 on the ASUS (phone_app.flag -> .off). Avatar server :8777 running. Clock X04G: raw
+  tinyplay crashed it - not used for audio.
+
+=== OPEN ===
+Production = small Ornith per Gorast; IQ4_XS 3-GPU config ready if the loops/long-ctx spill matter. Empero long tasks untested.
+K2/K3 overnight pair still unrun for all new models. This Claude session is 74 h old; handoff written.
