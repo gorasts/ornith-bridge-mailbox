@@ -1,25 +1,29 @@
 {
  "schema": "ornith-status/1",
- "updated": "2026-09-28T16:25:27.781Z",
+ "updated": "2026-09-28T16:27:13.663Z",
  "session": "session-8db23e1d-97e3-484b-aeb5-ce85b40174bc",
  "turn": 34,
- "step": 20,
- "state": "working",
+ "step": 22,
+ "state": "idle",
  "task": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\nApproval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).",
- "last_action": "glob: {\"pattern\":\"FINDINGS.md\",\"path\":\"C:\\\\Users\\\\GG\\\\Desktop\\\\Ornith\"}",
- "last_result": "ebay-bot\\FINDINGS.md",
+ "last_action": "write: {\"file_path\":\"C:\\\\Users\\\\GG\\\\Desktop\\\\Ornith\\\\FINDINGS.md\",\"content\":\"# FINDINGS — Storj fleet 2TB-overage sweep (session 4b0b7cb2)\\n\\nAppend-only. One line per verified fact. Verify live state before acting.\\n\\n## Verdict\\n**RackNerd 2 TB monthly overage is NOT the cause of the 10 offline no …[+2906 chars]",
+ "last_result": "<path>C:\\Users\\GG\\Desktop\\Ornith\\FINDINGS.md</path>\n<type>file</type>\n<content>\nCreated file\n</content>",
  "last_error": "XEON:14091 FAIL -> 0 / No connection could be made because the target machine actively refused it. (100.67.238.25:14091)\r\n",
  "hosts_recent": [
-  "100.67.238.25",
+  "23.95.61.189",
+  "192.3.239.16",
+  "192.3.239.29",
+  "107.174.178.31",
+  "104.168.46.78",
+  "23.94.214.184",
+  "127.0.0.1",
+  "23.94.206.82",
   "xeon@100.67.238.25",
+  "gg@100.105.186.14",
+  "100.67.238.25",
   "100.116.239.17",
   "100.99.10.34",
-  "100.79.176.92",
-  "gg@100.105.186.14",
-  "127.0.0.1",
-  "107.174.178.31",
-  "23.94.214.184",
-  "23.94.206.82"
+  "100.79.176.92"
  ],
  "last_summary": {
   "found": "",
@@ -30,7 +34,7 @@
  },
  "counts": {
   "turns": 0,
-  "tool_calls": 15,
+  "tool_calls": 16,
   "errors": 3,
   "compactions": 2
  }
