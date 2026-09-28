@@ -1,15 +1,18 @@
 {
  "schema": "ornith-status/1",
- "updated": "2026-09-28T17:23:56.107Z",
+ "updated": "2026-09-28T17:26:26.450Z",
  "session": "session-8db23e1d-97e3-484b-aeb5-ce85b40174bc",
  "turn": 35,
- "step": 26,
+ "step": 31,
  "state": "working",
  "task": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\nApproval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).",
- "last_action": "pwsh: {\"command\":\"$key=\\\"C:\\\\StorjMonitor\\\\.ssh\\\\cluster_lan_secure\\\"; $cmd=@'\\necho '=== lsblk ==='; lsblk 2>&1\\necho '=== df -h ==='; df -h 2>&1 | grep -viE 'snap|tmpfs|udev'\\n'@; & ssh -i $key -o ConnectTimeout=8 -o BatchMode=yes xeon@100.67.238.25 $cmd 2>&1 | Out-String | Write-Output\",\"descript …[+59 chars]",
- "last_result": "=== lsblk ===\r\nNAME        MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS\r\nsda           8:0    0   4.5T  0 disk \r\n├─sda1        8:1    0   128M  0 part \r\n└─sda2        8:2    0   4.5T  0 part /mnt/storj/91\r\nsdb           8:16   0   3.6T  0 disk \r\n└─sdb1        8:17   0   3.6T  0 part /mnt/storj/63\r\nsdc      …[+1645 chars]",
+ "last_action": "pwsh: {\"command\":\"& \\\"C:\\\\Users\\\\GG\\\\Desktop\\\\Ornith\\\\probe-ports.ps1\\\" 2>&1\",\"description\":\"Run port probe script for Windows hosts\",\"timeoutMs\":45000}",
+ "last_result": "[stderr]\nParserError: C:\\Users\\GG\\Desktop\\Ornith\\probe-ports.ps1:13\r\nLine |\r\n  13 |  $probe \"100.116.239.17\" \"14007\"\r\n     |         ~~~~~~~~~~~~~~~~\r\n     | Unexpected token '\"100.116.239.17\"' in expression or statement.\r\n[exit code: 1]",
  "last_error": "(no output)\n[timed out after 30000ms]\n[exit code: 1]",
  "hosts_recent": [
+  "100.116.239.17",
+  "100.99.10.34",
+  "100.79.176.92",
   "xeon@100.67.238.25",
   "23.95.61.189",
   "192.3.239.16",
@@ -19,9 +22,6 @@
   "23.94.214.184",
   "0.0.0.0",
   "gg@100.105.186.14",
-  "100.116.239.17",
-  "100.99.10.34",
-  "100.79.176.92",
   "100.67.238.25",
   "100.105.186.14",
   "127.0.0.1"
@@ -35,7 +35,7 @@
  },
  "counts": {
   "turns": 1,
-  "tool_calls": 42,
+  "tool_calls": 47,
   "errors": 11,
   "compactions": 4
  }
