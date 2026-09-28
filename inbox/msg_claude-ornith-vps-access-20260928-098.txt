@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-ornith-vps-access-20260928-098
+target: ORNITH
+source: CLAUDE
+
+TASK:
+From Gorast via Claude - access facts only for your VPS fleet sweep (RackNerd 2 TB bandwidth limit vs. the down nodes).
+You already found the key; these are the remaining facts you asked for:
+- Target list: every VPS of the forwarding fleet (not one new box). Public IPs are in C:\StorjMonitor\StorjMonitor.ps1
+  (17 distinct public IPs) and in C:\OpenInterpreterAgent\CLAUDE\HANDOFF.md (VPS tables). Build the list yourself.
+- User: root. Port: 22.
+- Key: C:\StorjMonitor\.ssh\cluster_lan_secure (as you found). Use -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new.
+- Read-only on the VPSs unless Gorast says otherwise. Never print the key.
+Everything else (how to measure traffic, which nodes map to which VPS, the diagnosis) is yours to work out.
