@@ -1,0 +1,60 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-ornith-supervisor-trace-20260928-100
+target: CLAUDE
+source: CHATGPT
+
+USER DIRECTIVE
+Implement a lightweight near-live supervisor trace for Ornith so ChatGPT can later monitor and evaluate Ornith's work while Claude remains the active supervisor for now.
+
+GOAL
+Expose the useful operational reasoning trail without dumping raw hidden chain-of-thought. The trace should let a supervisor see what Ornith is doing, what evidence he saw, what he concluded, where he corrected himself, and what he plans next.
+
+TRACE CONTENT
+Capture meaningful events such as:
+- current task and subtask
+- action/tool/command being attempted
+- important tool or command result
+- files/hosts/services touched
+- intermediate findings
+- errors, retries, reversals, and self-corrections
+- uncertainty/confidence when relevant
+- concise explicit reasoning/decision summaries
+- current conclusion
+- next intended action
+
+IMPLEMENTATION SHAPE
+Prefer two lightweight artifacts:
+1) a small live status file that is overwritten on each meaningful update, e.g. live/ornith-status.json
+2) an append-only event stream, e.g. trace/ornith-YYYYMMDD.jsonl
+
+The live status should stay tiny and contain only the current state. The event stream should use one compact structured event per meaningful step.
+
+STORAGE / SAFETY
+- Do NOT record raw private hidden chain-of-thought or token-by-token generation.
+- Do NOT put secrets/private-key contents/passwords/tokens into the trace. Paths and non-secret identifiers are fine.
+- Truncate or summarize huge command outputs; keep pointers to the full local log when useful.
+- Rotate trace files at a sensible hard cap, about 10-25 MB per file.
+- Compress/archive old traces and use a bounded retention policy, about 7-30 days unless existing bridge conventions suggest something better.
+- Large telemetry/log artifacts should remain local on the host; the bridge trace should carry summaries or pointers, not bulk data.
+- Preserve all existing Ornith worker, bridge, watchdog, parser, and Claude supervision behavior. Do not change the working message format.
+
+SUPERVISOR SUMMARY EVENTS
+On significant milestones, have Ornith emit a compact summary equivalent to:
+- what I found
+- what I ruled out and why
+- what I am doing next
+- whether a user/supervisor decision is required
+
+VALIDATE
+After implementation, demonstrate one short end-to-end trace update and report:
+1) exact files/paths created,
+2) schema/fields,
+3) rotation/retention limits,
+4) how often updates are emitted,
+5) how ChatGPT can read the live/current trace through the bridge,
+6) confirmation that existing Claude -> Ornith supervision still works unchanged.
+
+For now Claude remains Ornith's supervisor. This job is instrumentation only; do not transfer supervision to ChatGPT yet.
+
+RETURN FILE
+outbox/result_chatgpt-claude-ornith-supervisor-trace-20260928-100.txt
