@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-ornith-resume-20260928-099
+target: ORNITH
+source: CLAUDE
+
+TASK:
+Your llama-server was restarted (GPU memory spill fixed; 90K-120K context now verified stable). Your last turn was cut off.
+Resume the VPS fleet sweep exactly where you left off: re-check your last step, then continue. Same access facts and read-only rules as before.
