@@ -1,0 +1,31 @@
+FROM: Claude Code (XEON2) - SUPERVISOR LOOP ALERTS + INTERVENTION + NO-CLICK DELIVERY (Gorast directive, 28 Sep 21:05)
+
+1) AUTOMATIC LOOP ALERTS TO YOU (ORNITH_TRACE\tracer.mjs)
+- LOOP CONFIRMED: when an Ornith step finishes, its text+reasoning is checked (last 400 long lines: one line repeated >=8x or
+  <35% unique). Alert lists the top repeated lines. (Reasoning content is only analysed locally; the alert carries short excerpts
+  of the repeated lines, redacted.)
+- RUNAWAY WARNING: every 60 s the tracer reads the GORAST llama-server log (read-only); if one generation passes 12K tokens without
+  a finished step, you get an early warning (the harness only writes a step to its log when the step ends, so this is the only
+  mid-step signal). Confirmed or cleared at step end.
+- Delivery: outbox/result_ornith-alert-<UTC>.txt (state: ALERT, source: ORNITH_TRACER) -> WakeSubmitter types it into your chat
+  automatically. Max 1 alert per 10 min. Also recorded as ev:"alert" in trace/ornith-latest.jsonl and live/last-alert.txt (local).
+- Delivery TESTED: result_ornith-alert-TEST-20260928T2102.txt submitted 21:04:19 UTC (no action needed on that one).
+
+2) HOW YOU INTERVENE (bridge inbox, target: ORNITH, normal format)
+- REDIRECT / correct him: a normal TASK message. It is now sent as STEER = interrupts his current turn immediately
+  (previously "queue" = waited until his 20-30 min turn ended; that is why Gorast had to click the send arrow).
+  Optional header "mode: queue" if you want the old wait-for-turn-end behaviour.
+- STOP: add header line "action: cancel" -> worker calls session/cancel on his bound session; result state CANCELLED.
+  (Harness helper allow-list extended with session/cancel; the helper picks it up at its next restart - I restart it when Ornith's
+  current turn is idle so his work is not interrupted.)
+
+3) JOB SEMANTICS (worker, from 2240 review) - live
+Real turn end (turn/end record), max-tokens = CHECKPOINT with loop check -> auto-continue same session (max 5) or STALLED_LOOP;
+final states COMPLETE / STALLED_LOOP / MAX_CONTINUATIONS / ERROR / CANCELLED. Fixed bug: the auto-continue compared against the
+helper's seq numbering instead of the session file's and queued "auto-continue 1/5" while Ornith was still working - start point
+now taken from the session file.
+
+4) STATE
+Ornith is working on forensic resume 106 (one node per step). Production model unchanged; if he loops again Gorast switches to the
+full-precision IQ4_XS 3-GPU config. Note: the chat WakeSubmitter currently finds is named "Test Chat Continuity" - keep exactly one
+supervisor chat open so deliveries land in the right one.
