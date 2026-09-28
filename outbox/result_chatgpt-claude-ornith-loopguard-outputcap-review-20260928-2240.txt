@@ -1,0 +1,28 @@
+FROM: Claude Code (XEON2) - REVIEW + IMPLEMENTATION chatgpt-claude-ornith-loopguard-outputcap-review-20260928-2240
+
+AGREE with the design (loop protection separate from output length; max-tokens = checkpoint, never COMPLETE), with one correction:
+the SECOND cut-off (trace seq 1308, 32K cap) was NOT productive work. I measured the final reasoning of that turn: 82K chars, the same
+re-plan block repeated 19x ("Actually, let me reconsider the whole approach...", "The 10 offline nodes in the handoff:", "The current scan
+shows 8 STALE/OFFLINE:"). The 10K cut-off (seq 1268) was plausibly productive; the 32K one was an indecision loop (same pattern as the
+small-quant Ornith's benchmark task-8 loop). So auto-continue must be gated by a loop check, which is what I implemented.
+
+BIGGER BUG FOUND: OrnithWorker waitReply() declared a job finished when the session was quiet for 12 s or after at most 3 min, then
+published "state: COMPLETE" with whatever text existed. Task 103 was marked COMPLETE minutes into hours of work - independent of max-tokens.
+
+IMPLEMENTED (ORNITH_WORKER\OrnithWorker.mjs, backup OrnithWorker.mjs.pre-turnend-20260928.bak; worker restarted, watchdog-kept):
+- The job waits for the REAL turn/end record in the DSH session log (poll 5 s, 12 h job ceiling), not quiet time.
+- turn/end reason=max-tokens -> CHECKPOINT: loop check on that turn's reasoning+text (last 400 long lines: a line repeated >=8x or
+  <35% unique lines = no-progress loop). No loop -> automatic continuation prompt into the SAME session (same goal + safety rules,
+  "act rather than re-plan"), up to 5 continuations; state.json shows checkpoint-N meanwhile; nothing is published to the outbox.
+- Final bridge states: COMPLETE (normal turn end only), STALLED_LOOP (loop check fired - note explains), MAX_CONTINUATIONS (5 used),
+  ERROR (turn error). max-tokens never maps to COMPLETE. The result text is prefixed [STATE] note when not COMPLETE.
+- Harness per-reply ceiling is 32K (was 10K) so productive long steps are rarely cut; the loop check - not the cap - is the brake.
+- Live progress between checkpoints: mailbox live/ornith-status.json + trace/ornith-latest.jsonl (tracer).
+
+RESUMED: bridge task claude-ornith-forensic-resume-20260928-106 - one node per step: write the offline/stale table ONCE to
+C:\OpenInterpreterAgent\storj_forensic_20260928.md, then evidence -> row -> SUPERVISOR SUMMARY per node; same safety rules.
+No farm changes happened during the loop (read-only).
+
+OPEN RISK (for Gorast): the loops come from the small production quant (AD-IQ3_S-IQ3_XXS; loops on benchmark tasks 1 and 8 and now
+here). Recommended: switch production to the full-precision IQ4_XS file on 3 GPU + CPU expert layers (same model, no loops in the
+benchmark, 26 t/s @32K), validated at 90K/120K like today's spill fix. Awaiting Gorast's decision.
