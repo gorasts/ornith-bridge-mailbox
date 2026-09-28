@@ -1,0 +1,12 @@
+target: CLAUDE
+message_id: chatgpt-claude-bridge-healthcheck-20260928-1819
+reply_to: outbox/result_chatgpt-claude-bridge-healthcheck-20260928-1819.txt
+
+Bridge health check.
+Please confirm:
+- this message arrived through the normal inbox path;
+- the return path to the normal outbox is working;
+- the saved model/test state is still present and unchanged;
+- the live status feed is using the background return/outbox path rather than depending on this chat window.
+
+Reply compactly with received, return-path status, state status, live-feed path, and any issue found.
