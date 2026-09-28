@@ -1,0 +1,39 @@
+FROM: Claude Code (XEON2) - REPORT 28 Sep night: placement recipe for 3x Vega, production Ornith on 3/2 GPUs, Empero Qwen3.8 distill, new test method
+(follows 093; raw: GORAST ~/claude-ornith-logs/combo.log; all runs b10919 Vulkan, c131072, q8 KV, b/ub 2048, FA on, TG512, dmesg 0 faults on every run)
+
+=== 1) PLACEMENT RECIPE (new, works) ===
+Whole-layer split -dev Vulkan0,1,2 -ts 0.8,1,1 + move just enough EXPERT layers to CPU with
+-ot "blk\.(L1|L2..)\.ffn_(up|down|gate)_exps\.=CPU" (layers taken from the x1 cards). Each extra CPU layer ~ -2% TG.
+Keep ~0.3-0.5 GB free per card, else the prompt spills (PP 100-250; TG unaffected).
+Fails: experts-only offload to x1 cards (net loss), --n-cpu-moe with a layer split (takes main-card layers -> x1 card overfills,
+2-GPU PP 9-10 t/s), ub1024 (steep long-ctx decay), ub3072 (spills), q4 KV only helps where it removes a spill.
+
+=== 2) PRODUCTION ORNITH (same IQ4_XS file, same precision) at 32K, PP/TG ===
+1 GPU (current production)                          392   / 21.3
+3 GPU + 4 CPU layers (5,8,20,35)                    424.6 / 26.12   (+8% / +23%)  <- best
+3 GPU + 6 CPU layers                                393.4 / 24.94   (worse -> 4 is the sweet spot)
+2 GPU (x16 + x1) + 15 CPU layers (split over both)  363.4 / 22.81   (-7% / +7%); 16 layers 352.6/22.11 (worse)
+Projected (slope fit, see 4): 3-GPU Ornith 64K ~311, 90K ~255 PP; TG 90K ~21.7. Real 64K/90K confirmation still to run.
+Ornith IQ3_M (bartowski 17.4 GB): 3 GPU + 2 CPU layers 424/25.4, 64K 317/23.0, 90K 260/21.1. Rejected: per AtomicChat KLD table
+IQ3-class ~0.058 KLD / 90.1% top-1 vs production AD-Q4_K-IQ4_XS 0.032 / 92.7% (1.8x drift) and production on 3 GPUs is faster anyway.
+
+=== 3) EMPERO Qwen3.8-35B-A3B-Distill Q4_K_M (empero-ai, 21.7 GB, Qwen3.6-35B-A3B arch), 3 GPU 0.8,1,1, temp 0.6 ===
+CPU layers 6: 379.8/24.47 | 8: 364.2/23.64 | 10: 343.3/22.69 (each step both down). Threads -t12 / -t14 / -t14 -tb28: identical (380/24.4).
+Winner 6 CPU layers (5,15,20,25,30,35): 32K 379.8/24.47, 64K 290.9/22.09, 90K 242.0/20.45. VRAM 6.8/7.0/7.3 GB.
+vs Tiel 3-GPU (587/455/377 PP, 28.0/25.2/23.1 TG): PP -35/-36/-36%, TG -13/-12/-12%.
+vs Ornith production 3-GPU: ~-10% PP, -6% TG. Fewer than 6 CPU layers not yet tested (0.9-1.4 GB free, may be faster).
+Brain-bench (accuracy) NOT run yet.
+
+=== 4) NEW TEST METHOD (Gorast: be efficient, judge the slope) ===
+- Time per token 1/PP grows linearly with context -> ONE 32K run's own progress lines (fit on >=8K points) project 64K/90K/120K.
+  Validated: Ornith IQ3_M 90K 258 proj vs 260 real; Empero 64K 286 vs 291, 90K 238 vs 242; Tiel 396 vs 376 (+5%). TG90 ~ 0.83 x TG32.
+- Slope per config (us/token per 1K ctx, lower = flatter): Tiel 3-GPU 16.2 (flattest) | Ornith IQ4/IQ3 ~27.1 | Empero ~27.2.
+- Tools on GORAST: project.py (auto PROJECT line + SLOPE ALERT when a config is >=10% flatter or beats best projected 90K by 3%),
+  judge.py (step verdict: both up/flat/one up -> continue, trade-off -> continue if dPP+2*dTG>0, down -> stop), score.py
+  (long-weighted score 0.2*32K+0.3*64K+0.5*90K), cfglog.sh (CONFIG + CHANGED vs previous run in the log), permanent live view.
+- Only finalists get real 64K/90K runs.
+
+=== STATE / NEXT (awaiting Gorast) ===
+Production ornith-server STOPPED. Candidates: (a) make production Ornith 3-GPU+4 CPU layers (confirm 64K/90K first, ~10 min);
+(b) Empero with 4-5 CPU layers + its accuracy bench; (c) Gorast weighing a clean 2-card build + M.2 x4 adapter (2-GPU numbers above
+are with the 2nd card on x1 PCIe2 - worst case). Still open from 093: better Qwen3.8-27B-class MoE candidates.
