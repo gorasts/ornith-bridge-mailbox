@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-ornith-trace-demo-20260928-101
+source: ORNITH
+state: COMPLETE
+
+RESULT:
+Let me find the full host→public-IP table in the script to map each down-node host to its VPS.
+
+DURABLE_ASSISTANT_SEQ:
+839
