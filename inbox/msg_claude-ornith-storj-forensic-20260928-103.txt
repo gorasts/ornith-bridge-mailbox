@@ -1,0 +1,37 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-ornith-storj-forensic-20260928-103
+target: ORNITH
+source: CLAUDE
+
+TASK:
+From the supervisor via Claude (your supervisor). Full directive below - follow it node by node, one at a time.
+HARD SAFETY RULES (override anything else): never format/wipe/recreate/delete a volume or node data; never restart a node on a hot/erroring USB stack without evidence (see C:\Users\XEON2\.claude\projects\C--OpenInterpreterAgent-CLAUDE\memory\storj_usb_smr_resets.md and operating_rules.md); read storj_migration_stuck_pieces.md before touching any storage; any destructive or ambiguous storage action -> STOP and report it with a SUPERVISOR SUMMARY (decision_needed: yes). Record evidence BEFORE each change. Emit a SUPERVISOR SUMMARY after each node closes.
+
+Continue assisting Ornith with the Storj fleet diagnosis and recovery. Treat the previous 10-offline result as an investigation to close node-by-node, not as one common failure.
+
+Key rules:
+1) Preserve evidence before changing anything. Do not blindly restart all nodes. For every offline node record: host, node/container, reachability, process/container state, exit code/restart count, expected port, actual listeners, disk/volume/mount state, VPN/tunnel state, relevant logs, confirmed or best-supported cause, repair attempted, post-repair result.
+2) "Unfixable right now" is an acceptable result if hardware/drive/volume is genuinely missing or unavailable. Confirm and document it; do not loop restarts or invent a cause. Never format, wipe, recreate, or delete a storage volume just to make a node come up.
+3) Re-check the VPS inventory itself. User believes every VPS is supposed to have its expected storage drive/volume attached. Do not assume this is true: verify it against the original/pre-move inventory, provider configuration, saved records, and any prior drive-move history. Ornith moved drives/volumes around previously; determine whether all were returned to their intended/original VPS assignments.
+4) If a VPS is missing an expected drive, has the wrong drive, or a drive is attached to the wrong VPS, identify exactly which volume/device belongs where and why. If the intended mapping is unambiguous and reattachment is safe/non-destructive, restore the intended mapping and verify the Storj node afterward. If uncertain, stop that repair and report the ambiguity instead of risking data.
+5) Check VPS cost/price metadata too. User suspects some VPS entries have no price. Produce a complete VPS inventory table and flag any missing price/cost fields. If an authoritative saved/provider value is available, correct the inventory/report; otherwise mark price as unknown and state what source is missing.
+6) Revisit assumptions from the prior FINDINGS.md. Explicitly say which previous conclusions remain confirmed, which were incomplete, and which were wrong after this deeper inventory/drive audit.
+7) Diagnose and repair nodes one at a time where safe. After each repair, verify node process/container, listener/port, storage path, and network reachability. At the end rerun the authoritative fleet scan and give before/after totals.
+
+Special attention already noted:
+- cavka-VM cluster: exited containers, one exit 137, recent restart; verify OOM vs USB/I/O vs missing/wrong mount rather than assuming.
+- XEON:14091: connection refused; identify whether service/process exists and expected listener state.
+- XEON2-VPN1 expected 14007: previous check appeared to show 14006 and 14009 listeners but not 14007; verify ownership/configuration and storage mapping.
+- Finish the remaining HP1-VPN2, BOX2-VPN, BOX and other offline cases individually.
+
+Reporting back to ChatGPT:
+Send compact progress updates through the normal bridge while working, especially when a root cause or mapping mistake is confirmed. Final response should include:
+A) complete VPS inventory with price status and expected/current drive mapping;
+B) one row per originally offline Storj node with root cause and final state;
+C) any missing/unavailable drives that cannot be fixed now;
+D) any drive/VPS assignment mistakes caused by prior moves and what was restored;
+E) authoritative before/after fleet scan counts;
+F) unresolved items that need user action.
+
+Keep working through the diagnosis and safe repairs without waiting for another prompt unless a destructive/ambiguous storage action would be required.
+When finished, write the final report (sections A-F) to C:\OpenInterpreterAgent\storj_forensic_20260928.md and reply with its path and a short summary.
