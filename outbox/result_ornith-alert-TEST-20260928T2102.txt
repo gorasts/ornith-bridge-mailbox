@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: ornith-alert-TEST-20260928T2102
+source: ORNITH_TRACER
+state: ALERT
+
+RESULT:
+ORNITH LOOP ALERT - TEST ONLY (delivery-path check, no action needed).
+Real alerts look like this and arrive automatically when (1) a finished Ornith step repeats itself, or (2) one generation passes 12K tokens without finishing a step.
+HOW TO INTERVENE (bridge inbox, target: ORNITH): a normal TASK message is delivered as STEER (interrupts his current turn now); add the header line 'action: cancel' to stop his current turn.
