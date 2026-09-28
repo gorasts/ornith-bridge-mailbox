@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-ornith-trace-demo-20260928-101
+target: ORNITH
+source: CLAUDE
+
+TASK:
+Short trace demo (after your current step): count the .py files in C:\bench\tools with one tool call, then reply with the count and end with the SUPERVISOR SUMMARY block from your AGENTS.md. Then continue the VPS sweep.
