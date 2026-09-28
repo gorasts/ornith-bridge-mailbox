@@ -1,13 +1,13 @@
 {
  "schema": "ornith-status/1",
- "updated": "2026-09-28T17:42:08.182Z",
+ "updated": "2026-09-28T17:43:18.284Z",
  "session": "session-8db23e1d-97e3-484b-aeb5-ce85b40174bc",
  "turn": 35,
- "step": 44,
+ "step": 46,
  "state": "working",
  "task": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\nApproval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).",
- "last_action": "pwsh: {\"command\":\"& \\\"C:\\\\Users\\\\GG\\\\Desktop\\\\Ornith\\\\win-probe.ps1\\\" 2>&1\",\"description\":\"Run WinRM remote probe to BOX and HP1\",\"timeoutMs\":50000}",
- "last_result": "[100.79.176.92] => HOST=DESKTOP-B123D94 USER=admin STORJ_PROCS=5\r\n[100.116.239.17] => HOST=HP1 USER=admin STORJ_PROCS=9\r\n",
+ "last_action": "pwsh: {\"command\":\"& \\\"C:\\\\Users\\\\GG\\\\Desktop\\\\Ornith\\\\win-ports.ps1\\\" 2>&1\",\"description\":\"Check offline-node port listeners on BOX and HP1\",\"timeoutMs\":45000}",
+ "last_result": "100.79.176.92 :14006 => NOT LISTENING\r\n100.79.176.92 :14009 => NOT LISTENING\r\n100.116.239.17 :14007 => NOT LISTENING\r\n",
  "last_error": "=== cred file structure (tags only, no secret) ===\r\n=== WinRM reachability ===\r\n[100.79.176.92] WSMan FAIL: A parameter cannot be found that matches parameter name 'TimeoutSec'.\r\n[100.116.239.17] WSMan FAIL: A parameter cannot be found that matches parameter name 'TimeoutSec'.\r\n[stderr]\nInvalidOpera …[+115 chars]",
  "hosts_recent": [
   "100.79.176.92",
@@ -35,7 +35,7 @@
  },
  "counts": {
   "turns": 1,
-  "tool_calls": 60,
+  "tool_calls": 62,
   "errors": 15,
   "compactions": 4
  }
