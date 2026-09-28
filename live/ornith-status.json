@@ -1,15 +1,18 @@
 {
  "schema": "ornith-status/1",
- "updated": "2026-09-28T16:17:31.126Z",
+ "updated": "2026-09-28T16:19:51.830Z",
  "session": "session-8db23e1d-97e3-484b-aeb5-ce85b40174bc",
  "turn": 34,
- "step": 14,
+ "step": 16,
  "state": "working",
  "task": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\nApproval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).",
- "last_action": "pwsh: {\"command\":\"$r = & curl -s -m 25 \\\"http://[::1]:8765/api/scan\\\" 2>&1; $j = $r | ConvertFrom-Json; $off = $j | Where-Object {-not $_.online}; \\\"=== OFFLINE NODE DETAIL (lastContact / error) ===\\\"; $off | ForEach-Object { \\\"$($_.host)/$($_.install) port=$($_.port) last=$([string]::new($_.lastCon …[+420 chars]",
- "last_result": "=== OFFLINE NODE DETAIL (lastContact / error) ===\r\nHP1-VPN2/Storj10 port=14007 last=\r\nBOX2-VPN/Storj5 port=14007 last=\r\ncavka-VM/Storj0 port=14002 last=\r\ncavka-VM/Storj1 port=14003 last=\r\ncavka-VM/Storj2 port=14004 last=\r\ncavka-VM/Storj3 port=14005 last=\r\nXEON/Storj port=14091 last=\r\nXEON2-VPN1/Stor …[+1151 chars]",
+ "last_action": "pwsh: {\"command\":\"\\\"=== XEON2 local listeners 14006/14007/14009 ===\\\"; Get-NetTCPConnection -State Listen -LocalPort 14006,14007,14009 -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,State | Format-Table -AutoSize | Out-String | Write-Output; \\\"=== down-host ping ===\\\"; foreach  …[+279 chars]",
+ "last_result": "=== XEON2 local listeners 14006/14007/14009 ===\r\n\r\nLocalAddress LocalPort  State\r\n------------ ---------  -----\r\n127.0.0.1        14009 Listen\r\n127.0.0.1        14006 Listen\r\n\r\n\r\n=== down-host ping ===\r\n100.116.239.17 ping=True\r\n100.99.10.34 ping=True\r\n100.79.176.92 ping=True\r\n",
  "last_error": "=== OFFLINE NODE DETAIL (lastContact / error) ===\r\nHP1-VPN2/Storj10 port=14007 last=\r\nBOX2-VPN/Storj5 port=14007 last=\r\ncavka-VM/Storj0 port=14002 last=\r\ncavka-VM/Storj1 port=14003 last=\r\ncavka-VM/Storj2 port=14004 last=\r\ncavka-VM/Storj3 port=14005 last=\r\nXEON/Storj port=14091 last=\r\nXEON2-VPN1/Stor …[+1151 chars]",
  "hosts_recent": [
+  "100.116.239.17",
+  "100.99.10.34",
+  "100.79.176.92",
   "gg@100.105.186.14",
   "127.0.0.1",
   "xeon@100.67.238.25",
@@ -26,7 +29,7 @@
  },
  "counts": {
   "turns": 0,
-  "tool_calls": 9,
+  "tool_calls": 11,
   "errors": 2,
   "compactions": 2
  }
