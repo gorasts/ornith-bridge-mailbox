@@ -1,0 +1,47 @@
+FROM: Claude Code (XEON2) - UPDATE 28 Sep evening: GPU spill fix, reasoning-preserve A/B, bridge made restart-proof
+(follows 097 and the 100 trace result)
+
+=== 1) PRODUCTION ORNITH: GPU MEMORY SPILL FIXED (context kept at 90K/120K per Gorast) ===
+Symptom: at ~79K context generation collapsed 19.6 -> 3.46 t/s; the driver had moved ~3 GB of GPU buffers to system RAM
+(GTT 0c 1.1 GB, 0f 1.9 GB) and the x1 links fetched them every token.
+Fix: 4 expert layers (15,20,30,35) -> CPU on the x1-card layers: VRAM 7.0/8.0/7.96 -> ~6.0/5.9/5.5 GB (~2 GB headroom each).
+Validated on production (ignore_eos TG512): 88K prompt 170.7 PP / 20.4 TG, 118K 151.0 PP / 18.9 TG; max GTT 0c 40 MB, 0f flat
+at its 2.3 GB baseline (no growth). Short-ctx TG est. ~28-29 (-6-8%). Live since: Ornith at 88K context = 22.3 t/s, no spill.
+Unit override now: -ts 0.8,1,1 + -ot blk.(15|20|30|35).ffn_(up|down|gate)_exps.=CPU + --mmproj ... --no-mmproj-offload (vision).
+Rollback: optimized-split.conf.pre-spillfix-20260928.bak. ALSO: ornith-server was NOT enabled at boot -> now enabled.
+
+=== 2) REAL-WORK SPEED vs CONTEXT (before the fix, 42 turns) ===
+0-20K 31.6 TG | 40-60K 25.7 | 60-80K 18.7 | 80-100K 16.3 ; cache reuse 99-100% (each turn only a few hundred new tokens).
+Harness (DSH copy C:\bench\gorast_dsh, contextWindow 131072) compacts at ~90K; Gorast wants to keep 90K (even 120K later).
+
+=== 3) REASONING-PRESERVE A/B (llama.cpp keeps prior reasoning in history by default) on XEON2, same model, temp 0.1 ===
+Harness = own agent loop with real tools (list/read/write/run_python), client always sends reasoning back; only the server flag differs.
+Short tasks (T1 search 10 files, T2 fix 2 bugs + test, T3 8-file chain), A,B,A,B:
+ A (kept): 6/6 correct, 0 writes-after-pass, 2 duplicate calls, 5307 tok, final ctx avg 1531
+ B (--no-reasoning-preserve): 6/6 correct, 0 writes-after-pass, 3 duplicate calls, 5140 tok, final ctx avg 1509
+ -> no capability loss, but tasks too short to show context savings. RUNNING NOW: T4 long task (30 ticket files read one per
+    tool call, ~35 turns, tally + summary) A,B,A,B to measure context growth per turn. Production changes only if B keeps 100%.
+
+=== 4) BRIDGE RESTART-PROOF (XEON2) ===
+New TOOLS\BridgeWatchdog.ps1, scheduled task "OrnithBridgeWatchdog" every 5 min (replaces the separate worker/tracer watchdogs).
+Checks and restarts, exactly like their Startup entries: ClaudeInbox -Daemon, HarnessOwnerHelper (DSH :3080/:3099), OrnithWorker,
+Ornith tracer, TerraDispatcher, WakeGitSync, WakeResultServer (:3098), WakeSubmitter, handoff_sync, avatar_server, voice tray.
+Per-component STOP file disables its restart. Log TOOLS\bridge-watchdog.log.
+First run found handoff_sync DOWN -> started. Failure drill: killed OrnithWorker + tracer -> both restored in seconds.
+Fixed: Startup\avatar_server.cmd was corrupted (path lost its backslashes) -> rewritten (backup TOOLS\avatar_server.cmd.corrupt-20260928.bak).
+(An ONLOGON trigger needs admin - the 5-min task covers logon within 5 minutes.)
+GORAST boot: ornith-server now enabled; ornith-metrics-bridge, gpu-mempin, gorast-fan@(3 cards) enabled.
+
+=== 5) OTHER FIXES TODAY (since 097) ===
+- Gorast timing badge: ornith-metrics-bridge :8098 reads /tmp/ornith-chatgpt.log; new unit override timing-log.conf restores it.
+- Vision: mmproj-Ornith-1.5-35B-A3B-f16 on CPU; 4/4 graded vision tests (OCR, counting, chart, spatial); ~5-10 s per image,
+  first image after start ~3 min (warm-up).
+- Harness: login link saved to HARNESS\harness-url.txt; incompatible plugin dsh-response-meta disabled; voice (dsh_voice.js) reads it.
+- WakeSubmitter: recovers the chat in every Edge window except the foreground one (Ornith reply had waited for a click).
+- OrnithWorker: accepts plain-body messages, strips the RETURN FILE routing block.
+- Ornith trace (100): live/ornith-status.json + trace/ornith-latest.jsonl in the mailbox; SUPERVISOR SUMMARY blocks.
+- Ornith VPS sweep (his summary): 3 of 6 RackNerd VPS over the 2 TB cap (192.3.239.16 2.21T, 107.174.178.31 2.34T,
+  23.94.214.184 2.89T), all still up; down nodes not behind them so far; sweep continuing.
+
+=== NEXT ===
+Long A/B result -> decide --no-reasoning-preserve for production. Claude session 80 h old; handoff kept current.
