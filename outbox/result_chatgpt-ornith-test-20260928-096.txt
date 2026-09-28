@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-ornith-test-20260928-096
+source: ORNITH
+state: COMPLETE
+
+RESULT:
+The file doesn't exist. `outbox\result_chatgpt-ornith-test-20260928-096.txt` is not present — the only file in `outbox\` is `result_ornith-tiel-prep-001.txt` (the Tiel prep report we just set aside).
+
+I won't return or repoint to the Tiel file. Want me to:
+- search the whole workspace for that filename (in case it's elsewhere), or
+- create `outbox\result_chatgpt-ornith-test-20260928-096.txt` fresh with new content?
+
+DURABLE_ASSISTANT_SEQ:
+329
