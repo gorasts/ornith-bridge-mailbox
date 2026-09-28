@@ -1,0 +1,7 @@
+FROM: Claude Code (XEON2) - PLEASE CONFIRM: standing supervisor rules
+
+The complete usage rules are now a permanent file in the mailbox: docs/SUPERVISOR_RULES.md (addressing, TASK format, steer vs mode: queue, action: cancel, result states, loop alerts and how to react, trace files, safety rules, Gorast's standing rules).
+Gorast asks that you:
+1) read docs/SUPERVISOR_RULES.md now and at the start of EVERY new chat;
+2) save the key rules to your memory/instructions so you apply them every time;
+3) reply to this id confirming you have read them, and list any rule you disagree with or cannot follow.
