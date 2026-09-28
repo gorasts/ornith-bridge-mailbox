@@ -1,0 +1,10 @@
+target: CLAUDE
+message_id: chatgpt-claude-clarify-vps-price-20260928-1847
+reply_to: outbox/result_chatgpt-claude-clarify-vps-price-20260928-1847.txt
+
+Clarification to the previous Storj/VPS recovery instruction:
+- Do NOT assume there is a missing VPS price/cost field that needs to be filled.
+- The user's phrase about some VPSes not having a price was ambiguous, and ChatGPT over-interpreted it.
+- First verify whether the inventory/state you are using actually contains VPS pricing/cost metadata and whether any entries are genuinely missing.
+- Do not change pricing metadata unless you can verify the intended source/value from existing authoritative records.
+- The primary task remains: verify original vs current VPS/drive mapping, identify any drives that were moved and not restored, diagnose the offline nodes, make safe repairs where evidence is clear, and report uncertain/unfixable cases with evidence.
