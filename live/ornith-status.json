@@ -1,13 +1,13 @@
 {
  "schema": "ornith-status/1",
- "updated": "2026-09-28T21:12:00.041Z",
+ "updated": "2026-09-28T21:13:03.644Z",
  "session": "session-8db23e1d-97e3-484b-aeb5-ce85b40174bc",
  "turn": 38,
- "step": 13,
+ "step": 14,
  "state": "working",
  "task": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\nApproval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).",
- "last_action": "pwsh: {\"command\":\"Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -ge 14000 -and $_.LocalPort -lt 15000 } | Select-Object LocalAddress,LocalPort,OwningProcess -Unique | Sort-Object LocalPort | ForEach-Object { \\\"$($_.LocalAddress):$($_.LocalPort) pid=$( …[+81 chars]",
- "last_result": "127.0.0.1:14002 pid=13132\r\n127.0.0.1:14003 pid=3004\r\n127.0.0.1:14004 pid=14012\r\n127.0.0.1:14005 pid=19656\r\n127.0.0.1:14006 pid=22376\r\n127.0.0.1:14008 pid=6676\r\n127.0.0.1:14009 pid=23872\r\n127.0.0.1:14010 pid=24024\r\n127.0.0.1:14011 pid=24428\r\n127.0.0.1:14012 pid=5660\r\n127.0.0.1:14013 pid=19032\r\n127.0. …[+101 chars]",
+ "last_action": "glob: {\"pattern\":\"C:\\\\**\\\\config.yaml\"}",
+ "last_result": "No files found",
  "last_error": "failed to execute template: template: :1:2: executing \"\" at <.Name>: can't evaluate field Name in type *formatter.ContainerContext\nRC=1\nSSH_EXIT=True\r\n",
  "hosts_recent": [
   "100.116.239.17",
@@ -35,7 +35,7 @@
  },
  "counts": {
   "turns": 4,
-  "tool_calls": 99,
+  "tool_calls": 100,
   "errors": 20,
   "compactions": 8
  }
