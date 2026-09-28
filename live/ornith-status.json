@@ -1,21 +1,21 @@
 {
  "schema": "ornith-status/1",
- "updated": "2026-09-28T16:15:35.247Z",
+ "updated": "2026-09-28T16:17:31.126Z",
  "session": "session-8db23e1d-97e3-484b-aeb5-ce85b40174bc",
  "turn": 34,
- "step": 13,
+ "step": 14,
  "state": "working",
  "task": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\nApproval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).",
- "last_action": "pwsh: {\"command\":\"\\\"=== monitor via [::1] (IPv6) ===\\\"; $r = & curl -s -m 25 \\\"http://[::1]:8765/api/scan\\\" 2>&1; if ($LASTEXITCODE -eq 0 -and $r.Length -gt 100) { $j = $r | ConvertFrom-Json; \\\"TOTAL=$($j.Count)\\\"; \\\"OFFLINE=$($j | Where-Object {-not $_.online} | Measure-Object | Select-Object -Expa …[+297 chars]",
- "last_result": "=== monitor via [::1] (IPv6) ===\r\nTOTAL=104\r\nOFFLINE=10\r\n\r\nhost       install  port nodeId\r\n----       -------  ---- ------\r\nHP1-VPN2   Storj10 14007 \r\nBOX2-VPN   Storj5  14007 \r\ncavka-VM   Storj0  14002 \r\ncavka-VM   Storj1  14003 \r\ncavka-VM   Storj2  14004 \r\ncavka-VM   Storj3  14005 \r\nXEON       St …[+99 chars]",
- "last_error": "=== monitor on localhost? ===\r\nMONITOR_LOCAL_FAIL: The request was canceled due to the configured HttpClient.Timeout of 15 seconds elapsing.\r\n=== cavka-VM full docker ===\r\nstorj3\tUp 1 second\n",
+ "last_action": "pwsh: {\"command\":\"$r = & curl -s -m 25 \\\"http://[::1]:8765/api/scan\\\" 2>&1; $j = $r | ConvertFrom-Json; $off = $j | Where-Object {-not $_.online}; \\\"=== OFFLINE NODE DETAIL (lastContact / error) ===\\\"; $off | ForEach-Object { \\\"$($_.host)/$($_.install) port=$($_.port) last=$([string]::new($_.lastCon …[+420 chars]",
+ "last_result": "=== OFFLINE NODE DETAIL (lastContact / error) ===\r\nHP1-VPN2/Storj10 port=14007 last=\r\nBOX2-VPN/Storj5 port=14007 last=\r\ncavka-VM/Storj0 port=14002 last=\r\ncavka-VM/Storj1 port=14003 last=\r\ncavka-VM/Storj2 port=14004 last=\r\ncavka-VM/Storj3 port=14005 last=\r\nXEON/Storj port=14091 last=\r\nXEON2-VPN1/Stor …[+1151 chars]",
+ "last_error": "=== OFFLINE NODE DETAIL (lastContact / error) ===\r\nHP1-VPN2/Storj10 port=14007 last=\r\nBOX2-VPN/Storj5 port=14007 last=\r\ncavka-VM/Storj0 port=14002 last=\r\ncavka-VM/Storj1 port=14003 last=\r\ncavka-VM/Storj2 port=14004 last=\r\ncavka-VM/Storj3 port=14005 last=\r\nXEON/Storj port=14091 last=\r\nXEON2-VPN1/Stor …[+1151 chars]",
  "hosts_recent": [
+  "gg@100.105.186.14",
   "127.0.0.1",
   "xeon@100.67.238.25",
   "107.174.178.31",
   "23.94.214.184",
-  "23.94.206.82",
-  "gg@100.105.186.14"
+  "23.94.206.82"
  ],
  "last_summary": {
   "found": "",
@@ -26,8 +26,8 @@
  },
  "counts": {
   "turns": 0,
-  "tool_calls": 8,
-  "errors": 1,
+  "tool_calls": 9,
+  "errors": 2,
   "compactions": 2
  }
 }
