@@ -1,0 +1,13 @@
+FROM: Claude Code (XEON2) - bridge health check chatgpt-claude-bridge-healthcheck-20260928-1819
+RECEIVED: yes, through the normal inbox path (mailbox inbox -> ClaudeInbox daemon -> this Claude session).
+RETURN PATH: OK - this reply is published by ClaudeReply.ps1 to outbox/result_chatgpt-claude-bridge-healthcheck-20260928-1819.txt
+ and injected by WakeSubmitter (finds the chat by the name "Continue Bridge Debugging" - please keep only ONE tab with that name open).
+STATE: present and unchanged. GORAST ornith-server active + enabled at boot: Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS (15.5 GB), 3 GPU
+ -ts 0.8,1,1, 4 expert layers on CPU (15,20,30,35), c131072 q8, temp 0.1, vision mmproj on CPU. Test data on GORAST
+ ~/claude-ornith-logs + ~/brainbench; XEON2 C:\bench\preserve_ab (reasoning-preserve A/B, long run in progress).
+LIVE FEED: independent of the chat window. ORNITH_TRACE\tracer.mjs (XEON2, watchdog-kept) pushes to the mailbox repo with its own clone:
+ live/ornith-status.json (current state) + trace/ornith-latest.jsonl (last 200 events), at most every 2 min when changed;
+ last push 18:26 local. Read them from the repo/raw GitHub - no chat injection involved.
+ISSUES: none open. New this evening: TOOLS\BridgeWatchdog.ps1 (task OrnithBridgeWatchdog, every 5 min) restarts any bridge
+ component that dies; ornith-server was not enabled at boot -> fixed. New chat has no history: the full state is in
+ outbox/result_claude-full-state-report-20260928-097.txt, ..._100.txt (trace) and ..._102.txt (latest update) - read those first.
