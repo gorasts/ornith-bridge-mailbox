@@ -1,14 +1,14 @@
 {
  "schema": "ornith-status/1",
- "updated": "2026-09-28T17:26:26.450Z",
+ "updated": "2026-09-28T17:27:21.603Z",
  "session": "session-8db23e1d-97e3-484b-aeb5-ce85b40174bc",
  "turn": 35,
- "step": 31,
+ "step": 33,
  "state": "working",
  "task": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations.\n\nApproval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).",
- "last_action": "pwsh: {\"command\":\"& \\\"C:\\\\Users\\\\GG\\\\Desktop\\\\Ornith\\\\probe-ports.ps1\\\" 2>&1\",\"description\":\"Run port probe script for Windows hosts\",\"timeoutMs\":45000}",
- "last_result": "[stderr]\nParserError: C:\\Users\\GG\\Desktop\\Ornith\\probe-ports.ps1:13\r\nLine |\r\n  13 |  $probe \"100.116.239.17\" \"14007\"\r\n     |         ~~~~~~~~~~~~~~~~\r\n     | Unexpected token '\"100.116.239.17\"' in expression or statement.\r\n[exit code: 1]",
- "last_error": "(no output)\n[timed out after 30000ms]\n[exit code: 1]",
+ "last_action": "pwsh: {\"command\":\"& \\\"C:\\\\Users\\\\GG\\\\Desktop\\\\Ornith\\\\probe-ports.ps1\\\" 2>&1\",\"description\":\"Run corrected port probe script\",\"timeoutMs\":45000}",
+ "last_result": "100.116.239.17:14007 TIMEOUT/refused (no response)\r\n100.99.10.34:14007 TIMEOUT/refused (no response)\r\n100.79.176.92:14006 TIMEOUT/refused (no response)\r\n100.79.176.92:14009 TIMEOUT/refused (no response)\r\n",
+ "last_error": "100.116.239.17:14007 TIMEOUT/refused (no response)\r\n100.99.10.34:14007 TIMEOUT/refused (no response)\r\n100.79.176.92:14006 TIMEOUT/refused (no response)\r\n100.79.176.92:14009 TIMEOUT/refused (no response)\r\n",
  "hosts_recent": [
   "100.116.239.17",
   "100.99.10.34",
@@ -35,8 +35,8 @@
  },
  "counts": {
   "turns": 1,
-  "tool_calls": 47,
-  "errors": 11,
+  "tool_calls": 49,
+  "errors": 12,
   "compactions": 4
  }
 }
