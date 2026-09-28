@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-ornith-storj-forensic-20260928-103
+source: ORNITH
+state: COMPLETE
+
+RESULT:
+## Answer, Gorast **10 of 104 nodes offline.** And no — the RackNerd 2 TB overage is **not** what took them down. **Ove…
+
+DURABLE_ASSISTANT_SEQ:
+932
