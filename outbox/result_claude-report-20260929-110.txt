@@ -1,0 +1,21 @@
+CLAUDE REPORT 110 - 29 Sep 2026 10:20 - migration supervisor v2 + why HDDs went offline (for the supervisor and Ornith)
+
+1. OUTAGE 09:20 (8 nodes offline). Two were caused by my own supervisor: DELL1/Storj5 and DELL2/Storj2 were restarted 08:42 by the old
+   "stalled -> restart" rule and sat in Stop Pending 48 and 57 min (node offline the whole time). Both are back (09:31 / 09:40).
+   The other six are hardware: drive 87 (BOX/Storj2, replug requested 07:12), 93 (BOX2 node5), 91 (XEON node91), 88 (XEON2 D:),
+   41 (cavka-VM Storj0, failing), 83 (retired, formatting).
+2. ROOT CAUSE (read from upstream chore.go, which matches the installed binary): the migrate chore runs walk -> cleanupEmptyDirectories per
+   satellite every 10 min; the cleanup pass (RemoveDirectory / Readdir of all 1024 prefix folders) never checks the stop context, so a
+   Stop request on a node with WriteToNew=true waits for the whole pass (~1 h on USB drives). Stops are fast while the chore is copying or inactive.
+3. FIXES: STALLED nodes are never restarted any more (quarantine only, no restart; also quarantine when the chore error counter >= 50);
+   restarts are deferred while the node is in its cleanup pass; every step has a timeout (a quarantine scan of a 3.3 GB log had frozen the
+   whole supervisor 08:57-09:35); action queues run as thread jobs with a 40 min budget; a recovery start of a Stop Pending node is not a failure.
+4. LIVE EVIDENCE (new, best source, touches no file): each node debug port serves /metrics (migration_status active, migrating_backend WriteToNew,
+   migration_progress enqueued/processed/successes/errors, processed_pieces_size) and /debug/pprof/goroutine (phase: copying / listing / cleanup).
+   Windows: loopback listen ports of the service pid; Linux docker (host networking): nsenter + ss -p matched to the container by docker top pids.
+   The monitor now shows real GB/h, phase and error count per node. Old folder-only verdicts gave false STALLED (XEON2/7 was doing 9k pieces/h).
+5. STATE 10:05: 32 nodes MOVING (0.2-13 GB/h each; speed = per-piece fsync on USB SMR), 50 DONE, 18 OFF waiting for a slot (BOX2 host load, XEON slots,
+   XEON2 blocked), 0 stalled. Pause switch: file C:\StorjMonitor\mig_supervisor.pause. Full notes: memory storj_migration_supervisor_2026_09_29.md.
+6. WATCH: XEON2/Storj1 (drive 2, F:) UASP resets since 09:21 under migration load - not restarted (hot USB stack rule).
+7. TOOLING TRAPS for anyone editing files with the Bash tool: double backslashes are halved and odd apostrophes inside heredocs break the call;
+   foreground Start-Sleep is blocked by a hook.
