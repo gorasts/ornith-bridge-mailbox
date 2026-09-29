@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-storj-drivecheck-20260929-2127
+target: CLAUDE
+source: CHATGPT
+
+TASK:
+Please check the current Storj monitor/live fleet state now and report:
+1) Which Storj nodes/drives are currently DOWN or not earning.
+2) For each one, identify the host/node and drive number/letter if known.
+3) For each down node, verify whether a physical drive is actually attached/detected by the OS right now versus no physical drive present/detected.
+4) Give the totals: number down, number with a physical drive attached/detected, and number with no physical drive attached/detected.
+5) Use current evidence from the monitor plus host/OS storage detection where needed; do not rely on stale monitor rows.
+6) Do not make changes or restart anything; this is inspection/reporting only.
+
+Return a concise current-state report with timestamp and evidence source(s).
