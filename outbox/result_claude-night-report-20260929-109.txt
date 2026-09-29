@@ -1,0 +1,34 @@
+FROM: Claude Code (XEON2) - NIGHT REPORT 28/29 Sep (Gorast directive: finish pending work, report)
+
+1) STORJ FARM - 100/104 earning (was 93). Offline 4 = physical: BOX2 node5 drive 93 (unreadable, USB path or drive),
+   XEON node91 drive 91 (bad sectors, now unreadable), XEON2 Storj5 D: missing, XEON2 Storj6 drive 83 (retired, see 3).
+   Fixed: cavka-VM 4/4 (VMware USB bindings lost 22 Sep, restored; e2fsck on 41/8); BOX hub replugged (drive 15 back,
+   hub still weak - US1 SUSPENDED on that node since 16 Sep); drives 33+18 moved by Emilija -> migrated into BOX2 docker
+   node9/node10 with their own VPS tunnels (VPS 107.175.159.232 / 172.245.33.167, single-port DNAT). BOX2 node6 = drive 75 up.
+   DQ check: US1 DQ only XEON2 Storj6 (drive 83, DQ on all 4 sats); EU1 DQ also BOX2/Storj1 (98) and ACER/Storj2 (66).
+
+2) HASHSTORE MIGRATION - root causes of the month-long stall (measured):
+   a) <sat>.migrate_chore is read ONLY at node start; wave 4 (28 Aug) never restarted nodes -> flags never loaded.
+   b) <sat>.migrate WriteToNew:false (satellite can't flip it under suppress-central-migration) -> new uploads kept
+      landing in old blobs; nodes sat at 97-99% forever. Setting the satellite's final state + restart: HP1/Storj1 finished
+      us1 in 10 min; 7 of 8 near-done nodes fully finished us1+eu1 within the hour.
+   c) Monitor showed stale/false states: XEON-U1/U2 scanned old VM IPs ("MIGRATING -"), BOX2 scanned as Windows, and the
+      Linux scan read the wrong storage path -> FALSE "DONE 0 GB". All fixed; monitor restarted 03:59.
+   New driver: C:\StorjMonitor\mig_rotate.ps1, task StorjMigRotate hourly (headless): fixes WriteToNew, restarts nodes whose
+   flag changed after start, keeps 1 node/host migrating and enables the next, quarantines truncated pieces (<=1x/6h).
+
+3) Drive 83 (XEON2 E:, DQ everywhere): old identity/DBs backed up (C:\Storj\retired-83-20260929), FULL format running since
+   01:28 (~8-9 h). Task StorjNode83Setup (SYSTEM, 15 min) then checks bad sectors (<0.1% = run, Gorast's rule), installs the
+   NEW identity (created, unsigned like DENT/Storj6), starts a fresh Storj6 on the same port/VPS, Telegrams Gorast the result.
+
+4) ORNITH - forensic job 106: idle since 01:00, report C:\OpenInterpreterAgent\storj_forensic_20260928.md (worker shows
+   "checkpoint-1" only because it restarted and lost the job; not a loop). Assessment vs my probe: correct + safe on cavka-VM
+   (4 nodes); blocked on the other 6 by the wrong credential path; relied on the monitor's stale migration rows (bug now
+   fixed); misidentified 192.168.100.196 (= XEON2 itself) as a silent remote host. Verdict: careful, safe, does not verify
+   his own assumptions. session/cancel is now LIVE (harness helper restarted while he was idle).
+   DRY sampler (--dry-multiplier 0.8) on his loop tasks: task 8 looped with and without; task 1 DRY looped, no-DRY solved.
+   -> DRY does NOT prevent loops; not adopted. Next lever if loops recur: IQ4_XS 3-GPU config (Gorast's call).
+
+5) Also: harness vision enabled (Ornith accepts pasted images); console-window popups on XEON2 fixed (tracer/watchdog).
+
+Supervisor rules: docs/SUPERVISOR_RULES.md
