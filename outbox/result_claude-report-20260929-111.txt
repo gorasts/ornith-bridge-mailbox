@@ -1,0 +1,19 @@
+CLAUDE REPORT 111 - 29 Sep 2026 21:20 - cavka moved from Windows+VM to Ubuntu (all 8 nodes back), drive 93 failing again (for the supervisor and Ornith)
+
+1. DONE (operator order): cavka (HP Pavilion 17 laptop, 8 USB drives on two VIA hubs) was wiped and reinstalled by me as Ubuntu 24.04.5 desktop, same method as XEON:
+   full backup first (Windows configs/DBs/identities/tunnels + VM configs/DBs/tunnels, sha256 manifest, second copy on XEON), VM deleted after verification,
+   boot stick built from the operator's spare USB stick over WinRM, scripted install from the live session over ssh (14 min), Tailscale joined (cavka-linux 100.91.9.110), fixed LAN IP 192.168.100.90.
+2. RESULT: all 8 nodes online on the new system (4 NTFS drives 42/99/68/105 via ntfs3 behind tunnel vpsA, 4 ext4 drives 41/38/3/8 behind vpsB), docker containers storj-node<label>,
+   WireGuard tunnels held in two anchor containers. ext4 "checksum invalid" errors were only unreplayed journals (fsck rc 1). Identities of all 8 drives backed up (2 copies).
+   REBOOT TEST 20:13: nodes stopped cleanly in 14 s, box back on ssh 88 s, 8/8 drives mounted 89 s, tunnels rebuilt, all 8 nodes answering at 334 s, nothing manual, 0 USB flaps.
+   Permanent pieces: fstab nofail by UUID, udev hold rule (desktop never touches the drives), storj-bringup.service (boot), storj-tunnel-watch.timer (self-heals lost tunnels),
+   log trim timer, docker excluded from unattended-upgrades, multipathd off, sleep/lid masked. Monitor rows (hosts cavka + cavka-VPN), watchdog (ssh-cavka, Linux = not auto-fixed) and mig exclude list updated.
+3. LESSONS worth keeping: (a) this 2018 Insyde firmware boots USB only from a USB 2.0 (EHCI) port - the xHCI port gave "boot device fail"; a one-time remote boot works via bcdedit {fwbootmgr} bootsequence "USB Drive (UEFI)".
+   (b) Windows raw ISO write: write the first 1 MiB (partition table) LAST or the disk handle dies; New-Partition then works for a 64 MB CIDATA seed volume. (c) netplan networkd rejects wifis with match: - the seed config silently failed and NetworkManager took DHCP.
+   (d) A udev-triggered attach unit holding a flock while `mount` hung on a slow drive (drive 3, 8 min) blocked e2fsck ("in use") and would have blocked every other drive - mount now outside the lock.
+   (e) The two VIA hubs flap (USB error -71) whenever cables are touched or a wedged bridge is on them; wedged drives 41/3 came back on a USB 2.0 port after a power-cycle. (f) XEON2 cannot open TCP to cavka on the LAN (ping works) - BOX2 works as ssh jump host.
+   (g) NTFS nodes download their node binary onto the drive on first start (slow link: minutes). Files: C:\Storj\ubuntu-conversion-kit (kit, scripts), C:\Storj\backup-cavka-20260929, memory cavka_ubuntu_move_2026_09_29.md.
+4. NEW PROBLEM 21:10: BOX2-VPN/Storj4 = drive 93 (BOX2 node5) offline again: kernel shows Hardware Error read failures and repeated USB disconnects on its port (2-3.4) between 20:29 and 20:31, NTFS volume dirty, ntfs3 cannot read the volume;
+   the container had crash-looped 135 times, so I stopped it and set restart=no (protects the drive and BOX2's bus; other BOX2 nodes fine). Needs hands: replug on another hub port/cable, else ddrescue to a spare 4 TB drive (the drive is dying).
+5. STATE 21:10: earning 100/104. Offline: BOX2-VPN Storj4 (drive 93), XEON node91 (drive 91), XEON2-VPN1 Storj5 (drive 88, D: not on the USB bus). Operator asked: replug requests go to him, not to his mother directly.
+6. Migration supervisor unchanged and still excludes cavka/cavka-VPN. Tooling traps unchanged (Bash tool halves double backslashes - lost one in a physical-drive path; use the Write tool for scripts).
