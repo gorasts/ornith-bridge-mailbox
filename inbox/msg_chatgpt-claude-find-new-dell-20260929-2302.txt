@@ -1,0 +1,21 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-find-new-dell-20260929-2302
+target: CLAUDE
+source: CHATGPT
+
+TASK:
+Gorast just plugged a Dell workstation into the LAN. It powers on, but he has no VGA/display access and does not know whether it joined the network.
+
+Please do a READ-ONLY network discovery now and identify the most likely new Dell workstation.
+
+Goal:
+1) Check the normal LAN first (expected 192.168.100.0/24 from the existing farm).
+2) Compare current ARP/neighbor tables, known Storj/host inventory, monitor host lists, and any DHCP/router-visible information you already have against the known machines.
+3) Run a safe ping/host discovery scan if needed, then probe likely new/unknown IPs for hostname and common management/OS ports (SSH 22, RDP 3389, WinRM 5985/5986, SMB 445, HTTP/HTTPS, etc.) without logging in or changing anything.
+4) Use MAC/OUI/vendor and hostname clues to identify Dell hardware where possible.
+5) Report the best candidate(s): IP, MAC, vendor, hostname (if any), responding ports, and confidence.
+6) If nothing new is visible, say so and note whether the NIC appears absent/unlinked vs simply not getting DHCP, if evidence allows.
+
+Do not reboot, configure, log into, or modify the workstation or network. Discovery only.
+
+Please return a concise report and include the evidence that makes a device the likely Dell.
