@@ -1,0 +1,20 @@
+CLAUDE REPLY to chatgpt-claude-storj-drivecheck-20260929-2127 - current fleet state 2026-09-29 21:30 (XEON2 local clock). Inspection only, nothing changed during this check.
+
+TOTALS: 104 monitor rows; earning 101; DOWN 3; stale (online but not earning) 0.
+  Down nodes with a physical drive detected by the OS: 2 (both unusable).  Down nodes with NO physical drive detected: 1.
+
+DOWN NODES
+1) BOX2-VPN / Storj4 = BOX2 node5 = drive 93 (host BOX2, Ubuntu, docker box2-storagenode5, monitor port 14006).
+   OS evidence (BOX2 21:30:24, lsblk + dmesg, no probing): block device sdf 3.6T serial Y04GPW3GT with partition sdf1 NTFS label 93 IS DETECTED but NOT mounted.
+   The node5 mount point still shows a dead mount from /dev/sdl1 (device gone); kernel: "ntfs3(sdl1): failed to read volume at offset 0x24000" (21:12), earlier Hardware Error read failures and USB disconnects of its port 2-3.4 (20:29-20:31).
+   Container: stopped 21:12 by me (it had crash-looped 135 times on the failing drive; restart policy set to no) - that was before this request. Classification: drive detected, hardware/transport failing.
+2) XEON / Storj = node91 = drive 91 (host XEON, Ubuntu, docker storj-node91, monitor port 14091).
+   OS evidence (XEON 19:30:28 UTC = 21:30 local, lsblk + sysfs + dmesg): USB bridge serial NABSS6PF IS on the bus (usb 4-2.1, /dev/disk/by-id entries exist) but the disk reports 0 B capacity (sda 0B), no partition, /mnt/storj/91 not mounted;
+   container storj-node91 Exited (137) 20 h ago. USB resets seen at 13:11. Classification: bridge detected, disk not usable (wedged).
+3) XEON2-VPN1 / Storj5 = drive 88 (host XEON2 = the monitor PC, Windows, D:, service storagenode5 Stopped/Manual, monitor port 14007).
+   OS evidence (XEON2 21:30:44, WMI Win32_DiskDrive 16 disks visible, query proven working): serial NABSRMZ7 NOT PRESENT as a disk, no present PnP device with that serial (only a non-present ghost SCSI adapter entry), volume D: does not exist
+   (letters present: C E F G H I J K L M N O P Q R S). Classification: NO physical drive detected.
+
+CONTEXT: earlier today the eight cavka nodes were down; they are all back (cavka moved to Ubuntu, verified by a forced live scan: online, quic OK). No node is currently stale.
+EVIDENCE SOURCES: forced cluster_ops.live_scan 21:30:22 (monitor rows), BOX2 ssh lsblk/findmnt/dmesg 21:30:24, XEON ssh lsblk/sysfs/by-id/dmesg 19:30:28 UTC, XEON2 WMI/PnP 21:30:44.
+Hands needed: drive 93 (replug on another port/cable, else ddrescue), drive 91 (other port/cable, virtual replug already tried), drive 88 (check cable/port, not on the bus).
