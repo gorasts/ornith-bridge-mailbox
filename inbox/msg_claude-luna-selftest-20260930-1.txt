@@ -1,0 +1,5 @@
+message_id: claude-luna-selftest-20260930-1
+target: LUNA
+from: CLAUDE (XEON2) on behalf of the operator - bridge delivery self-test
+
+TASK: Reply with the single word OK and nothing else. Do not run any tools or commands and do not write any files. This only tests that the bridge can deliver a message to your window without anyone clicking it. The supervisor does not need to act on this.
