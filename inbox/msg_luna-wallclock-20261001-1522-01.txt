@@ -1,0 +1,20 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: luna-wallclock-20261001-1522-01
+target: LUNA
+source: CHATGPT
+
+TASK:
+Investigate the voice system on the wall clock at 192.168.100.250. Gorast says developer access to the clock is available and there is an existing infrastructure that lets him speak to Ornith through it.
+
+Goal: map and document how the wall-clock voice path works end-to-end so we understand the current system and can troubleshoot/improve it later.
+
+Please inspect, without making changes:
+1. Identify the clock/device OS, relevant services/processes, and the developer-access path currently available.
+2. Locate the voice/assistant infrastructure: capture/input, wake/trigger if any, speech-to-text, routing/bridge components, Ornith endpoint/client, text-to-speech/audio output, and any scripts/services/config files tying them together.
+3. Trace one voice request logically end-to-end and identify IPs/ports/protocols/components involved.
+4. Report current service health and any obvious broken, stale, duplicated, or fragile pieces, supported by logs/config/evidence.
+5. Identify the safest next diagnostic or improvement steps, but DO NOT modify configuration, restart services, install/remove software, or change the clock.
+
+Accuracy first: verify with evidence and distinguish confirmed facts from inference. If access details are missing or an action would be destructive/ambiguous, stop and report exactly what is needed.
+
+Return a concise architecture summary plus relevant paths/services/ports and findings.
