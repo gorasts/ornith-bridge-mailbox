@@ -1,0 +1,75 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: luna-wallclock-progress-impl-20261001-1540-01
+source: TERRA
+state: COMPLETE
+
+RESULT:
+Added public intermediate-status speech to the existing Ornith voice path. Samsung .250 remains microphone input; ASUS .245 remains relay; clock .240 remains output. Final-answer speech remains in the same Algenib say.py path and uses the existing spoken_version shortening.
+
+ROOT_CAUSE_AND_EVENT_EVIDENCE
+voice_bridge.py previously used subprocess.run(capture_output=True) and only spoke after dsh_voice.js completed. dsh_voice.js had an unfinished, unused narrLine helper containing a reasoning-text fallback; that fallback was removed completely.
+Inspected the active native session session-cf8330bc-be2b-48e3-be36-221706995463. Durable assistant/message records have data.turn, seq, data.message.role=assistant and separately typed content parts: text, reasoning, tool-call. Actual records 480/487/492/512 contained public text plus tool calls; record 497 contained reasoning plus a tool call with no public text; record 517 contained final text. These types establish the safe allowlist. Hidden reasoning/stream/tool argument values are not forwarded to speech or progress logs.
+The existing session/prompt endpoint on 127.0.0.1:3080 and native zstd journal reader are reused. Session choice/auth/model/clock routing are unchanged. Request matching binds the new user text to its turn; other-turn events are ignored.
+
+FILES_CHANGED
+C:\bench\tools\dsh_voice.js
+C:\bench\tools\voice_bridge.py
+NEW C:\bench\tools\voice_harness_progress.py
+
+BACKUPS_BEFORE_EDIT
+C:\bench\tools\dsh_voice.js.bak-20261001-progress
+C:\bench\tools\voice_bridge.py.bak-20261001-progress
+The new queue module had no prior file to back up.
+
+LOGIC
+dsh_voice.js --events emits newline JSON containing only approved progress/final text and an event ID. Its ordinary CLI still emits final text only. Only assistant/message -> role assistant -> content type text is accepted. reasoning, stream, tool-call arguments/results, system/developer messages and non-assistant records are never speech sources.
+Public text in a tool-calling assistant message is definitely intermediate and emitted immediately when that durable message arrives. A non-tool message is held until a subsequent assistant message proves it intermediate, or turn/end confirms it as final. This avoids guessing whether a last message is progress or the final answer. It speaks completed public status messages, not speculative/token-by-token reasoning streams.
+One FIFO worker calls existing say_ornith serially. Per-turn event-ID/text dedupe, consecutive-speech dedupe, 180-character progress excerpts, maximum six progress messages, minimum eight seconds between admitted progress updates, and a bounded pending queue prevent duplicates/overlap/flooding. Suppressed progress is logged. Final speech is never rate-limited or dropped. Existing say.py speech lock continues to serialize against other speakers.
+The reader's timeout only terminates its local dsh_voice.js subprocess; it does not cancel/restart Harness or the model. Existing phone capture/wake/follow-up logic and say.py output selector are unchanged.
+
+TESTS
+node --check dsh_voice.js: passed.
+Python AST syntax checks for both Python files: passed.
+dsh_voice.js --self-test: PUBLIC_TEXT_ALLOWLIST_PASS. Mixed reasoning/text/tool fixture exposed public text only; reasoning-only/system/tool-result fixtures emitted nothing.
+Queue fixture: QUEUE_ALLOWLIST_DEDUP_RATE_ORDER_FINAL_PASS. Reasoning/tool frames excluded; duplicate progress and final excluded; rapid extra progress rate-limited; observed speech order exactly public progress, final.
+Harmless live test used the actual say_ornith, spoken_version and harness_turn function definitions without running a second microphone bridge. It asked for one visible status line, one read-only current-time tool call, then the exact final answer. No benchmark/destructive operation was requested.
+LIVE_TEST_START=2026-10-01 15:49:24 Europe/Warsaw
+LIVE_TEST_END=2026-10-01 15:50:44 Europe/Warsaw
+LIVE_TEST_FINAL=Wall-clock voice relay test complete.
+LIVE_PROGRESS_AND_FINAL_SPEECH_VERIFIED=True
+Evidence below contains QUEUED/SPEAK_START/SPOKEN entries for the same request, ordered timestamps, event IDs and subprocess return codes. SPOKEN means the existing TTS subprocess completed successfully; no independent acoustic recording or operator-hearing confirmation was performed.
+
+LIVE_SPEECH_EVIDENCE_BEGIN
+{"time":1790862581.4806073,"turn":"1790862564894995400","action":"QUEUED","kind":"progress","text":"I'm checking the wall-clock voice relay.","event_id":"24:525"}
+{"time":1790862581.4815452,"turn":"1790862564894995400","action":"SPEAK_START","kind":"progress","text":"I'm checking the wall-clock voice relay.","event_id":"24:525"}
+{"time":1790862587.9719586,"turn":"1790862564894995400","action":"QUEUED","kind":"final","text":"Wall-clock voice relay test complete.","event_id":"24:532"}
+{"time":1790862613.0575895,"turn":"1790862564894995400","action":"SPOKEN","kind":"progress","text":"I'm checking the wall-clock voice relay.","event_id":"24:525","returncode":0}
+{"time":1790862613.0588794,"turn":"1790862564894995400","action":"SPEAK_START","kind":"final","text":"Wall-clock voice relay test complete.","event_id":"24:532"}
+{"time":1790862644.6058142,"turn":"1790862564894995400","action":"SPOKEN","kind":"final","text":"Wall-clock voice relay test complete.","event_id":"24:532","returncode":0}
+LIVE_SPEECH_EVIDENCE_END
+
+ACTIVATION=ACTIVE_TRAY_WATCHDOG_PID=17060 PARENT=15448
+Reload uses the existing voice_tray.pyw watchdog after verifying no local dsh_voice.js or say.py turn is active. Only the old voice_bridge.py process is ended; the tray starts its replacement normally. Existing bridge startup renews its listener as usual. A brief capture gap during this reload is expected. No phone-mic service, clock app, Harness, Ornith service or model is restarted.
+POST_ACTIVATION_READONLY_HEALTH_BEGIN
+active
+1
+7021
+192.168.100.250:5555 tcp:7010 tcp:7010
+192.168.100.250:5555 tcp:7011 tcp:7011
+192.168.100.240:5555 tcp:7021 tcp:7011
+POST_ACTIVATION_READONLY_HEALTH_END
+
+LOGS
+C:\bench\tools\voice_progress.log (approved text only; queue/playback correlation)
+C:\bench\tools\voice_progress_unit.log
+C:\bench\tools\voice_progress_e2e_summary.log
+Native Harness session journal remains the authoritative visible-message source.
+
+ROLLBACK
+Wait until no voice/Harness turn or TTS playback is active.
+Copy-Item -LiteralPath 'C:\bench\tools\dsh_voice.js.bak-20261001-progress' -Destination 'C:\bench\tools\dsh_voice.js' -Force
+Copy-Item -LiteralPath 'C:\bench\tools\voice_bridge.py.bak-20261001-progress' -Destination 'C:\bench\tools\voice_bridge.py' -Force
+End only the current voice_bridge.py PID after verifying its command line; allow the same tray watchdog to reload the restored file. The added voice_harness_progress.py can remain unused or be renamed to .disabled; deletion is unnecessary.
+
+LIMITS
+Progress arrival follows durable assistant-message completion (existing 300-ms journal polling), not partial stream fragments. Unmarked/ambiguous output is not spoken. Barge-in was not redesigned. No unrelated changes or scientific runs were made.
