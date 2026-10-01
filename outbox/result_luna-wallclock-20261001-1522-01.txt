@@ -1,0 +1,87 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: luna-wallclock-20261001-1522-01
+source: TERRA
+state: COMPLETE
+
+RESULT:
+Read-only architecture investigation, 2026-10-01, Europe/Warsaw.
+No configuration changes, service restarts, installs, model prompts, audio playback, or clock mutations were performed. COMPLETE means this investigation is complete; it does not certify a new end-to-end voice transaction.
+
+DECISIVE ADDRESS CORRECTION
+192.168.100.250 is the Samsung voice PHONE, not the wall clock. Live ADB reports product=p3sxeea, model=SM_G998B; getprop reports SM-G998B and Android 15. Its Wi-Fi MAC observed from XEON2 ARP was ca-d1-4b-f8-98-15.
+The existing wall CLOCK is 192.168.100.240:5555. Live ADB reports product=lineage_a64_bvS, model=Phh_Treble_vanilla; getprop reports Phh-Treble vanilla, Android 13, armeabi-v7a, kernel 4.14.141+, manufacturer unknown. Retail clock identity was not established from these generic ROM properties.
+Both devices are connected and authorized through the existing ASUS ADB server. Both run com.cluster.voice. The current confirmed setup is PHONE microphone -> assistant -> CLOCK speaker. There is no clock-microphone ADB forward in the inspected current forwarding table.
+
+ARCHITECTURE SUMMARY
+Samsung microphone (.250)
+ -> com.cluster.voice microphone TCP 7010
+ -> ADB-over-TCP 5555 to ASUS (.245)
+ -> ASUS loopback forward 127.0.0.1:7010
+ -> /home/asus/phone_link.py / phone-mic.service
+ -> pacat, 16000 Hz mono signed 16-bit little-endian PCM
+ -> PipeWire null sink phonemic / phonemic.monitor
+ -> /home/asus/listen_asus.py, parec and utterance segmentation
+ -> WAV clips under /tmp/utt and UTT notifications over the existing SSH-based bridge
+ -> XEON2 (.196), C:\bench\tools\voice_bridge.py --harness
+ -> SCP retrieves each WAV; Groq Whisper speech recognition, Gemini fallback
+ -> recognized 'Hey Ornith' and follow-up-session routing
+ -> dsh_voice.js / existing DeepSeek Harness on XEON2
+ -> production Ornith llama-server on GORAST (.116), TCP 8099
+ -> answer text / spoken_version / say_ornith
+ -> C:\bench\tools\say.py and livetts.py
+ -> streamed TTS PCM over SSH to ASUS /home/asus/phone_play.py
+ -> ASUS output selector /home/asus/out_port = 7021
+ -> ADB loopback forward 127.0.0.1:7021 to CLOCK TCP 7011
+ -> com.cluster.voice buffers/plays audio on the clock.
+
+CONFIRMED COMPONENTS AND PATHS
+Developer access: XEON2 OpenSSH, identity C:\Users\XEON2\.ssh\gorast_ed25519, asus@192.168.100.245. Existing ASUS adb server PID 1345 listens on loopback TCP 5037. Commands used were device/property/process/package/log reads, not adb tcpip, connect, app launch, push, or setting writes.
+ADB device inventory also includes tablet 192.168.100.101:5555; it was not modified or investigated further.
+Current ADB forwards, observed verbatim:
+  192.168.100.250:5555 tcp:7010 tcp:7010
+  192.168.100.250:5555 tcp:7011 tcp:7011
+  192.168.100.240:5555 tcp:7021 tcp:7011
+
+ASUS microphone service: /home/asus/.config/systemd/user/phone-mic.service.
+ExecStart=/usr/bin/python3 -u /home/asus/phone_link.py
+After=pipewire.service; Restart=always; StandardOutput=append:/tmp/phone_mic_relay.log.
+Observed ActiveState=active, SubState=running, MainPID=3153796, NRestarts=0.
+Observed pacat PID 3164377, listen_asus.py PID 3312034, parec PID 3617460. phonemic sink state=RUNNING.
+listen_asus.py prioritizes phonemic.monitor when present; Bluetooth input is a fallback. Its inspected configuration: SR=16000, FR=480 (30 ms frames), START=250, GAP=1.8 s, MINLEN=0.15 s, MAXLEN=90 s. It uses an audio-envelope threshold rather than an independently proven neural VAD. /tmp/mute suppresses capture during playback; /tmp/thinking controls waiting chimes. Neither marker was listed at the inspection snapshot.
+phone_link.py reconnects/maintains ADB forwards; its recovery code can scan the phone's wireless-debugging port and switch adbd back to TCP 5555. That is behavior present in the existing code, not an action performed by this inspection.
+
+XEON2: voice_bridge.py --harness PID 18632; voice_tray.pyw PID 15448, using Python312. Relevant directory C:\bench\tools.
+stt_groq_test.py default model=whisper-large-v3-turbo; endpoint https://api.groq.com/openai/v1/audio/transcriptions (HTTPS 443).
+voice_bridge.py stt() attempts Groq recognition and calls stt_gemini on failure or some ambiguous/noise cases; Gemini generateContent endpoint is under https://generativelanguage.googleapis.com/v1beta/models/ (HTTPS 443). Credential values were not printed or recorded.
+Wake routing: voice_bridge.py ORN_WAKE recognizes 'Hey Ornith' and documented transcription variants, starts/refreshes a follow-up session; the code includes a roughly 90-second follow-up window. There is no separate verified on-clock wake-word engine in the inspected route.
+Active --harness branch starts harness_turn() in a thread. voice_bridge.py:174-189 invokes C:\bench\node22\node.exe C:\bench\tools\dsh_voice.js, with timeout=930 s, captures output, appends C:\bench\tools\ornith_voice.log, and speaks a shortened answer. Direct /v1/chat/completions against .116:8099 exists as another code path, but the running process has --harness and must not be described as using that direct path.
+Harness location 127.0.0.1:3080 is documented in the inspected voice_bridge.py comments and existing bridge setup. The exact dsh_voice.js internal API/session binding and the current Harness-to-model provider configuration were not conclusively inspected here; treat those internal details as unresolved, not proven. The subprocess handoff and Ornith server health are independently confirmed.
+say_ornith uses the male-voice path; comments/config name Charon. Current clock_stream.flag selects app-stream output through say.py/livetts.py and SSH phone_play.py. phone_play.py documents 24 kHz mono s16le input and waits for the app to acknowledge the buffered playback tail. The source also includes Gemini Flash TTS fallback models; the exact cloud model selected for a newly generated reply was not exercised or proven.
+Clock app com.cluster.voice: PID 4942, versionName=1.0, versionCode=1, minSdk=26, targetSdk=30, installed/updated 2026-10-01 11:55:35 as reported by Android. com.android.deskclock PID 4981; adbd PID 690. Phone com.cluster.voice PID 11853, adbd PID 26146.
+
+ORNITH HEALTH
+GORAST SSH ubuntu@192.168.100.116 verified hostname gorast.
+ornith-server: ActiveState=active, SubState=running, MainPID=1577051.
+ss confirms llama-server PID 1577051 listening on 0.0.0.0:8099.
+Read-only GET http://192.168.100.116:8099/health returned {"status":"ok"}.
+This proves readiness at the snapshot; it does not prove current model response, Harness session selection, or speaker playback quality.
+
+LOG/EVIDENCE SNAPSHOT AND FINDINGS
+1. IP/device mismatch is proven live, not merely inferred from memory. Local memory corroborates that the phone was made static .250 on GG/GG_5 on October 1; it explicitly distinguishes the clock at .240. File: C:\Users\XEON2\.claude\projects\C--OpenInterpreterAgent-CLAUDE\memory\phone_static_ip_2026_10_01.md.
+2. ASUS journal shows phone-mic manually stopped/started at 13:45:59 in the host log timezone, following a start at 13:36:25. Current unit is active with NRestarts=0; those prior entries are not evidence of a present crash loop. The journal timezone was not independently checked.
+3. Last 200 lines of C:\bench\tools\voice_bridge.log contain three 'write() failed: Broken pipe' messages. Their exact failing stage and timestamps were not isolated. This supports investigating a dropped stream/capture subprocess, not declaring the entire chain broken: current PipeWire capture and relay are running.
+4. Relevant logs were recently updated (local Windows timestamps): voice_bridge.log 15:31:18, 1,374,495 bytes; ornith_voice.log 15:29:25, 40,683 bytes; say_voice.log 15:31:11, 42,936 bytes. These indicate activity, not a separately validated successful end-to-end transaction.
+5. A bounded AndroidRuntime/ClusterVoice error-log query produced no matching error entries. Absence in that small window is not a complete fault scan.
+6. Stale descriptions: phone-mic.service still describes 'scrcpy -> PipeWire', while ExecStart and live processes use direct ClusterVoice PCM sockets. listen_asus.py's header still describes a Bluetooth/Gembird microphone, while the actual running source is phonemic.monitor. Avoid following those headers alone when troubleshooting.
+7. Legacy/alternate copies and routes exist: /home/asus/voiceapp/phone_link.py, /home/asus/voiceapp/phone_play.py, backup *.bak-* files, old Bluetooth/whole-WAV playback branches, and both phone/clock forwards. The inspected service executes /home/asus/phone_link.py; no duplicate relay was identified in the bounded process query. File duplication alone does not prove duplicate execution.
+8. Fragility supported by code: multiple device IPs/forwarded ports, host-side selector files (clock_stream.flag and out_port), mute/thinking files, echo-guard/session state, long Harness timeout, and cloud STT/TTS dependencies. say.py/voice code comments document prior echo and stale-mute failures; those comments describe history, not newly demonstrated faults.
+9. voice_stop.flag and ornith_busy.flag were present on XEON2. voice_tray.pyw documents voice_stop.flag as an intentional 'Stop talking' latch. Their presence alone is not proof of an error; do not delete them blindly.
+10. ADB developer access is exposed at TCP 5555 on the Android devices. Keep it within the trusted developer network. Pairing/reconnect persistence after reboot is a code-supported concern; no reboot or reconnect test was performed.
+
+SAFE NEXT STEPS (RECOMMENDATIONS ONLY; NOT EXECUTED)
+First finish a read-only audit of dsh_voice.js and the active Harness provider/session binding to resolve the remaining internal API details. Then, with permission for a real voice transaction, correlate one known spoken request across voice_bridge.log, ornith_voice.log, say_voice.log, ASUS relay log and clock app logs; record capture/STT/Harness/TTS/playback timing without restarting anything.
+Investigate the exact timestamp/context of the three broken-pipe messages before proposing a repair. Inventory launch mechanisms for the Windows bridge/tray and Android app so startup persistence is documented; running processes alone do not prove boot persistence.
+If later authorized to improve configuration, centralize device identities/input-output selection, correct stale descriptions, and make mute/stream recovery observable. Preserve the working phone-input/clock-output routing and do not remove alternate paths without confirming they are unused.
+
+LIMITATIONS
+No microphone recording, model prompt or speaker probe was initiated. Developer ADB access and current component health were inspected. Exact physical clock make/model, Android app source/build implementation, Windows bridge boot persistence, Harness internal API/session binding and real playback quality remain unverified. No destructive or ambiguous action was necessary; none was taken.
