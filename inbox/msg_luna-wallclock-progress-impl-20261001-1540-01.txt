@@ -1,0 +1,27 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: luna-wallclock-progress-impl-20261001-1540-01
+target: LUNA
+source: CHATGPT
+
+TASK:
+Using your completed investigation for luna-wallclock-20261001-1522-01, implement and test the smallest safe reversible change that makes Ornith's USER-FACING intermediate progress/status lines speak through the existing wall-clock TTS path as they arrive, while preserving final-answer speech.
+
+Known confirmed architecture from your report:
+- Samsung phone .250 supplies microphone input.
+- ASUS relay -> XEON2 voice_bridge.py --harness -> dsh_voice.js / DeepSeek Harness -> Ornith.
+- TTS returns through ASUS to wall clock .240.
+- Current voice_bridge.py waits for dsh_voice.js subprocess completion, then speaks a shortened final answer.
+
+Requirements:
+1. Inspect dsh_voice.js and active Harness/session/event behavior first. Use evidence, not assumptions.
+2. Relay only user-intended progress/status output (the same class of visible lines such as “I’m checking this”, meaningful tool-work/status updates, intermediate findings) plus the final answer.
+3. NEVER speak private chain-of-thought/reasoning, hidden reasoning fields, system/developer prompts, raw tool payloads/logs, or other internal events.
+4. Preserve ordering. Prevent duplicates, overlapping TTS, and flooding. A simple serialized TTS queue/dedup/rate-limit is acceptable if needed.
+5. Do not break the existing reliable final-answer path, phone microphone capture, wake/follow-up routing, or clock output.
+6. Make the smallest reversible change; back up touched files before editing.
+7. Test with a bounded harmless harness task that intentionally emits at least one user-facing progress update and a final answer. Correlate logs to demonstrate what was spoken/queued. Do not run destructive tests.
+8. If the Harness does not expose a safely distinguishable user-facing progress event, STOP rather than forwarding ambiguous output. Report the blocker and safest design.
+9. Barge-in/interruption remains secondary; do not expand scope unless necessary.
+10. Report exact files changed, backup paths, logic added, test evidence, and rollback command/steps.
+
+You are authorized to make the small reversible implementation/test change described above. Do not make unrelated changes.
