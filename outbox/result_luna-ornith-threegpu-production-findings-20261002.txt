@@ -1,0 +1,97 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: luna-ornith-threegpu-production-findings-20261002
+source: TERRA
+state: COMPLETE
+
+DETAILED REPORT: GORAST three-Vega Ornith optimization, 2 October 2026
+Scope: completed measured runs, operational issues, saved production candidate. No claim that all requested historical points or optional placements completed.
+
+CURRENT OPERATOR DIRECTION
+User selected the one-main-bank candidate for production, then explicitly instructed NOT to start Ornith yet because more work follows. Service briefly started during promotion, then was stopped and disabled immediately on the new instruction. Final observed state inactive; no llama-server process. Saved configuration remains, GPU profile service remains enabled. Do not start production without operator direction.
+
+HARDWARE AND IDENTITIES
+Main 0000:05:00.0 UID 021504f279601104: PCIe 3.0 x16 through entire path.
+New riser 0000:0c:00.0 UID 02150278c6ee2964: upstream PCIe 2.0 x1 via 00:1c.4.
+Other riser 0000:0f:00.0 UID 0215065b70c44985: upstream PCIe 2.0 x1 via 00:1c.5.
+Local GPU links advertise x16; that does NOT remove upstream x1 bottlenecks. PCI addresses changed after third-card installation; use UID for tuning. Vulkan enumeration checked as buses 5,12,15 in that order. CPU Xeon E5-2680 v4, motherboard MACHINIST X99 RS9.
+
+MODEL IDENTIFICATION
+Current tested small quant: /opt/testmodels/models/Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS.gguf, 15512189120 bytes.
+Also installed: Ornith AD-Q4_K-IQ4_XS, 20125923520 bytes; Ornith IQ3_M, 17370662560 bytes. These are three different quants, not different unrelated models. Vision projector 899283296 bytes is not a fourth main quant.
+
+LOCKED SCIENTIFIC CONFIG
+/opt/llama/llama-b10919/llama-server -m /opt/testmodels/models/Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS.gguf -dev Vulkan0,Vulkan1,Vulkan2 -ts 0.8,1,1 -ngl 99 -c 131072 -b 2048 -ub 2048 -ctk q8_0 -ctv q8_0 -fa on -t 14 -tb 14 --load-mode dio -np 1 --temp 0.1 --jinja --no-webui
+Whole-layer split, not expert-only split. No external draft/MTP, no vision projector in benchmark or selected candidate. Request temperature explicitly 0.1, n_predict512, cache_promptfalse. No ignore_eos added; generation can naturally stop but all reported completed comparisons generated512. Synchronous nonstream response instead of Claude stream client; same saved prompt text for standard points. Startup says DIO falls back to buffered IO due to Bad address; requested DIO is not proof of physical direct IO.
+
+REAL-WORK REQUESTS
+Source /home/ubuntu/claude-ornith-logs/q8k_512.json, q32_512.json, p64_512_ie.json, p90_512.json, p120_512.json. 2K and16K derived by tokenizing/detokenizing prefix of q32 text, explicitly not historical Claude files.
+32K prompt SHA256 bec7ef6ce3e4dcc6c8ed447738b5106d90d15d759a6d6d943c1e80c3a34b7e76.
+90K prompt SHA256 4cb11475d2c3d9f601d68aa859db81fa14ff03528329cc3c754767a21b878734.
+Labels are approximate; use actual counts below.
+
+BASELINE LADDER (fully GPU-resident expert weights)
+label,actual_prompt,actual_generated,PP_tok_s,TG_tok_s,inference_wall_s
+2K,2048,512,673.168705018,30.487850353,19.808485272
+8K,8215,512,674.276732528,29.564640135,29.484097079
+16K,16384,512,679.727045449,28.519871150,42.053192344
+32K,31619,512,606.760205619,27.046249934,71.061523132
+64K,62410,512,208.580885273,24.365685162,320.294453206
+90K,88407,512,129.184017752,22.258563841,707.459035055
+120K: no consolidated final result present after subsequent reboot. Do not invent completion. Observed severe slowing and progress through88064; investigated without finding a contemporaneous confirmed device fault.
+
+90K CONTROLLED EXPERT-BANK OFFLOADS
+All use identical88407-token text, same build/config, TG512, fresh server per point. Offloads are entire sparse expert-layer banks, NOT individual experts or complete transformer layers.
+CPU_banks,PP_tok_s,TG_tok_s,inference_wall_s
+20,262.229956602,21.802376433,360.770812716
+20+35,256.803280452,21.074919028,368.661308860
+0+1,266.233667677,21.064096314,356.478712398
+0,267.025931880,21.462038589,355.076246647
+0+20,261.558602050,20.770909670,362.792658437
+0+35,261.111809044,20.727181736,363.424319571
+Blocks0/1 belong to main-card segment;20 and35 relieve separate riser segments under this split.
+Winner selected by operator: CPU bank0 only. Relative to baseline: PP about2.067x, TG about3.58% lower, total inference about49.8% shorter. Compared with bank20 only, bank0 is about1.83% faster PP but1.56% lower TG; it wins this measured total time by5.69s. These are single attempts without repeat confidence intervals.
+Two riser banks were slower than one. Combining main plus either riser did not improve performance. Smallest sufficient offload is preferable to gratuitous CPU offloading.
+
+MEMORY FINDINGS AND LIMITATIONS
+Baseline120K observation: main freeVRAM~994MiB, riser0c~166MiB, riser0f~213MiB. Server fdinfo attributed GTT2.55GiB to main,227MiB to0c,254MiB to0f. GTT allocation can be staging/intentional host memory; it is NOT proof all these bytes were spilled weights/KV. No tensor-level eviction attribution obtained. Main1000MHz HBM pin remained; idle/bursty GPU use is not proof of a hang.
+The dramatic same-prompt PP recovery with one bank removed strongly supports memory-headroom/placement as a bottleneck, but does not identify the exact displaced allocation.
+GGUF: qwen35moe40blocks, full_attention_interval4,2KVheads,key/value dimensions256. Q8 K+V at131072 capacity approximately1.328GiB total across cards, excluding recurrent state,alignment,workspace. Not per-card1.328GiB. Current KV remains GPU-distributed.
+Optional all-KV-on-main test NOT performed. Help lists row split/main-gpu, but Vulkan/model support was not demonstrated. Do not claim a fourth KV-only test or change to row mode silently.
+
+POWER AND THERMALS
+Units: reported GPU sensors, one-second samples. Not wall draw, not guaranteed whole-board/transient power, not separate riser/auxiliary rail readings. Means below restrict to synchronized samples with at least one GPU>=50%busy; include PP/TG/other loaded work, not phase-separated pure sustained TG. Combined peaks are simultaneous sums, not sum of separate maxima.
+run,main_avg_peakW,new_riser_avg_peakW,other_riser_avg_peakW,two_riser_avg_combined_peakW,all_avg_combined_peakW
+baseline_recorded_portion,21.74/164,47.58/162,46.43/156,94.01/254,115.75/317
+bank0,38.95/159,45.21/157,52.54/153,97.75/192,136.70/213
+bank0+20,41.32/161,43.52/157,50.29/153,93.81/234,135.13/286
+bank0+35,41.87/162,43.84/158,48.38/153,92.22/165,134.09/205
+Missing: bank20,20+35,0+1 power records; recorder was mistakenly scoped to preceding ladder and not restarted for these. Do not fabricate comparison.
+Winner loaded temperature peaks edge/junction/HBM C: main43/63/41,new39/74/40,other42/72/43. Baseline recorded maxima45/64/42,44/80/45,46/76/47 respectively. No phase-specific power result claimed here.
+CPU minute60samples: mean16.99W,min8.54,max23.89; CPU busy1.75%mean9.19%peak. 90K TG capture18samples over17.0s: mean18.984W,max19.111,min18.754. RAPL package excludes board/RAM; RAM counter zero not credible evidence of zero draw. Exact motherboard15-20W and absoluteCPU64W claims not verified. Whole-machine/UPS input remains unmeasured.
+
+GPU SCREEN AND PERSISTENCE REPAIR
+New UID02150278c6ee2964:1536MHz three-minute screen184.86s,0mismatches,97.84%loaded,peaks54edge74junction61HBM106W;1600screen183.97s,0mismatches,97.28%loaded,55/75/62C109W. Both SHORT_SCREEN_PASS, no new faults, not long-term certification.
+Main/new: P2-P7 core900mV,P6/P7 1600MHz. Other riser: P2-P7 core900mV,P6/P7 1536MHz. All HBM1000MHz profilefield900 pinnedM3, runtimepower/controlon. HBM profile mV is not proven physical HBM supply voltage. Memory timings preserved by new persistent script; no claimed new REF optimization.
+Fault in prior workflow: launched test without verifying all three profiles. After reboot two riser cards were stock1200mVcore,945MHz1100profileHBM;maincore900/HBMprofile975. Operator reported shared UPS overload/power loss, then moved PSU cable off UPS. Cause not independently measured.
+Permanent /usr/local/sbin/gorast_gpu_uid_profile.py matchesUID, verifies all expectedcards, waits up to90s for device/OD availability on boot. /etc/systemd/system/gpu-mempin.service enabled. First revision failed too early atboot; fixedwait now installed, future reboot persistence still untested. Benchmark and production ExecStartPre verification refuse unset profiles. Existing pinguard main-only remains; no claim it guards every card dynamically. No increased power caps.
+
+SAVED PRODUCTION CANDIDATE
+/etc/systemd/system/ornith-server.service.d/zz-user-winner-20261002.conf resets inheritedExecStart/environment/ConditionPathExists, Requires+After gpu-mempin, ExecStartPre UIDprofile --verify. Scientificcommand above plus -ot blk\.(0)\.ffn_(up|down|gate)_exps\.=CPU,host0.0.0.0port8099. No vision projector/MTP. User has NOT requested a new prompt test of Harness/voiceintegration. No model prompt sent for production validation.
+Backup /home/ubuntu/ornith-service-backup-20261002-winner; prior gpu-mempin service/script .pre-uid-20261002.bak. Productioncurrently STOPPED AND DISABLED per newestinstruction, not activevalidatedproduction. GPUprofileenabled.
+Rollback: stopOrnith, remove only zz-user-winner-20261002.conf afterreview,restore desiredbackedupdropins,daemon-reload. Reenable/start onlywithoperatorpermission. Do not blindly revert undervolt tooldslot-basedscripts.
+
+CLAUDE COMPARISON AND QUALITY
+Exact smallquant Claude32K record606.17PP27.17TG31619tokens,split0.8/1/1,temperature1.0. Ourtemperature0.1 result606.76/27.05 essentiallymatches; notsame samplingtemperature. His~88K finale~196PP was a differentlong-generationtask, not identicalbenchmark.
+ClaudeIQ3_M(twoCPUbanks20/35)88407tokens259.58PP21.14TG is a DIFFERENTquant. Do not say beatClaudeapples-to-apples usingthisnumber.
+Claude savedhardtask report: smallAtomicquant strict7/10 vs largerIQ4strict8/10,sharedformatissues,additionalloops;small88Kfinalecorrect. Operator elects to treat valid-trajectorylooping separately from correctness, some tasks intentionallydifficult/impossible; do not silentlyre-scoreunverifiedtasks. Temperature0.1 mitigates temp0loops, notguaranteedcure.
+
+EVIDENCE
+GORAST /home/ubuntu/ornith-clock-ladder-smallclaude-verified-20261001
+/home/ubuntu/ornith-clock-ladder-90k-expert-ab-20261001
+/home/ubuntu/ornith-clock-ladder-mainone-20261001
+/home/ubuntu/ornith-clock-ladder-combinedbanks-20261001
+/home/ubuntu/ornith-clock-ladder-otherriser-20261001
+Each contains result.json,requests,responses,canonical rawlogs;recorded runs also three-gpu-telemetry.csv/summary. CPU cpu-power-60s.txt,cpu-tg-90k.json in baselinefolder. Newcardscreen /home/ubuntu/gorast-third-card-screen-20261002. Claude combo.log,ornsmall.sh,sourceJSONs /home/ubuntu/claude-ornith-logs; fullstatebridge097 and memorygorast_3gpu_placement_recipe.md.
+
+NEXT
+Do not launch further benchmarks or Ornith without operatorinstructions. Await additional work. Candidatebank0 is selected, not full reliability/120Kvalidated. Future safechecks: rebootpersistence,productionreadinessafterauthorizedstart,and sustained90/120Kheadroom withsamecorpus. Keep per-GPUidentity,settingsverification and UPSpowerlimits separate from performanceclaims.
