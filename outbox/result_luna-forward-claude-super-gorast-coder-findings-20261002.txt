@@ -1,0 +1,44 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-super-gorast-coder-findings-20261002
+source: LUNA
+target: SUPERVISOR
+state: COMPLETE
+ACTION=FORWARD_HANDOFF_ONLY
+USER_DIRECTION=Report was misrouted to Luna; send to supervisor, do not take over testing.
+
+CLAUDE HANDOFF (findings attributed to Claude, not independently rerun)
+Goal: establish coder-model performance on GORAST's 3 Vegas before moving XEON2's 2x32GB RAM. GORAST currently has 4x8GB UDIMM2400; RDIMM and UDIMM cannot mix. Check physical XEON2 DIMM labels.
+Models: /opt/testmodels/models/qwen3.8-flash-coder-26gb-q4_k_m.gguf (Jab1718,160 experts,28,394,087,776 bytes); ista-coder/Qwen3.8-Flash-Next-GSQ-RCO-IQ1_M-0000{1,2}-of-00002.gguf (58.4GB combined; mmap required).
+Builds: /opt/llama/llama-b10919; ~/llama-master/build-vk (b11369,MTP #29761); ~/llama-master/build-vk-cache (expert-cache PR #27861,--moe-expert-cache).
+NO VALID 3-GPU CODER SPEED NUMBER. Single-card runs clean; multi-card attempts using risers repeatedly faulted. Production Ornith reportedly runs for days, but an Ornith control also crashed in the smoke methodology: not coder-specific.
+
+CLAUDE TEST HISTORY
+1.17:39UTC production running: SDMA ring page0 timeout on0f/Vulkan2; recovery hung; reboot.
+2.18:12UTC coder Q4_K_M server, dio,c131072,Q8KV,split0.8,1,1,n-cpu-moe16: GPUVM/device-lost Vulkan2 one second after first batch; D-state/IH flood; reboot. REF stock.
+3.Smoke llama-bench p128,n16,mmap: 05 alone all experts CPU pp38.5/tg10.5 clean;0c alone pp4.1/tg7.8 clean;0f alone pp4.1/tg7.5 clean (cold file/x1).05+0c ncmoe20 produced DMAR PTE-read faults,SDMA timeout,mode1 reset;BOTH risers died,including unused0f (width63,SMUffffffff).
+4.Production Ornith Q4_K-IQ4_XS control,05+0c: SDMA ring page1 timeout on0f around190s;both risers dead.
+5.Exact production-style server flags,model swapped to coder,port changed,n-cpu-moe99,no mmproj: both risers dead12s into loading;113 fault lines.
+Profiles during Claude tests reportedly900mV cap,HBM1000,220W;REF stock then3000.
+Topology:05 CPU PCIe3x16;0c/0f downstream PCH1c.4/1c.5,PCIe2x1 upstream,second EVGA750W PSU. GPU endpoint x16 reports do NOT establish upstream width.
+Warm boots after wedge failed to recover; cold PSU-off about30s worked. Wedged systemctl poweroff hung; SSH refusal did not mean powered off.
+
+CLAUDE OPEN QUESTIONS (hypotheses, not proven)
+Shared PCH/riser/second-PSU sequencing;IOMMU DMA;host-visible import vs DIO;x1 link margin;Vulkan initializing unselected devices. Suggested future controlled experiments iommu=pt/intel_iommu=off,Gen1,GGML_VK_VISIBLE_DEVICES,HIP. None authorized/executed by Luna here.
+Warm real32K/TG512 on05 alone not yet done. ISTA/masterMTP/cacheAB/32K90K numbers absent. RAM move NOT yet justified by valid sustained coder performance.
+Standing production manually started; handoff warns ornith-live-console can auto-start at boot. Restore production after authorized tests, retain undervolt; reboot permissions in HANDOFF contain historical conflicting entries, clarify before any reboot. Luna rebooted nothing.
+
+EVIDENCE PATHS
+GORAST: ~/gpu_hang_dmesg_20261002.txt;~/gpu_hang2_... through~/gpu_hang6_...;~/coder_devicelost_20261002.log;~/smoke_run1.txt;~/smoke_ornith.txt;~/prodrecipe.txt;~/prodrecipe_server.log.
+XEON2:C:/Users/XEON2/asus_vega_logs/gorast_smoke.sh;gorast_smoke_ornith.sh;gorast_prodrecipe.sh;gorast_coder_stage.sh.
+Handoff:C:/OpenInterpreterAgent/CLAUDE/HANDOFF.md top block.
+
+LUNA READ-ONLY ADDENDUM, CURRENT BOOT
+SSH currently works. uptime-s=2026-10-02 19:25:45 (host UTC).All3 GPUs enumerate;ornith-server inactive;no matching current-boot DMAR/GPUVM/ring-timeout/device-lost/reset lines in bounded scan. This is not load-health certification.
+All3 pp_od_clk_voltage tables currently STOCK:coreP6=1536MHz1150mV,P7=1630MHz1200mV;HBMP3=945MHz1100mV;powercap220W. NO BENCHMARK STARTED.
+Current UIDs:card0=02150278c6ee2964;card1=021504f279601104;card2=0215065f70c44985.
+IMPORTANT:current third UID has '5f';saved /usr/local/sbin/gorast_gpu_uid_profile.py expects0215065b70c44985 ('5b'). Script waits for all expected identities before applying any profiles, with90s timeout;this mismatch is a concrete plausible reason profiles remain unapplied. Actual gpu-mempin service failure was NOT inspected before user redirected forwarding;do not present inferred cause as verified journal outcome.
+gorast-perf is CPU governor/uncore service,not GPU profile;active. GPU profile script is referenced by gpu-mempin.service and production drop-in.
+XEON2 WMI shows2x32GBDDR4 configured2400,manufacturerUndefined/partnumberblank;physical UDIMM/RDIMM labels remain unverified.
+Raw smoke_run1 independently read:single05 pp12838.53/tg1610.46,exit0,faults0;dualtestfaults2. prodrecipe independently read:loadfailed12s,bothwidth63,faults113.
+
+NO GPU SETTINGS/SERVICES/PRODUCTION CHANGES. NO INFERENCE/BENCHMARK/REBOOT. Investigation stopped at user's direction; supervisor owns next decisions.
