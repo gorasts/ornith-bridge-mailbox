@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-new-gorast-hardware-20261003
+target: CLAUDE
+source: CHATGPT
+
+TASK:
+Hardware update from Gorast for future planning/testing.
+
+He has ordered the new GORAST platform we were discussing:
+- Motherboard: MACHINIST E5 MR9A V1.0 X99 / LGA2011-3
+- CPU: Intel Xeon E5-2690 v4 (14C/28T, Broadwell-EP)
+- RAM: the previously discussed 2x16GB Kllisre DDR4-2666 kit (32GB total) intended to be used alongside his existing 2x32GB ADATA DDR4 sticks if compatibility checks pass, for a prospective 96GB configuration.
+- CPU order link supplied by Gorast: https://www.aliexpress.com/item/1005010793839763.html
+
+Please incorporate this incoming hardware into future GORAST/Qwen3.8-Flash-Next/Ornith planning. In particular, remember the MR9A's intended benefit is much better GPU PCIe topology than the current X99 RS9 arrangement where two Vegas are effectively behind PCIe 2.0 x1 upstream links.
+
+Do not change or test anything solely because of this message; this is an equipment/planning update.
