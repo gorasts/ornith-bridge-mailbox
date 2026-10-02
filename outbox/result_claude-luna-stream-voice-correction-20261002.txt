@@ -1,0 +1,49 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-luna-stream-voice-correction-20261002
+source: LUNA
+state: PARTIAL
+
+SUMMARY
+Implemented a reversible foreground incremental voice path. Real streaming E2E validation is blocked by the operator-reported Claude testing pause. New path is disabled pending validation; existing durable-message voice path remains available. This is NOT a latency-success claim.
+
+SOURCE-PROVEN SUPPORTED MECHANISM
+Harness SessionController.follow is a Remote stream. SessionFollowRequest.assistantStream=true opts into assistant-stream start/chunk/end frames. StreamChunk explicitly separates text-delta, reasoning-delta, and tool-call-delta. The new consumer connects directly to authenticated loopback /api/remote.mux, endpoint session/follow, for the selected voice session. It is not a proxy and does not re-serve/log raw traffic.
+Evidence: active installation under C:\bench\gorast_dsh\Users\GG\AppData\Roaming\npm\node_modules\@deepseek-ai\dsh\node_modules\@deepseek-ai; dsh-api-session-controller/lib/types/types.d.ts, dsh-agent/lib/types/runtime-types.d.ts, dsh-llm/lib/types/types.d.ts. Matching client carrier source identifies open/item/cancel transport frames.
+
+IMPLEMENTATION
+- Typed text-delta allowlist only; reasoning/tool argument/result events excluded.
+- First chunk at >=6 words plus punctuation, or 12 words without punctuation; remainder sentence-by-sentence; short remaining text flushed on committed message end.
+- Stream attempt IDs/committed sequence IDs prevent replay of streamed saved finals.
+- One owned say.py child, one Gemini Live session, sequential TTS turns, one existing ASUS/clock PCM player path per voice turn.
+- Final marker removes unspoken older progress and suppresses further audio from an older currently generated progress chunk; already transmitted/buffered audio cannot be recalled.
+- Existing explicit Running: <description> behavior retained, never command/other arguments/results.
+- No Ornith prompt, style, reasoning budget, model/server/GPU/service change. AGENTS.md hash equals pre-voice-rule backup: F25FCD3BBD4623E99BBB5C5E8E2F689E63D8C961D4F3593D379444B0635D3946.
+- No Harness restart or new browser tab. No detached helper. Child lifetimes owned by the foreground voice invocation.
+
+FILES_CHANGED
+C:\bench\tools\dsh_voice.js
+C:\bench\tools\voice_harness_progress.py
+C:\bench\tools\livetts.py
+C:\bench\tools\say.py
+FILES_ADDED
+C:\bench\tools\voice_text_stream.cjs
+C:\bench\tools\voice_stream_offline_test.py
+C:\bench\tools\voice_stream.off (disable gate pending real E2E)
+BACKUPS
+Each of the four changed files has a sibling .bak-streamvoice-20261002 backup created before editing. Earlier Claude backups remain untouched.
+
+TEST_EVIDENCE
+Node syntax check PASS; Python compile PASS; existing PUBLIC_TEXT_ALLOWLIST_PASS.
+Offline fake supported-follow carrier excludes reasoning-delta and tool-call-delta while accepting text-delta: SUPPORTED_FOLLOW_TEXT_ONLY_PASS.
+Offline fake Gemini session: ONE_SESSION_TWO_CHUNKS_NO_NETWORK_PASS. No network, model, audio or device work in offline test.
+Offline final-priority test: FINAL_PRIORITY_QUEUED_PROGRESS_DROPPED_PASS; older queued progress is skipped and older in-flight generated audio suppressed once final priority arrives.
+Real requested voice_progress_e2e.py was launched before the pause notification. It ended in 63s with only fallback Done; journal turn31 seq602-613 contains assistant/attempt plus llm/retry and no public assistant answer. Therefore it does NOT validate streaming. PCM relay reported 8.7s from say.py start for this fallback, not comparable to normal progress/final latency. The no-answer fallback was subsequently corrected to explain that Harness ended without a public answer.
+No further Harness/model test request was sent after the pause notification.
+
+ROLLBACK
+In PowerShell, for each changed basename dsh_voice.js, voice_harness_progress.py, livetts.py, say.py:
+Copy-Item -LiteralPath C:\bench\tools\<basename>.bak-streamvoice-20261002 -Destination C:\bench\tools\<basename> -Force
+Keep voice_stream.off to disable streaming without rollback. No service/model/GPU restart required. Only remove this exact flag when ready to validate the new path. Added modules are inactive when disabled and can be retained for evidence.
+
+NEXT
+When Claude releases Ornith, enable stream gate and run the existing harmless real E2E test once. Require actual streamed public text before durable commit, one Live session, no duplicate final speech, and correlated first-PCM relay timings. Do not claim acoustic first-audio time without corresponding clock playback evidence. Re-disable on failure. Production is not to be started/unpaused by this job.
