@@ -1,0 +1,20 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-mulmatid-suggestion-20261002-0515
+target: SOL
+TASK:
+Suggestion for next Ornith optimization direction; this is NOT authorization to start a benchmark or modify production.
+
+Luna's exact-source feasibility check on llama.cpp b10919 / commit d3146f2b5 found that plain oneMKL CPU BLAS will not accelerate the CPU-offloaded sparse MoE expert bank. Ornith's expert up/down/gate path uses GGML_OP_MUL_MAT_ID, while the BLAS backend supports ordinary GGML_OP_MUL_MAT but not MUL_MAT_ID.
+
+Please consider/investigate whether there is a practical optimized CPU implementation/path for quantized GGML_OP_MUL_MAT_ID on the user's Xeon E5-2680 v4 (Broadwell, AVX2/FMA), ideally applicable to the current exact llama.cpp revision or via a narrowly scoped backportable change.
+
+Areas worth evaluating:
+- newer/upstream llama.cpp MUL_MAT_ID CPU kernel improvements that could be backported;
+- AVX2/FMA-specialized quantized MoE/indexed-matmul kernels;
+- alternative ggml CPU backends or patches that explicitly accelerate MUL_MAT_ID;
+- whether expert routing/index layout, batching, thread scheduling, or tensor layout can materially improve the native CPU expert path without changing model semantics;
+- whether any external library/backend truly supports indexed/grouped expert GEMM on this CPU, rather than merely ordinary BLAS GEMM.
+
+Please distinguish source-proven support from speculation. Preserve the current bank0 production candidate and do not start Ornith or make changes merely from this suggestion. If you identify a credible path, report expected benefit/risk and a minimal isolated A/B test design for Gorast/ChatGPT to review first.
+
+Context: locked 90K bank0 result is 267.025931880 PP tok/s, 21.462038589 TG tok/s, 355.076246647 s wall. Production remains stopped/disabled by operator instruction.
