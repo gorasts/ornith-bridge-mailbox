@@ -1,0 +1,42 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-strata-investigate-20261002-1845
+target: SOL
+TASK:
+Suggestion/investigation request from ChatGPT, authorized by Gorast.
+
+Investigate Niko1221/Strata (GitHub), the specialized Qwen3.8-Flash-Next inference engine, and assess whether its architecture can be implemented or adapted usefully on GORAST's current 3x AMD Vega gfx900 setup and/or into our llama.cpp/Ornith stack.
+
+Why this is interesting:
+- Strata uses per-expert VRAM caching for MoE rather than treating RAM as simple overflow.
+- GPU runs cached experts while CPU executes cache misses from system RAM, aiming for parallel CPU+GPU work.
+- It reportedly has AVX2 CPU expert kernels, directly relevant to our Broadwell Xeons.
+- It integrates MTP with the expert cache.
+- Qwen3.8-Flash-Next is architected for offloading, including its large PLE/ngram table.
+- This resembles and potentially extends what our Ornith bank0 CPU-offload experiments demonstrated.
+
+Please:
+1. Inspect the actual current Strata source, docs/issues and dependencies. Do not rely on YouTube claims.
+2. Determine exactly how CUDA/NVIDIA-specific it is and identify the components that prevent AMD gfx900/Vulkan/HIP operation.
+3. Determine whether its per-expert cache design could be:
+   a) ported to HIP/Vulkan for our 3 Vegas,
+   b) integrated/backported into our llama.cpp b10919 path, or
+   c) used as a design reference for a smaller targeted patch to our current CPU/GPU MoE execution.
+4. Inspect its AVX2 expert kernels and compare them to our current llama.cpp GGML_OP_MUL_MAT_ID CPU path. Look for concrete optimizations we can borrow for Broadwell AVX2/FMA.
+5. Investigate multi-GPU implications. Our topology is one PCIe 3.0 x16 Vega plus two Vegas bottlenecked by PCIe 2.0 x1 upstream links. Consider whether expert caching could REDUCE traffic enough to make this topology especially useful, or whether cache migration would make x1 links problematic.
+6. Evaluate applicability to both:
+   - current production Ornith IQ3 bank0 + GPU draft setup, and
+   - future Qwen3.8-Flash-Next testing.
+7. Estimate engineering difficulty/risk and identify the smallest reversible proof-of-concept that could establish whether there is a real performance win.
+8. If there is a clearly safe, isolated, reversible implementation path, propose it first. Do NOT modify production Ornith, GPU settings, services, or saved production configs without explicit approval. Do NOT launch long benchmarks yet.
+9. Preserve our benchmark requirements for any later approved A/B: realistic long context (especially 32K/90K), TG512 minimum, PP+TG together, VRAM/RAM/CPU/GPU/network telemetry, and compare against current production/baselines.
+
+Current relevant production facts:
+- 3x Vega 8GB HBM2.
+- Production Ornith IQ3: bank0 sparse experts on CPU, remaining placement GPU; -dev Vulkan0,Vulkan1,Vulkan2, -ts 0.8,1,1, 131072 ctx, q8 KV, B/UB 2048, FA on, T/TB14.
+- GPU draft Shisa MTP n-max1 on Vulkan0.
+- 90K measured production with draft: PP 248.9 tok/s, TG 23.77 tok/s.
+- Without draft bank0: 90K PP 267.0, TG 21.46.
+- Broadwell Xeon platform, quad-channel DDR4 is a major consideration.
+- Current riser topology: main x16, two cards effectively PCIe 2.0 x1 upstream.
+
+Please report source-supported findings, concrete code locations, feasibility, and recommended next experiment to the bridge. Clearly distinguish measured facts from estimates.
