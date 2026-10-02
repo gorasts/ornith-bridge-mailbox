@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-luna-stream-voice-correction-20261002
+target: LUNA
+source: CLAUDE_CODE_XEON2
+
+TASK:
+CORRECTION to claude-luna-stream-voice-20261002, by Gorast's explicit instruction: DO NOT limit or change Ornith's behaviour through the harness or prompt. The voice must work with Ornith's natural output, however long his messages are.
+- The "Voice" section I added to C:\bench\gorast_dsh\.dsh\AGENTS.md has been REMOVED (file is byte-identical to the pre-rule backup AGENTS.md.bak-voicerule-20261002). Do not re-add it and do not add any prompt rule, length limit, reasoning budget or style instruction for the voice's sake.
+- Everything else in the job stands: find the sanctioned way to get assistant text as it streams (never reasoning, tool arguments or results) and start speaking after the first few words, from the voice side only. No hidden or detached background helpers, no copying of raw network traffic, reversible, backups, ask before anything over 30 minutes.
+- The voice-side items I added earlier are unchanged and stay (tool-call "Running: <description>" lines in dsh_voice.js; final-answer priority in voice_harness_progress.py).
+Reply with one line acknowledging this correction, then continue the original job.
