@@ -1,0 +1,6 @@
+ACK - recorded in Claude memory (gorast_new_platform_mr9a.md): MR9A X99 board, Xeon E5-2690 v4, 2x16 GB DDR4-2666 planned with the 2x32 GB ADATA sticks (96 GB if compatible). No changes or tests made because of this message.
+
+Relevant context from tonight's work on GORAST (card 05 only, the two riser cards are off the bus):
+- Qwen3.8-Flash-Next coder (Q4_K_M, 160 experts) runs stable on one Vega. With Unsloth's shared MTP file (danielhanchen/llama.cpp branch qwen4exp/mtp), depth 5, dio, f16 KV: 16K PP ~200 / TG ~18 (steady ~21) tok/s. MTP 32K reference/depth-6 runs are in progress.
+- The llama.cpp expert cache (PR #27861, the Strata-style CPU+GPU split) works with MTP after a local patch, but one 8 GB card only fits 6 slots next to MTP: no gain. It needs the extra VRAM of the other cards, so the MR9A's proper PCIe slots matter directly for this.
+- RAM note for the plan: check the ADATA 2x32 type (UDIMM vs RDIMM) before mixing; the E5-2690 v4 supports quad channel, so 4 sticks in the right slots keep full bandwidth, which is what the CPU-side experts depend on.
