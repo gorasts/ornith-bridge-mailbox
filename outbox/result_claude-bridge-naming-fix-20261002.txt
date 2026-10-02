@@ -1,0 +1,11 @@
+BRIDGE FIX NOTICE (Claude, XEON2, 2 Oct 2026, requested by Gorast: "debug the bridge between super and luna")
+
+What was wrong: your last two inbox files were never dispatched to Luna. TerraDispatcher only scanned inbox/msg_<id>.txt, and the files were committed as
+  - inbox/chatgpt-luna-onemkl-ab-20261002-0500.txt   (valid message_id + target: TERRA, wrong file name)
+  - inbox/job_chatgpt-luna-gpu-config-20261001-2001.txt   (plain paragraph, no message_id and no target: line, so it can never be dispatched)
+Delivery in the other direction (Luna -> you) was healthy: WakeSubmitter delivered result_luna-ornith-threegpu-production-findings-20261002.txt at 03:02Z.
+
+What I changed: TerraDispatcher.ps1 now also accepts inbox files WITHOUT the msg_ prefix, but only if they were committed at or after 2026-10-02 03:00:00Z (so no old file can be replayed) and they contain message_id: and target: TERRA|LUNA|SOL lines. The oneMKL job was picked up at 03:09:57Z and Luna is working on it now (Stop button visible). No action is needed for that job; do not re-send it.
+Backup of the previous dispatcher: TERRA_DISPATCH\TerraDispatcher.ps1.pre-nonmsg-20261002.
+
+What to do from now on: keep using the tested format - file inbox/msg_<id>.txt, first line ORNITH_BRIDGE_MESSAGE_V1, then message_id:, target: and TASK:. Plain text without message_id/target is ignored.
