@@ -1,0 +1,34 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-super-gorast-coder-findings-20261002
+target: LUNA
+source: CLAUDE_CODE_XEON2
+
+TASK:
+Gorast is replacing Claude as main model and asked me to hand over all tests and findings of the GORAST coder-model proof of concept (2 Oct 2026). Please take over. Raw evidence is on GORAST (ubuntu@192.168.100.116, ssh key gorast_ed25519) and in C:\Users\XEON2\asus_vega_logs\ on XEON2. HANDOFF.md (C:\OpenInterpreterAgent\CLAUDE) top block has the same story.
+
+GOAL (Gorast): prove a Qwen3.8-Flash-Next CODER build (fits 32 GB) is fast on GORAST's 3x Vega 64 (Vulkan); if so, move the 2x32 GB sticks from XEON2 to GORAST. GORAST has only 4 DIMM slots, all 8 GB gaming UDIMM 2400 (RDIMM/UDIMM cannot mix; check XEON2 stick labels).
+Models on GORAST /opt/testmodels/models/: qwen3.8-flash-coder-26gb-q4_k_m.gguf (Jab1718, 160 experts, 26.4 GB), ista-coder/...GSQ-RCO-IQ1_M-0000{1,2}-of-00002.gguf (58.4 GB, needs --load-mode mmap). Builds: /opt/llama/llama-b10919 (production, has qwen4exp), ~/llama-master/build-vk (master b11369 incl. MTP #29761), ~/llama-master/build-vk-cache (+ PR #27861 expert cache, flag --moe-expert-cache). Research: Strata = NVIDIA/RDNA only (gfx900 FATAL), so llama.cpp equivalents are the route.
+
+RESULT SO FAR: NO valid coder speed number for 3 GPUs. Every attempt that used card 0c or 0f together with other cards crashed the GPUs.
+
+TESTS (all Vulkan, b10919, REF stock then 3000, undervolt profile active: 900 mV cap, HBM 1000, 220 W):
+1. 17:39 UTC, production Ornith running: SDMA "ring page0 timeout" on 0f (Vulkan2), GPU recovery hung -> reboot.
+2. 18:12 UTC, llama-server, coder Q4_K_M, production-style flags (dio, -c 131072 q8 KV, -ts 0.8,1,1, --n-cpu-moe 16): "GPUVM fault ... device lost on Vulkan2" 1 s after first batch (not slow), D-state, IH-ring flood from 0f -> reboot. REF was stock.
+3. Smoke llama-bench (-p 128 -n 16, default mmap), coder: card 05 alone, all experts CPU = pp128 38.5 / tg16 10.5 clean; 0c alone pp 4.1 / tg 7.8 clean; 0f alone pp 4.1 / tg 7.5 clean (cold file, x1 link). 05+0c (-ncmoe 20): DMAR read faults from 0c (PTE Read access not set), SDMA timeout, GPU mode1 reset, then BOTH 0c and 0f fell off the bus (link width 63, SMU 0xffffffff), 0f was not even in use.
+4. CONTROL, same llama-bench flags but the PRODUCTION ORNITH model (Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS): 05+0c -> SDMA "ring page1 timeout" on 0f at ~190 s, 0c/0f dead. So it is not specific to the coder model.
+5. llama-server with the EXACT production Ornith flags (only -m = coder, port, --n-cpu-moe 99, no mmproj): 0c and 0f dead 12 s into loading, 113 fault lines.
+Single-card runs: always clean. Production Ornith (3 cards, 128K ctx): runs for days (operator).
+
+HARDWARE FACTS: 05 = x16 (CPU); 0c and 0f are behind PCH root ports 1c.4/1c.5 on x1 links, Gen2 5 GT/s (bridges 0a/0d report downgraded x1); the two x1 cards are on a separate EVGA 750 W PSU (operator). Warm reboot after a wedge does NOT revive them: 18:34 and 19:02 reboots came up with 0c/0f enumerated then dead ~19-47 s later, 18:58 only 05 enumerated. Cold start (PSUs off ~30 s) worked each time (18:45, 19:10, 19:20). A `systemctl poweroff` on the wedged box hung (kernel alive, sshd gone, GPUs cannot unload) - only a hard power-off clears it. gorast_gpu_uid_profile.py / gorast_ref_apply.sh run at boot (REF=3000 now, drop-in re-enabled).
+Evidence files on GORAST: ~/gpu_hang_dmesg_20261002.txt, ~/gpu_hang2_..., ~/gpu_hang3_... (DMAR+SDMA), ~/gpu_hang4_..., ~/gpu_hang5_..., ~/gpu_hang6_..., ~/coder_devicelost_20261002.log, ~/smoke_run1.txt, ~/smoke_ornith.txt, ~/prodrecipe.txt + ~/prodrecipe_server.log. Scripts: asus_vega_logs\gorast_smoke.sh, gorast_smoke_ornith.sh, gorast_prodrecipe.sh, gorast_coder_stage.sh.
+
+OPEN QUESTIONS / SUGGESTED NEXT STEPS:
+- Why does anything other than production Ornith kill the two x1 cards? Candidates (none proven): PCH root-port / riser power sequencing of the 2nd PSU, DMA/IOMMU handling (try iommu=pt or intel_iommu=off as an experiment, needs a cold boot), host-visible memory import vs direct IO, x1 Gen2 link margin (try forcing Gen1 on 0c/0f via setpci / BIOS), Vulkan device init touching all 3 cards even when -dev excludes one (try GGML_VK_VISIBLE_DEVICES or HIP/ROCm build instead of Vulkan).
+- The only configuration proven stable for the coder: card 05 alone + experts in RAM (llama-bench pp128 38.5, tg16 10.5 cold). A warm real benchmark on 05 alone (32K prompt, TG512) would give the RAM-move verdict without touching the risers: nothing done yet.
+- Not done: ISTA/mmap, master+MTP, expert-cache A/B, 32K/90K benchmarks.
+
+RULES FROM GORAST: stopping production Ornith for tests is authorised but it must be restored at the end (it is currently NOT running: box needs a hard power-off first). Reboots allowed only when the GPU is wedged, and each must be verified by a new `uptime -s`. Standing rule: ornith-server is started by hand only, but it currently auto-starts at boot via ornith-live-console (told Gorast). Keep the undervolt profile always. Do not touch the XEON2 voice stack (C:\bench\tools).
+
+MY MISTAKES TO AVOID: I misread the first crash as slowness; ran 32K-class tests before smoke tests; rebooted GORAST silently (reboots hung, waited on a reboot that had not happened); ran the old 15600 REF script by accident once (a few minutes, cards idle); sent poweroff to a wedged box and misread "ssh refused" as down.
+
+DELIVERABLE: take over the isolation work; report with exact commands, raw numbers and a go/no-go for the RAM move.
