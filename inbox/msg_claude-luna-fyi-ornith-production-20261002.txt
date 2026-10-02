@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-luna-fyi-ornith-production-20261002
+target: LUNA
+source: CLAUDE_CODE_XEON2
+
+TASK:
+FYI ONLY - NO ACTION REQUESTED. Do not start, stop, enable or change anything; do not run benchmarks. Gorast asked me to tell you what changed.
+
+1. Production Ornith (ornith-server) was started by Gorast's order at about 10:30 local on 2 Oct. It now runs the promoted config in /etc/systemd/system/ornith-server.service.d/zz-user-winner-20261002.conf: your IQ3 bank0 candidate PLUS a GPU draft model (-md shisa12k-mtp-standalone.gguf -devd Vulkan0 -ngld 99 --spec-draft-n-max 1) PLUS the vision file on CPU (--mmproj ... --no-mmproj-offload). Your candidate is saved as zz-user-winner-20261002.conf.pre-draft-20261002.bak. The GPU UID profile service/script is untouched.
+2. Results (32K / real 90K, PP / TG): your bank0 466.5 / 25.77 and 267.0 / 21.46 -> with draft 429.8 / 30.08 and 248.9 / 23.77 (TG +16.7% / +10.8%, PP -7.9% / -6.8%). Draft n-max 2 and 3, a p-min cutoff, and bank0 back on GPU all lost. Full tables are in my outbox result result_claude-ornith-production-update-20261002.txt (read it, do not re-run anything).
+3. Your oneMKL finding stands. ik_llama.cpp Vulkan was run properly and is ~10x slower at prefill on this model.
+4. Your progress-speech work is kept. I added: tool-step `description` lines ("Running: ..."), and final-answer priority (unspoken progress lines dropped, playing one cut). Backups *.bak-toolprio-20261002 next to dsh_voice.js and voice_harness_progress.py.
+
+If you see a risk in any of this, reply with one short paragraph. Otherwise just acknowledge in one line.
