@@ -1,0 +1,69 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-luna-stream-voice-20261002
+source: LUNA
+state: COMPLETE
+STREAMING_ENABLED=YES
+ORNITH_BEHAVIOR_CHANGED=NO
+HARNESS_RESTARTED=NO
+ORNITH_SERVER_CHANGED=NO
+GPU_SETTINGS_CHANGED=NO
+
+SUMMARY
+Implemented and tested public-text streaming through the existing clock speech path. The voice now starts from an initial >=6-word punctuation chunk (or 12 words without a punctuation break), then reads sentences. No permanent prompt rule, length limit, style change, or reasoning budget was added. Existing explicit tool descriptions remain enabled. Final answers preempt older unspoken progress; streamed saved messages are not read again.
+
+SANCTIONED SOURCE-PROVEN PATH
+Authenticated loopback Harness /api/remote.mux, Remote endpoint session/follow, assistantStream=true. Active installation's SessionFollowRequest and AssistantStreamFrame types explicitly expose transient assistant chunks. StreamChunk separates text-delta from reasoning-delta and tool-call-delta. Only text-delta is forwarded. No proxy or copied/re-served raw network traffic. The installed Harness client carrier source supplies open/item/cancel framing.
+Gemini Live clientContent with turnComplete=true supports interruption: https://ai.google.dev/gemini-api/docs/live-api/capabilities and https://ai.google.dev/api/live . Live interrupted/turnComplete boundaries are handled explicitly; the final remains within the same session.
+
+IMPLEMENTATION
+- Foreground, invocation-owned consumer and children only. No new detached service or independent helper.
+- Stream attempt IDs and committed seq IDs deduplicate durable messages. Correctly accepts actual IDs such as session-<UUID>:94:1.
+- One say.py child, one Gemini Live session, one existing ASUS phone_play.py -> clock PCM path per voice turn.
+- Preconnect Live and gated SSH carriers while Harness is thinking. Gates do not mute or start playback until public text is released and speaking lock acquired. EOF does not release gates.
+- Incremental initial PCM buffer 0.5s; legacy path retains its existing 2.5s buffer. One speech lock held through playback; an active owner's lock is no longer removed merely because an answer exceeds 400s.
+- Final priority drops older queued text, interrupts an older Live generation, suppresses old post-interruption PCM, and retains final text once. Already transmitted clock-buffered audio cannot be recalled.
+- No truncation/shortening/count limit for the new streamed public-text path. The old non-streaming compatibility behavior remains available.
+
+REAL E2E EVIDENCE
+Test runner: C:\Users\XEON2\asus_vega_logs\voice_progress_e2e.py. Real Harness, real voice queue, real say.py, real ASUS/clock player. Test-only long-status variants do not modify any Harness instruction file.
+Final successful long fixture: Harness session session-cf8330bc-be2b-48e3-be36-221706995463, turn39; voice log turn1790938273329696600; ONE Live setup for pid4516.
+Progress first chunk: 'I am checking the clock now,' at epoch1790938277.0057209.
+Progress first TTS PCM: epoch1790938280.759999.
+Progress durable assistant message: seq710, epoch1790938284.545, 919 public characters.
+FIRST_CHUNK_TO_FIRST_TTS_PCM_S=3.7542781
+FIRST_TTS_PCM_BEFORE_PROGRESS_SAVE_S=3.785001
+Final durable assistant message: seq715, epoch1790938289.534.
+Final priority: epoch1790938289.9394686.
+Live interruption acknowledged: epoch1790938289.9929447.
+Final first TTS PCM: epoch1790938290.5886912.
+FINAL_SAVE_TO_FIRST_TTS_PCM_S=1.0546912
+FINAL_PRIORITY_TO_FIRST_TTS_PCM_S=0.6492226
+Final 'Progress speech test complete.' was queued once as text; subsequent stream-final was only a priority/ack marker. No second final reading. Player exit=0; test completed in43s including playback and existing relay/microphone cleanup.
+Prior stated baseline: progress ~4s after save, final ~2.5s after save. New progress audio generation occurs BEFORE save; final PCM generation is ~1.05s after save. These are pipeline PCM timestamps, not microphone/acoustic measurements. Initial relay buffer adds ~0.5s; actual clock output has additional transport/playback latency. Do not claim exact acoustic improvement from these logs alone.
+
+DEBUGGING ATTEMPTS DISCLOSED
+Prior paused attempt only provider retries/no public answer, not success. Initial unpaused run exposed overly strict stream-ID filtering. Short-status tests exposed SSH startup overhead; gated preconnection addressed it. First long interruption test dropped final PCM; interrupted-boundary handling fixed it, and final long test above proves final PCM present. No failed attempt is counted as success.
+Offline checks PASS: public-text allowlist, fake follow excludes reasoning/tool arguments, one-session/two-chunk playback, final-priority queue dropping, Python compilation, Node syntax.
+
+FILES_CHANGED_AND_BACKUPS
+C:\bench\tools\dsh_voice.js
+C:\bench\tools\voice_harness_progress.py
+C:\bench\tools\livetts.py
+C:\bench\tools\say.py
+All four have sibling .bak-streamvoice-20261002 backups.
+C:\Users\XEON2\asus_vega_logs\voice_progress_e2e.py has sibling .bak-streamvoice-20261002 backup; added optional test-only status fixtures.
+FILES_ADDED
+C:\bench\tools\voice_text_stream.cjs
+C:\bench\tools\voice_stream_offline_test.py
+LOGS
+C:\bench\tools\voice_progress.log
+C:\bench\tools\voice_stream_timing.log (sanitized timing/control metadata, no reasoning/tool payloads)
+C:\bench\tools\say_voice.log
+
+ACTIVATION
+Disable gate C:\bench\tools\voice_stream.off removed. Existing idle voice worker32248 was stopped only after checking no speaking lock and no active voice turn. Its EXISTING tray watchdog relaunched worker34528, parent15448, at12:53:43 Europe/Warsaw, Oct2. Log confirms LISTENING. No new supervisor/background service was installed. Main Harness and Ornith were not restarted.
+AGENTS.md remains byte-identical to AGENTS.md.bak-voicerule-20261002: SHA256 F25FCD3BBD4623E99BBB5C5E8E2F689E63D8C961D4F3593D379444B0635D3946.
+
+ROLLBACK
+Immediate disable: create C:\bench\tools\voice_stream.off. New voice invocations then use the original durable-message queue path.
+Full code rollback: Copy-Item each of the four .bak-streamvoice-20261002 sibling files to its original path with -Force; restore optional test runner from its sibling backup. Retain backups and logs. Restart only an idle voice worker under its existing tray watchdog so Python imports refresh. No Harness/Ornith/GPU/service restart is required.
