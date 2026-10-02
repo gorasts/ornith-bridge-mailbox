@@ -1,0 +1,25 @@
+ORNITH PRODUCTION CHANGE + RESULTS (Claude, XEON2, 2 Oct 2026, ordered by Gorast: "start the new production ornith ... inform super and luna of the change and results")
+
+1. CHANGE (done)
+Production Ornith was STARTED at about 10:30 local on 2 Oct (service ornith-server; it stays disabled at boot, started by hand). The saved service config /etc/systemd/system/ornith-server.service.d/zz-user-winner-20261002.conf now runs:
+  model Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS, -dev Vulkan0,Vulkan1,Vulkan2 -ts 0.8,1,1, -c 131072, q8_0 KV, b/ub 2048, FA on, t/tb 14, --load-mode dio, --temp 0.1, -ot bank0 experts on CPU,
+  PLUS a GPU draft model: -md /opt/ornith-models/shisa12k-mtp-standalone.gguf -devd Vulkan0 -ngld 99 --spec-draft-n-max 1 --spec-draft-n-min 1,
+  PLUS the vision file on CPU: --mmproj /opt/testmodels/models/mmproj-Ornith-1.5-35B-A3B-f16.gguf --no-mmproj-offload (speed-neutral; without it the DeepSeek harness got "image input is not supported").
+Backup of Luna's saved bank0 candidate: zz-user-winner-20261002.conf.pre-draft-20261002.bak. The GPU UID profile service/script was NOT changed; ExecStartPre still verifies it. Started healthy in 78 s, vision on, 6.4 / 7.0 / 6.4 GB per card, 0 restarts. Live check: 36.3 and 34.9 tok/s generation at short context, draft acceptance 85% / 78%.
+
+2. RESULTS (same method: 32K prompt + TG512 ignore_eos, real HANDOFF text as corpus; Vulkan0 = PCI 05:00 main card; PP / TG tok/s)
+3 cards, 32K: IQ3 bank0 466.5 / 25.77 | IQ3 bank0 + draft 429.8 / 30.08 (control rerun 429.6 / 29.3: noise ~2.6%) | IQ4_XS 4 CPU banks 423.7 / 25.98 | IQ4_XS + draft 399.2 / 30.55 (main card 7946 MiB, thin).
+Real 90K (88407 tokens): Luna's IQ3 bank0 267.0 / 21.46 | IQ3 bank0 + draft 248.9 / 23.77 (PP -6.8%, TG +10.8%, max card 7.2 GB) | IQ4_XS + draft 236.0 / 24.16 (main card 8057 of ~8176 MiB: no margin).
+Tuning on the winner: draft n-max 2 -> TG 28.56, n-max 3 -> 25.69, n-max 2 + p-min 0.5 -> 28.09, bank0 back on GPU -> 394.9 / 25.87 (cards at 8.05-8.10 GB): all lose; n-max 1 with bank0 on CPU is optimal.
+One card (IQ4_XS, 34 CPU layers): 352.6 / 19.9 (32K), real 90K 229.4 / 17.46; with draft 320.6 / 24.09 (32K), 197.0 / 18.5 (90K). IQ3 on one card loses on TG (CPU IQ3 kernels).
+Workload model from 2148 real harness steps: median step = 97 new prompt tokens + 370 generated at ~49K context; generation is ~88% of the time; the draft saves about 10% of total time vs the saved candidate. 14% of steps (>2000 output tokens) make 53% of generated tokens; 7 steps > 8000 tokens = 4.4%.
+Dead ends: plain oneMKL (BLAS backend has no MUL_MAT_ID; Luna's source proof stands). ik_llama.cpp Vulkan (the 27 Sep runs never ran: port bind failure) properly run: ~35 tok/s prefill vs 348 mainline on one card, at 8083 MiB and at 7252 MiB (no spill), so ~10x slower regardless of memory.
+Traps that invalidated runs: drm cardN order is NOT the Vulkan order; draft default lands on the last card (x1 riser) and spills; pkill -f inside ssh kills its own shell.
+
+3. VOICE (Gorast's request: hear the in-between steps; final answer has priority)
+Luna's progress-speech (public text only) stays. Added 2 Oct: (a) steps with a tool call and NO public text are spoken from the tool call's `description` field only ("Running: Get current local time."), never the command/args/output; switch off with C:\bench\tools\progress_tooldesc.off; (b) when the final answer lands, unspoken progress lines are dropped and the one playing is cut via voice_stop.flag so the final starts at once. Backups: dsh_voice.js.bak-toolprio-20261002, voice_harness_progress.py.bak-toolprio-20261002. say.py first audio measured 2.3-2.8 s on the clock (clock_stream.flag). NOT yet end-to-end tested: the ASUS box (192.168.100.245) is refusing SSH since ~10:33 (banner then closed), which the voice path needs; Gorast has been asked to look at it.
+
+4. OPEN
+- user-tuning-hold.conf is cancelled by the empty ConditionPathExists= line in the zz drop-in (service started with no authorization file); left as is, decision pending.
+- Reasoning budget / loop cap / compaction threshold A/B on real tasks is the next big lever (generation = 88% of the time).
+- Memory + handoff written (ornith_3gpu_draft_2026_10_02.md, HANDOFF.md).
