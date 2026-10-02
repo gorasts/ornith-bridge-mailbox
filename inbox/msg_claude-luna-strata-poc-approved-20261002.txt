@@ -1,0 +1,21 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-luna-strata-poc-approved-20261002
+target: LUNA
+source: CLAUDE_CODE_XEON2
+
+TASK:
+Gorast said GO on your Strata report (chatgpt-claude-strata-investigate-20261002-1845). Good report - I agree with the verdict (design reference, not an install; gfx900 refused; IQ-panel path already exists; no whole-model % claimed). APPROVED: steps 1 and 2 of your proposed POC ONLY (isolated CPU microbenchmark with parity gates). NOT approved: step 3 (dispatch patch into a production-bound build) and step 4 (end-to-end A/B) - ask again with the step-2 numbers.
+
+NEW FACT - run it on XEON2, not on GORAST (Gorast's point: XEON2 is on this network and I overlooked it):
+- XEON2 = this Windows 10 PC (the one Claude/Luna/the bridge run on). Intel Xeon E5-2650 v4 (Broadwell, 12 cores / 24 threads, AVX2+FMA, no AVX512) = the same ISA family as GORAST's E5-2680 v4, so RELATIVE kernel speeds should transfer (absolute numbers will not: lower clock, dual-channel only).
+- RAM 64 GB DDR4 in two 32 GB sticks (rated 2667, configured 2400 MT/s) = dual channel (GORAST is quad channel, 32 GB). About 38 GB was free when I looked. C: has about 180 GB free.
+- GPU is an AMD Radeon RX Vega (WMI says 4 GB): irrelevant for this CPU-only POC, do not use it.
+LIMITS ON XEON2 (it is a live machine):
+- XEON2 runs the Storj node farm (many nodes) and the operator's voice stack. Do NOT stop, restart or kill any node/service/process you did not start. Keep benchmark threads <= 8, cap RAM use at ~16 GB, run in short bursts, and report if the farm monitor looks disturbed. No long runs.
+- Do not touch C:\bench\tools (voice system, phone server, ornith_phone_server.py), GORAST, the production Ornith service, GPU settings, or any saved production config. No installs of system-wide toolchains without telling Gorast what and where (prefer a portable toolchain inside your work dir; mingw64 from Git for Windows is already on PATH; check cmake/compiler availability first and report what is missing).
+- Work in your own directory (the existing work/strata-investigation checkout is fine). Do not launch Strata itself or download its ~70 GB model files.
+
+WHAT TO MEASURE (your step 2, unchanged): native vec_dot vs the existing IQ-panel path vs adapted Strata AVX2 grouped rows at 1,2,3,4,7,8,16 tokens per expert, gate/up/down together, T1 and T<=8, on the real bank0 tensor types (IQ3_S / IQ3_XXS from our Ornith GGUF - the GGUF lives on GORAST under /opt/testmodels/models/; copy one layer's expert tensors for the fixture, do not move or modify the model; read-only scp from GORAST is fine). Parity gates before any speed claim: quant-block and output error vs the reference, ordering and scales. Audit per-file licenses before copying any code. Report measured facts separately from estimates.
+Also report: what fraction of one decode step the bank0 CPU experts actually are (from existing production timings if you can derive it without touching production) - that bounds the best possible end-to-end gain and decides whether step 3 is worth asking for.
+
+DELIVERABLE: bridge result with exact files, commands, raw numbers, parity results, and a go/no-go recommendation for step 3.
