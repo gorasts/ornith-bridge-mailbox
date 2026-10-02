@@ -1,0 +1,54 @@
+ORNITH_BRIDGE_JOB_V1
+message_id: chatgpt-luna-onemkl-ab-20261002-0500
+target: TERRA
+source: CHATGPT
+priority: normal
+
+TASK:
+Run a non-destructive A/B investigation of whether an optimized Intel oneMKL CPU-BLAS build can improve Ornith prompt processing on GORAST's hybrid Xeon + 3x Vega configuration.
+
+IMPORTANT CURRENT STATE:
+- Read and preserve the findings in result_luna-ornith-threegpu-production-findings-20261002.txt.
+- Ornith production is STOPPED AND DISABLED by explicit operator instruction. DO NOT start/enable ornith-server.
+- Do not modify the saved bank0 production candidate.
+- GPU UID profile service/settings remain as currently saved. Verify profiles before every test.
+- Hardware: Xeon E5-2680 v4, MACHINIST X99 RS9, 3x Vega. Main UID 021504f279601104 at PCIe3 x16; risers UID 02150278c6ee2964 and 0215065b70c44985 each behind PCIe2 x1.
+- Current scientific build/config is llama.cpp b10919 Vulkan, model Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS.gguf, 131072 context, b/ub 2048/2048, q8_0 KV, FA on, t/tb14, split 0.8,1,1, ngl99.
+- Selected placement is CPU sparse expert bank0 only via: -ot blk\.(0)\.ffn_(up|down|gate)_exps\.=CPU
+- Existing 90K identical-corpus bank0 result: actual prompt 88407, PP 267.025931880 tok/s, TG 21.462038589, wall 355.076246647 s.
+- Do not compare against the fully-GPU 90K baseline as the primary A/B; compare same bank0 placement to same bank0 placement.
+
+GOAL:
+Determine whether oneMKL/optimized CPU BLAS materially accelerates the CPU-resident bank0 work and/or prompt processing without hurting TG or changing GPU placement. This is specifically an A/B of CPU math backend, not another placement search.
+
+METHOD:
+1. Inspect current llama.cpp build options, CPU ISA and available toolchain/libraries first. Confirm whether oneMKL is actually supported and usable on this E5-2680 v4/Broadwell host and by the exact llama.cpp revision or a suitably matched source revision. Do not assume BLAS will accelerate the MoE kernels; identify from logs/source/backend reporting whether the relevant operations use it.
+2. Build an ALTERNATE binary in a separate directory. Do not overwrite /opt/llama/llama-b10919 or production files. Preserve Vulkan support and all capabilities needed for the locked config. Prefer a source revision matching production b10919 so backend is the isolated variable. If exact matching is impossible, stop and report why rather than silently benchmarking a materially different revision.
+3. Build/control A/B:
+   A = existing b10919 production scientific binary.
+   B = matched b10919 + oneMKL CPU BLAS.
+   Keep model, prompt, temperature, n_predict, cache behavior, GPU device order, split, bank0 CPU override, ngl, context, b/ub, KV types, FA, threads and all other flags identical.
+4. First run a short sanity point using the existing 8K corpus/TG512 only to prove B loads correctly, honors GPU/CPU placement and produces valid timings. This is not the decision benchmark.
+5. Decision benchmark: identical existing 90K corpus, actual 88407 tokens, TG512, bank0-only CPU placement. Fresh server for each point. Run A then B. If difference is within about 3%, repeat both once in alternating order B then A to distinguish noise.
+6. Capture for each run:
+   - PP tok/s, TG tok/s, generated tokens, total inference wall time.
+   - CPU utilization and package power where available.
+   - RAM usage.
+   - Per-GPU utilization, clocks, edge/junction/HBM temperatures, power and VRAM/GTT.
+   - Backend startup lines proving BLAS/oneMKL activation for B and control backend for A.
+   - Any warnings/fallbacks.
+7. Do not change GPU clocks/voltages, power caps, split, expert-bank placement, KV placement, row/layer mode, model quant, prompt or sampling to improve B.
+8. No 120K run in this job. No placement sweep. No MTP/vision. No Harness/voice prompt. No production promotion.
+9. If oneMKL cannot accelerate the relevant CPU kernels, or the matched build cannot be produced cleanly, stop after proving that and report the evidence. Do not burn time on a meaningless 90K run.
+
+SECONDARY ASSESSMENT:
+After the 3-GPU result, give a reasoned assessment of whether this backend is MORE likely to help the user's 1x Vega + CPU configuration, where substantially more model work is CPU-side. Do not alter that other machine or launch tests there unless separately authorized.
+
+SUCCESS CRITERIA:
+Worth pursuing if B gives a repeatable meaningful PP/wall-time improvement at 90K with no material TG regression and no placement/memory regression. Report raw values and percentages; do not call a sub-3% single-run difference a win.
+
+ETA:
+Before beginning, report your estimated elapsed time. Ask before any action expected to exceed 30 minutes, per supervisor rules.
+
+DELIVERABLE:
+Return a concise decisive summary plus exact build flags, backend proof, A/B table, telemetry deltas, and paths to logs/build artifacts. Leave Ornith production stopped/disabled exactly as found.
