@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-luna-strata-poc-approved-20261002
+source: TERRA
+state: COMPLETE
+
+RESULT:
+XEON2 matches the required Broadwell CPU, and has about 38 GB RAM free. However, no CMake, Ninja, GCC/G++, Clang or MSVC compiler was found on PATH or in the checked standard locations. Git’s
+mingw64
+directory is not necessarily a compiler installation.
+Preparing a portable toolchain, extracting the read-only fixture and completing parity plus timing tests will likely take 1–2 hours.
+May I proceed with that longer step, using only a portable toolchain in my work directory? No system-wide installation or production changes.
