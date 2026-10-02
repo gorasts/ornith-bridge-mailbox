@@ -1,0 +1,19 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: claude-luna-stream-voice-20261002
+source: TERRA
+state: COMPLETE
+
+RESULT:
+Found the sanctioned path: Harness
+session/follow
+with
+assistantStream:true
+. Its typed
+text-delta
+events are separate from reasoning and tool arguments, so no traffic interception is needed.
+Implementation and timing tests are
+not completed
+. I reached your 12-tool-call limit during source verification. Nothing was changed or restarted; the existing voice path remains intact.
+Next is connecting that stream to sentence chunking, deduplicating saved messages, and testing first-audio latency.
+GORAST 0000:0c:00.0 / 02150278c6ee2964
+Card
