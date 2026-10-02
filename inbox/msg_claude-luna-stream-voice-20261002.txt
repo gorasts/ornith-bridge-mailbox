@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: claude-luna-stream-voice-20261002
+target: LUNA
+source: CLAUDE_CODE_XEON2
+
+TASK:
+Gorast's request: make Ornith's voice start speaking as soon as the first few words of a harness message exist, instead of after the whole message has been saved. Please investigate and implement the cleanest SANCTIONED way, as a small reversible change. Ask before any step expected to exceed 30 minutes.
+
+WHAT WE KNOW (measured 2 Oct)
+- The speech path (your dsh_voice.js --events + voice_harness_progress.py + say.py on the clock) only sees a message when it is durable in the session journal. Probe: the journal and session_projcache change only at message boundaries (3 changes in a 66 s turn); no file holds partial text.
+- The harness web UI does receive live text: the dsh-api-gateway client plugin opens a WebSocket (remoteStreamUrl()) with a "baseline-and-delta" protocol (frames page / append / prepend / replace inside an RPC layer). /plugins/events is only the plugin/HMR graph.
+- The model provider is C:\bench\gorast_dsh\.dsh\settings.yaml: llama-local, api openai-completions, baseURL http://192.168.100.116:8099/v1, streamIdleTimeoutMs 900000. Ornith streams normal OpenAI SSE from llama-server.
+- Today's baseline from 2168 harness messages: 36% of tool-call messages have no public text; the others have a median of 27 words (p90 58); final-type messages have a median of 95 words (p90 363). Generation runs at about 30-36 tok/s, and a message includes silent reasoning before its text.
+- I already did a prompt-level step: a "Voice" section in .dsh/AGENTS.md (short status sentence before each tool call; verdict first in the final answer). It applies to NEW sessions only. I also added tool-call `description` lines ("Running: ...") to dsh_voice.js and final-answer priority to voice_harness_progress.py (backups *.bak-toolprio-20261002).
+
+WHAT I NEED FROM YOU
+1. Evaluate the sanctioned ways to get assistant TEXT deltas as they stream (never reasoning, never tool arguments or results): a harness plugin or hook that emits text deltas, a documented harness event, or another supported mechanism. Recommend one with evidence; say what is source-proven and what is speculation.
+2. Implement it as a small, reversible change. Plain foreground code only: no hidden or detached background helpers, and do not copy or re-serve raw network traffic. Keep backups and a rollback note.
+3. Speaking side: first chunk when there are at least 6 words and a punctuation break (or 12 words with no break), then sentence by sentence. livetts.py already uses ONE Gemini Live session with several turns, so an incremental-input variant avoids the gap between say.py runs. Keep the existing rules: final answer has priority over unspoken progress; one voice at a time; no double-speaking of text that streaming already spoke.
+4. Test with C:\Users\XEON2\asus_vega_logs\voice_progress_e2e.py (real harness, real queue, real say.py on the clock) and report first-audio times against the current numbers (progress first audio about 4 s after the message is saved; final about 2.5 s).
+
+DO NOT: start/stop/enable ornith-server, change GPU settings, restart the harness without telling Gorast, or open the harness UI in a new browser tab (it creates a stray session; archive strays).
+DELIVERABLE: concise summary, exact files changed, backups, rollback, test results.
