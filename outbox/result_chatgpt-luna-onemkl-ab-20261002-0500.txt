@@ -1,0 +1,49 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-luna-onemkl-ab-20261002-0500
+source: TERRA
+state: COMPLETE
+INVESTIGATION_OUTCOME=STOPPED_AT_SOURCE_FEASIBILITY_GATE
+BENCHMARKS_RUN=0
+PRODUCTION_STARTED=NO
+PRODUCTION_ENABLED=NO
+PRODUCTION_CANDIDATE_MODIFIED=NO
+GPU_SETTINGS_MODIFIED=NO
+
+DECISION
+Do not pursue a plain oneMKL CPU-BLAS A/B for the locked bank0 sparse-expert offload. Exact installed revision's BLAS backend does NOT support GGML_OP_MUL_MAT_ID, the indexed multiplication used for MoE sparse expert weights. The task explicitly authorizes stopping after proving that the relevant kernels cannot be accelerated. No installation, alternative compilation,8K sanity,or90K run was performed. This avoids spending inference time on an unsupported expert acceleration path.
+
+EXACT MATCH
+Installed /opt/llama/llama-b10919/llama-server --version:
+0.4.0-dev, build10919, commit d3146f2b5, GNU11.4.0,Linuxx86_64.
+Evidence inspected from commit d3146f2b5, not merely moving master or a possibly different b10919 tag snapshot.
+CPU E5-2680v4 exposes AVX2 and FMA; CMake/GCC present. No oneMKL headers/library installation found at /opt/intel/oneapi/mkl/latest or /usr/include/mkl.h. Those bounded checks do not prove absence at every possible custom path. Broadwell AVX2 is not the blocker: operation support is.
+
+SOURCE EVIDENCE
+https://raw.githubusercontent.com/ggml-org/llama.cpp/d3146f2b5/src/models/qwen35moe.cpp
+build_moe_ffn invoked for this architecture (lines499,679 in downloaded source).
+https://raw.githubusercontent.com/ggml-org/llama.cpp/d3146f2b5/src/llama-graph.cpp
+build_lora_mm_id uses ggml_mul_mat_id (line1550); sparse expert up/gate operations call build_lora_mm_id (around2170-2208), with down following same indexed expert path. CPU override bank0 keeps sparse up/down/gate expert tensors onCPU; it does not move whole dense bank0 layer toCPU.
+https://raw.githubusercontent.com/ggml-org/llama.cpp/d3146f2b5/ggml/src/ggml-blas/ggml-blas.cpp
+ggml_backend_blas_device_supports_op accepts ordinary GGML_OP_MUL_MAT and GGML_OP_OUT_PROD plus view/reshape/etc.; default false. No GGML_OP_MUL_MAT_ID case. MUL_MAT requires contiguous tensors,F32 activations,and dimensions>=32. Expert indexed matmuls therefore remain in native CPU kernels, not MKL SGEMM. Single-token dense decode commonly also fails this BLAS minimum-size gate.
+https://raw.githubusercontent.com/ggml-org/llama.cpp/d3146f2b5/ggml/src/ggml-blas/CMakeLists.txt
+BLA_VENDOR takes GGML_BLAS_VENDOR; Intel vendor activates GGML_BLAS_USE_MKL. MKL path in backend includes mkl.h,sets MKL threads,calls cblas_sgemm. Framework support forMKL exists; it does NOT imply support for sparse expert operations.
+
+BUILD FLAGS
+An otherwise relevant separate build would use exact commit d3146f2b5 with -DGGML_VULKAN=ON -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=Intel10_64lp, with vendor variant/link-thread settings checked against installed MKL/CMake. These are proposed flags only, not a successful configured/built binary. No claim of MKL activation, no build artifact or build log fabricated. Existing control binary unchanged. Exact source is reachable, so source matching itself is not blocked.
+
+A/B TABLE
+case,status,PP,TG,wall
+A historical samebank0 control,existing verified measurement,267.025931880,21.462038589,355.076246647
+A fresh,not run,NA,NA,NA
+B matchedMKL sanity/90K,not run after unsupported-kernel proof,NA,NA,NA
+No percent improvement or new telemetry delta can be claimed. No sub3percent win assertion. Primary comparator remains samebank0,not fullyGPUbaseline.
+
+SECONDARY 1xVEGA+CPU ASSESSMENT
+If substantially more CPU-side work means MORE SPARSE EXPERT BANKS, this same BLAS limitation remains: adding MKL does not automatically accelerate MUL_MAT_ID. If complete dense transformer operations are CPU-side, large ordinary MUL_MAT during prefill can be BLAS-eligible and MKL is more plausible there. Benefit depends on actual graph placement,quantization-toF32 cost,and nativeAVX2 kernels. TG improvement especially unlikely from plain dense BLAS at small decode batches. This is a source-based assessment,not an experiment on the othermachine. No remote modification/test there.
+An indexed-expert-aware optimization or native CPU-kernel tuning is a different experiment/sourcechange and needs separate authorization; do not silently replace this oneMKL job with it.
+
+PRESERVATION CHECK
+ornith-server inactive and disabled at inspection. No production start/enable/configwrite, no inference requests. UIDprofile --verify passed for allthree: main021504f279601104 1600@900,new02150278c6ee2964 1600@900,other0215065b70c44985 1536@900; HBM1000/profile900 pinned. Existing result_luna-ornith-threegpu-production-findings-20261002.txt preserved. NoGPUclocks,voltages,powercap,split,model,KV,orMTPchange.
+
+EVIDENCE ARTIFACT
+This report preserves exact version output,operation gate,source paths and measured-vs-notrun distinction. No alternative binary produced because feasibility gate failed. Historical artifacts remain /home/ubuntu/ornith-clock-ladder-mainone-20261001 and /opt/llama/llama-b10919. Elapsed investigation approximately a few minutes, no action expected to exceed30minutes.
