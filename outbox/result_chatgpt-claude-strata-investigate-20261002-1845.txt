@@ -1,0 +1,60 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-claude-strata-investigate-20261002-1845
+source: LUNA
+state: COMPLETE
+INVESTIGATION_ONLY=YES
+PRODUCTION_MODIFIED=NO
+BENCHMARKS_RUN=NO
+
+VERDICT
+Strata is a useful design reference, not an installable inference replacement for our Vegas. Current main already has HIP, so describing it as NVIDIA-only would be wrong. Its HIP build explicitly rejects gfx900 and wave64. The smallest credible experiment is CPU-only comparison of Strata's small-group AVX2 IQ expert kernels against the existing b10919 IQ-panel/vec-dot paths, with numerical parity gates. A full dynamic expert-cache port is a much larger project; do not authorize it on the assumption of an immediate win.
+
+SOURCE SNAPSHOT AND EVIDENCE
+Inspected checkout commit 36fa455e579b23a9c909c2c6fe1bddd9e51cb8ca, CMake version 0.1.36, on 2026-10-02.
+Local source: work/strata-investigation (outside production and repo_cache).
+Source links below are authoritative code/docs; performance comments are developer-reported, not measurements on GORAST.
+https://github.com/Niko1221/Strata/tree/36fa455e579b23a9c909c2c6fe1bddd9e51cb8ca
+https://github.com/Niko1221/Strata/blob/36fa455e579b23a9c909c2c6fe1bddd9e51cb8ca/cmake/hip_backend.cmake
+https://github.com/Niko1221/Strata/blob/36fa455e579b23a9c909c2c6fe1bddd9e51cb8ca/docs/AMD_HIP.md
+https://github.com/Niko1221/Strata/pull/311 (RDNA2 gfx1030 community extension, NOT Vega support)
+
+GPU BACKEND / DEPENDENCIES
+CMake STRATA_ENABLE_HIP and STRATA_ENABLE_CUDA are mutually exclusive. HIP architecture allowlist covers gfx1100/1101/1200/1201 plus gfx1102/gfx1030 with different validation levels; gfx900 triggers FATAL_ERROR. Kernels assume wave32 shuffles/masks and signed packed integer dot instructions. Merely adding gfx900 to this list would bypass a correctness guard, not implement support.
+HIP wraps CUDA-shaped runtime APIs and maps BLAS to hipBLAS; optional hipBLASLt and optional ggml HIP MMQ prefill exist. CUDA-specific QSA matrix instructions have a HIP FP32 fallback. No Vulkan backend was identified. A Vega port needs wave64-correct reductions/shuffles/masks, compatible integer math, launch/LDS auditing, prefill and attention validation, runtime/device checks and toolchain/library compatibility. Existing RDNA HIP success proves none of those on Vega.
+Dependencies include C++/CMake, CUDA toolkit or HIP+hipBLAS, optional hipBLASLt, bundled ggml CPU code, and Python pack/setup tooling. requirements.txt pins Python packages including numpy, jinja2, regex, pyyaml, requests, cmake/ninja. AMD install docs target ROCm7/TheRock RDNA packages, not a gfx900 deployment. Do not install this dependency stack into production.
+
+EXPERT CACHE: WHAT THE CODE ACTUALLY DOES
+include/strata/core/expert_cache.hpp and src/core/expert_cache.cpp implement expert residency slots, learned/ranked profiles, per-layer admission and asynchronous fills. The documented compulsory admission path fills free slots and NEVER evicts: do not characterize this as a proven general LRU migration engine. Profile refresh mechanisms and admission options exist, but policies and modes must be distinguished.
+src/core/expert_source.cpp has active hit/miss machinery: constructs resident hit lists, zeroes output, stages slot/destination IDs, quantizes the CURRENT activation, launches grouped cached GPU expert work and records completion events; CPU expert work handles the nonresident part and results must be merged before dependent layers proceed. Historical header comments about an unwired earlier phase are not proof the current engine lacks the path.
+The source explicitly addresses stale activations and CPU/GPU quantizer mismatch. This is important: a cache hit must preserve numerical semantics, not merely return finite outputs. Layer dependence limits overlap; CPU and GPU parallelism within expert work does not imply simultaneous execution of all layers or linear scaling.
+https://github.com/Niko1221/Strata/blob/36fa455e579b23a9c909c2c6fe1bddd9e51cb8ca/src/core/expert_source.cpp
+
+CPU AVX2: CONCRETE BORROWABLE IDEA AND EXISTING COMPETITOR
+src/kernels/cpu/iq_avx2.cpp implements IQ2_XXS/IQ2_XS/IQ3_XXS/IQ3_S/IQ2_S multi-token rows using 256-bit lanes and shared weight decoding. IQ1_M falls back. It uses AVX2/F16 conversion intrinsics; Broadwell's ISA is relevant, but actual compiler dispatch and parity must be checked on our binary before claiming compatibility/performance.
+native_expert.cpp native_gu_rows selects these multi-token paths from group size 2 by default; native down-path and pool/layout code also need integration inspection. Comments report 2.0-2.4x over ggml-cpu at THREE tokens and no gain at ONE, on the authors' workloads, not GORAST. It is not a 2x end-to-end promise. Optional Q4_K multi-token code reportedly gave little engine gain. Group-size-dependent rounding is explicitly documented; STRATA_IQ_MT_MIN=1 trades some speed for consistent grouping behavior. Require quant-block and logit parity, not just successful inference.
+Crucial correction: exact llama.cpp d3146f2b5 already dispatches GGML_OP_MUL_MAT_ID to IQ panel GEMM. ggml/src/ggml-cpu/ggml-cpu.c calls ggml_cpu_iqp_supports_mul_mat_id and ggml_compute_forward_mul_mat_id_iqp; iqp.cpp contains AVX2 paths, IQ3 decoding, and GGML_IQP_MIN_BATCH_ID=8 (per-expert token count). Smaller groups use the per-expert vec_dot fallback. Therefore do NOT claim current llama.cpp is always scalar/per-token or lacks grouped IQ optimization. Strata's most plausible niche is groups 2-7 and pooling/layout overhead, not replacing ordinary BLAS. We have not proven which path the installed binary actually uses.
+https://github.com/Niko1221/Strata/blob/36fa455e579b23a9c909c2c6fe1bddd9e51cb8ca/src/kernels/cpu/iq_avx2.cpp
+https://github.com/Niko1221/Strata/blob/36fa455e579b23a9c909c2c6fe1bddd9e51cb8ca/src/kernels/cpu/native_expert.cpp
+https://github.com/ggml-org/llama.cpp/blob/d3146f2b5/ggml/src/ggml-cpu/ggml-cpu.c
+https://github.com/ggml-org/llama.cpp/blob/d3146f2b5/ggml/src/ggml-cpu/iqp.cpp
+
+MULTI-GPU / OUR x1 RISERS
+docs/MULTI_GPU.md describes contiguous layer splitting with each card caching its own layers; activations cross boundaries via pinned host RAM without requiring P2P. This reduces repeated inter-card crossings versus splitting each layer's expert work. It also offers remote expert-cache device flags; these are a different placement mode, not interchangeable with layer splitting.
+PCIe2 x1 has about 500 MB/s theoretical payload bandwidth before practical overhead. Static warm residency can avoid repeatedly shipping expert WEIGHTS over these links; small decode activations can be cheaper. This is a credible benefit mechanism, not measured benefit on our cards. Cold fills/profile refresh, cache misses and large batched prefill transfers remain expensive. GPU hits plus CPU misses still require activation/result transfers and synchronization. Remote-cache use can introduce extra crossings; do not transfer the docs' NVIDIA x1 claim directly to our Vulkan topology.
+Our current layer/expert residency already avoids loading every expert on every token. Strata's advantage is more granular residency and scheduling, not magically removing existing traffic. Near-full VRAM (KV + model + draft + workspace) can make a new cache counterproductive. Measure routed-expert reuse, free VRAM, host RAM bandwidth and transfers before designing migration.
+https://github.com/Niko1221/Strata/blob/36fa455e579b23a9c909c2c6fe1bddd9e51cb8ca/docs/MULTI_GPU.md
+
+APPLICABILITY / ESTIMATES
+Ornith IQ3 bank0: format overlap is promising for CPU kernels; all other expert banks are already GPU-resident, so only a small portion of model work benefits. GPU draft depth1 often yields small verification groups, but actual routed group sizes need measurement. PP may already reach the existing >=8 IQ-panel path. Additional cache VRAM competes with Q8 KV and the draft. No credible whole-model speedup percentage can be stated yet.
+Future Qwen3.8-Flash-Next: Strata's specialized model/artifact, PLE/ngram machinery and integrated MTP make it more relevant architecturally, but model support is not generic GGUF/Ornith compatibility. Large host tables/resident experts compete for Broadwell quad-channel RAM bandwidth and RAM capacity. Quant format, tokenizer, architecture, memory footprint and licensing must be independently verified before deployment.
+Full HIP Vega adaptation: high risk, estimated weeks to months, not a narrow compile flag. Vulkan cache/scheduler integration into b10919: high risk, likely weeks or more because tensor residency, graph lifetime, scheduling and parity change. These are engineering estimates, not quotes or approvals.
+CPU microkernel feasibility prototype: low-to-medium isolated risk, hours to days depending on layout adaptation; promising enough to PROPOSE, not already implemented.
+
+RECOMMENDED SMALLEST REVERSIBLE POC (APPROVAL REQUIRED)
+1. Separate source/build directory matching d3146f2b5. No production replacement. Check actual bank0 gate/up/down GGUF tensor types and installed CPU build flags first.
+2. Offline saved/synthetic representative expert rows and real routing-shape fixtures; compare native vec_dot, existing IQ-panel and adapted Strata AVX2 grouped rows at 1,2,3,4,7,8,16 tokens/expert with T14. Include gate/up activation/down together and thread/packing costs. Capture error versus reference, output ordering, quantizer scales and runtime. Test single-thread as well to separate SIMD gains from scheduling noise.
+3. Only if parity and realistic group speed justify it, add an opt-in CPU-only dispatch for eligible small groups under MUL_MAT_ID, preserving existing paths elsewhere. Avoid model semantics changes, GPU cache work or a new Strata engine in this first patch. Audit both projects' per-file licenses before copying.
+4. Approval for matched end-to-end A/B at 32K and real90K, fresh server, TG512 minimum; identical production IQ3 bank0 + GPU draft, temperature/prompt/cache/placement/KV/threads/split. A=current production scientific binary, B=isolated patched build; alternating repeats if near noise. Collect PP+TG+wall, routed group histogram outside timed runs, RAM/CPU utilization/package power, each GPU VRAM/GTT/clocks/utilization/power/temps and faults, and PCIe/host transfer counters where supported (no network transport is introduced). Keep telemetry identical across arms. No long tests launched now.
+User-supplied current reference: with draft90K PP248.9/TG23.77; without draft bank0 PP267.0/TG21.46. These are prior supplied measurements, NOT reproduced by this investigation. Neither author microbench gains nor estimated cache benefits supersede these baselines.
+
+NO production/services/GPU settings touched. Only local research checkout and this report created. No benchmark, inference, installation, or production promotion performed.
