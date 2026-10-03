@@ -1,0 +1,76 @@
+CHALLENGE FROM GORAST (via Claude): new brainbench capability tests N1-N5
+
+Gorast says: YOU (Super) should solve these five yourself, then review them as benchmark tools.
+
+Context: these are new brainbench tasks 15-19 (C:enchrainbench	asks_all.json) for evaluating all future models (Ornith is taking them now in the DSH harness). Design rules, from your own x86 lesson: every needed fact is in the prompt (no outside specs or famous-puzzle answers), exactly checkable answers, meant to be solvable in ~20-30 min at ~27 tok/s with tools, progressively harder, each probing a different angle (structure over brute force, knowledge formalization, periodicity, algebraic inversion, group structure).
+
+Please send back, per test:
+1. Your FINAL answer (solve honestly; use your Python tool if you have one - say whether you did) and roughly how long/how many steps it took.
+2. Benchmark review: is the prompt unambiguous and self-contained? Is the difficulty right (too easy / fair / too hard) for 20-30 min? Does it measure reasoning rather than recalled knowledge? Any loophole, ambiguity or second valid reading? Suggested fixes.
+Reference answers are held back on purpose until you reply.
+
+======================================================================
+TEST N1 (brainbench task 15): N1 Huge-n constrained strings
+======================================================================
+A word is a string over the alphabet {A,B,C}. Call a word GOOD if
+(1) no two adjacent letters are equal, and
+(2) the number of letters A in it is divisible by 3 (zero counts as divisible).
+Let G(n) be the number of GOOD words of length n. For example G(1)=2 (B and C) and G(2)=2 (BC and CB).
+Compute G(10^18) modulo 998244353.
+FINAL format: integer
+
+======================================================================
+TEST N2 (brainbench task 16): N2 Three-agent knowledge puzzle
+======================================================================
+Two different integers x and y are chosen with 2 <= x < y <= 15. All of this is common knowledge.
+Peter is told only the product x*y. Diana is told only the difference y-x. Sam is told only the sum x+y.
+Everyone is perfectly logical, truthful, hears every statement, and knows the others are perfectly logical.
+They speak in this order:
+1. Peter: "I don't know the two numbers."
+2. Diana: "I don't know the two numbers."
+3. Sam: "I don't know the two numbers."
+4. Peter: "Now I know the two numbers."
+5. Diana: "Now I know the two numbers too."
+Each statement is about what the speaker knows at that moment, given everything said before it.
+What are x and y?
+FINAL format: x,y
+
+======================================================================
+TEST N3 (brainbench task 17): N3 Subtraction game with a conditional move, huge piles
+======================================================================
+Two players alternate moves on three piles of stones; the player who cannot move LOSES (normal play).
+A move takes stones from exactly one pile. From a pile currently holding k stones a player may remove exactly
+3, 5, 8 or 13 stones (only if at least that many remain), and ADDITIONALLY, only when k leaves remainder 3
+on division by 7, the player may instead remove exactly 2 stones (if k >= 2).
+The piles are 1000000000003, 700000000001 and 123456789012345 stones.
+A winning first move is a legal first move after which the player to move next (the opponent) has no winning strategy.
+How many distinct winning first moves does the first player have? (Removing the same amount from a different pile
+counts as a different move.)
+FINAL format: integer
+
+======================================================================
+TEST N4 (brainbench task 18): N4 Invert a 64-bit mixing function
+======================================================================
+All arithmetic is on unsigned 64-bit integers (results reduced modulo 2^64). '>>' is a logical right shift,
+'^' is bitwise XOR, '*' is multiplication modulo 2^64.
+f(x):
+  z = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9
+  z = (z ^ (z >> 27)) * 0x94d049bb133111eb
+  return z ^ (z >> 31)
+f is a bijection on 64-bit integers. Find the unique x with f(x) = 0xcdcc135c4ae22600.
+FINAL format: x as 0x followed by exactly 16 lowercase hex digits
+
+======================================================================
+TEST N5 (brainbench task 19): N5 Order of a permutation group on 20 points
+======================================================================
+Work with permutations of the 20 points 0,1,...,19. A cycle (a b c ...) sends a->b, b->c, ..., and the last element
+back to the first; points not listed are fixed; a product of disjoint cycles applies all of them.
+Let G be the group of all permutations obtainable by composing the following four generators (and their inverses)
+any number of times in any order:
+g1 = (0 1 2 3 4)(5 6 7 8 9)
+g2 = (0 1 2)
+g3 = (0 5 10 15)(1 6 11 16)(2 7 12 17)(3 8 13 18)(4 9 14 19)
+g4 = (10 11)(15 16)
+How many elements does G have?
+FINAL format: integer
+
