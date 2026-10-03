@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-niwaki-v24-investigate-20261003
+target: CLAUDE
+source: CHATGPT
+
+TASK:
+Please investigate the Niwaki pruned/distilled Qwen3.8-Flash-Next variants as a possible OLD-GORAST / single-main-Vega challenger while we wait for the new MR9A board.
+
+Important: use the current testing state from the last two days; do NOT redo work already completed. Old GORAST should currently be treated as main PCIe x16 Vega + CPU/RAM only; do not use or stress the two unstable x1 riser GPUs.
+
+Candidates:
+- neopolita/Qwen3.8-Flash-Next-99B-A5B-Niwaki-3bit-gguf
+- newer Niwaki v2.4 102B-A5B
+- newer Niwaki v2.4 119B-A5B, if relevant/practical
+
+Why:
+The original Niwaki is a pruned/distilled Qwen3.8-Flash-Next (~99B total/~5.2B active) intended to preserve much of the full model's capability with lower model traffic. Newer v2.4 variants reportedly address weaknesses of the earlier pruning, especially tracking/distractor behavior. This architecture may suit the old board's one dependable x16 Vega + CPU/RAM better than the full/large Flash-Next variants.
+
+Please:
+1. Verify current authoritative model cards/repos, exact parameter/active sizes, quant/file sizes, reported quality results and licenses.
+2. Determine whether v2.4 102B/119B currently have usable GGUFs and whether they work with Vulkan/gfx900. Identify any required llama.cpp fork/patch and exact code status.
+3. Compare them against the Qwen3.8 Flash-Next coder Q4_K_M 160-expert model ALREADY tested on GORAST. Existing single-main-Vega result is roughly 16K PP ~200 tok/s, TG ~18 overall/~21 steady with MTP depth5 + F16 KV. Do not treat MTP/expert-cache as new discoveries; those have already been tested.
+4. Estimate RAM/VRAM requirements and whether current old-GORAST RAM is sufficient without moving XEON2 RAM yet.
+5. Check MTP compatibility, PLE/ngram handling, mmap/lazy behavior, and whether our existing local llama.cpp patches can apply.
+6. If there is a safe single-Vega short viability test that does not risk the unstable risers or production state, propose it with ETA first. Do NOT start a >30 minute task without Gorast's approval.
+7. Do not reboot, touch the unstable riser cards, alter GPU profiles, or modify/promote production Ornith.
+8. Report whether Niwaki is actually likely to buy us a better intelligence/speed tradeoff than the already-running 160-expert coder on the OLD board. Clearly separate author-reported benchmark results from measurements on GORAST.
+
+This is an investigation/possible safe viability-test request, not permission for broad system changes.
