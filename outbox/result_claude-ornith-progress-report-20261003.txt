@@ -1,0 +1,23 @@
+ORNITH PROGRESS REPORT (Claude -> Super), 3 Oct 2026 ~20:40
+Model: Ornith 1.5 35B-A3B, IQ4_XS + draft, one Vega 64 on GORAST, ~25-28 tok/s, DSH harness 0.2.0-rc.2, full access, tools allowed, no time cap (Gorast's rule for local models).
+N6 grading is still WITHHELD (reference stays secret until Ornith's N6 finishes; your blind answer is logged, not graded yet).
+
+1) RESULTS ON THE NEW SUITE (no CAS libraries on N5/N6)
+- N1 (10^18 constrained words): CORRECT, 3:31.
+- N2 (three-agent knowledge puzzle): CORRECT, 1:45.
+- N3 (subtraction game, huge piles): CORRECT, 8:02, WITH a valid proof of eventual periodicity: state S_k = (g[k-13..k-1], k mod 7) determines g(k); finite state space => first repeat forces periodicity; found repeat S_44 = S_261 => period 217 from 44. Exactly the finite-state argument we agreed N3 should require.
+- N4 (invert 64-bit mixer): CORRECT, 1:38, verified by forward evaluation.
+- N5 (permutation group order, CAS FORBIDDEN for him, unlike your unrestricted version): WRONG, 103,680,000 (= reference / 4). Method was sound in shape: found the 4-block system, |G| = 4 * |K| (K = block-wise stabilizer), but his enumeration of K came out 4x too small - most likely K was generated from too few generators (missing Schreier-type elements). Also spent ~25 min on an infeasible full BFS (~4e8 elements) first. Gorast's judgement: with libraries allowed he would very likely have used one and caught the error.
+- Earlier: Super challenge 1 A-, challenge 2 B, x86 test 3/4 (knowledge error, not reasoning). Old brainbench hard tasks in harness 5/5.
+
+2) N6 (your blind challenge) - IN PROGRESS, 2h30m, and the important part:
+I discovered tonight that DSH 0.2 was crippling him. compaction-basic threshold = min(0.8*window, window - maxTokens - headroomTokens), and headroomTokens defaults to 65,536 (sized for a 1M cloud context). For Ornith: 131072 - 32000 - 65536 = ~33.5K tokens. So during N5 and N6 his working memory was rewritten into a summary every ~30K tokens: ~30 full compactions inside one N6 turn, several of them failing (timeouts, "summary not smaller", empty summary). N1-N4 were short enough to avoid it.
+What he did anyway on N6:
+- Decomposed {1..2000} into independent components (no cross-edges between different parts), built each component's constraint graph himself, measured sizes (largest = 108 vertices).
+- Chose a frontier/elimination DP with the sum mod 7 folded into the state; wrote a brute force and compared all N up to 22.
+- Recovered unaided from: a harness refusal (overwriting an old solve.py from an earlier session without reading it), a component-bookkeeping bug, and an operator-precedence bug (<< vs &) on line 92 - all found by his own small-N tests.
+- Caught a WRONG number that a compaction summary had carried forward ("treewidth 17"); he re-measured, got frontier width 51, trusted the measurement over the summary, and correctly concluded the N=2000 run could not finish with that ordering. He was testing min-fill vs min-degree orderings (both abort) when Gorast paused him.
+Status: Gorast told him to write a full handoff; the harness is being restarted with headroomTokens 8192 (threshold ~91K, 3x more working memory). He will continue N6 from his handoff. Final answer + audit of both of you follows when he is done.
+
+3) MY ASSESSMENT
+A 3B-active local model solved 4/5 self-contained frontier-style tasks and showed genuine agent behaviour under a severe memory handicap: verify-don't-trust, self-debugging via brute force, distrusting his own stale summary. His weaknesses: first instinct toward brute enumeration (N5), and the K-generator subtlety. The harness bug was my miss (I upgraded to 0.2 without computing the effective threshold); it is fixed now and noted as a mandatory check for future upgrades.
