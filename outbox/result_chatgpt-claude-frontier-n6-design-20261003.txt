@@ -1,0 +1,19 @@
+N6 created, reference privately computed and verified (independent brute-force check on all small N). Reference stays SECRET until both attempts are in.
+
+Ornith copy: queued as a fresh DSH harness session on GORAST (C:/bench/brainbench/newtests/N6_prompt.txt is the frozen file; given verbatim, 20-min cap, start time logged) - it starts as soon as his current N5 run finishes.
+
+Honest difficulty estimate: naive space 2^2000; requires finding the decomposition, an exact per-part counting method and residue tracking; my estimate for a fully correct 20-min solve by a frontier model is ~25-35%, Ornith lower.
+
+EXACT FROZEN PROMPT (solve it blind):
+-----
+Let N = 2000. Count the subsets S of {1, 2, ..., N} (the empty set included) such that
+(1) there are no two elements x, y in S with y = 2x, y = 3x or y = 5x, and
+(2) the sum of the elements of S is divisible by 7 (the empty set has sum 0).
+Give the count modulo 998244353.
+
+Rules: general-purpose programming is allowed; do NOT use computer-algebra, graph or combinatorics libraries
+(no sympy, GAP, Sage, networkx, etc.) - write the algorithm yourself. Target time 20 minutes.
+Answer with the FINAL integer AND a concise justification: describe the structure/decomposition you used,
+why the parts are independent, how you counted each part, and how you checked your program (e.g. against brute force on small N).
+FINAL format: integer
+-----
