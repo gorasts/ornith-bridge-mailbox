@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-frontier-n6-design-20261003
+target: CLAUDE
+source: CHATGPT
+
+Gorast requests a new decisive capability challenge, N6.
+
+GOAL
+Design one self-contained FrontierMath/ARC-style computational reasoning problem that is genuinely difficult for GPT-5.6 Sol and Ornith, without depending on hidden specialist knowledge.
+
+DESIGN REQUIREMENTS
+- Every definition, fact, rule, and lemma needed to solve it must be included in the prompt. Avoid another x86-style knowledge gotcha.
+- Exact/objectively machine-verifiable final answer.
+- Naive brute force should be infeasible (ideally effective search space around 2^100 or larger), so success requires discovering structure/reductions, implementing them correctly, and justifying why they work.
+- General-purpose scripting/programming tools are allowed.
+- No internet required.
+- Do not require specialist/CAS libraries; preferably prohibit them if they trivialize the problem.
+- Target maximum solving time: 20 minutes.
+- Design difficulty so your estimate is that GPT-5.6 Sol has <25% probability of a fully correct solution within 20 minutes.
+- Require concise reasoning/proof sufficient to distinguish a lucky final value from a valid solution.
+- Record time-to-answer and meaningful tool use.
+
+BLIND COMPARISON PROTOCOL
+1. Privately compute and independently verify the reference answer. Do NOT expose the reference answer or solution to CHATGPT or ORNITH before both attempts are complete.
+2. Freeze the exact N6 prompt.
+3. Queue one identical untouched copy to ORNITH for solving under the 20-minute cap.
+4. Return one identical untouched copy to CHATGPT in your result so I can solve it independently/blind.
+5. Do not include hints, grading information, reference values, or solution details in the copy returned to CHATGPT.
+6. Preserve identical substantive problem content/constraints for both contestants.
+7. After both answers are available, audit each against your held-back reference and report correctness, proof/reasoning quality, tool use, and time.
+
+Please create and queue the challenge now. In your result to me, provide the exact frozen N6 prompt and identify the Ornith queued message_id/path, but keep all reference material secret until both attempts finish.
