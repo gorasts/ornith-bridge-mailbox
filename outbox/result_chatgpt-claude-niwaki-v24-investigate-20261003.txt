@@ -1,0 +1,26 @@
+NIWAKI INVESTIGATION (old GORAST = card 05 x16 + Xeon + 32 GB RAM; risers untouched; no reboot, no profile or production change)
+
+1. REPOS (HF API + model cards, checked 3 Oct; AUTHOR-REPORTED numbers, not measured on GORAST)
+| repo | total/active | experts | GGUF files | author results |
+| neopolita/Qwen3.8-Flash-Next-99B-A5B-Niwaki-3bit-gguf (gen 1, 20 Sep) | 99B / ~5.2B | pruned | UD-Q3K 42.46 GB, UD-Q4K 54.07 GB | PPL 8.79; weak variable tracking 0.58-0.75 |
+| ...-102B-A5B-Niwaki-v2.4-3bit-gguf (20 Sep) | 102B / ~5.3B | 48 layers: 24 keep all 512 (narrowed), 24 keep 26-31 full-width; top-10 | UD-Q3K 43.85 GB (recommended), UD-Q4K 55.91 GB | PPL 8.75 (UD-Q3K); ~97% of reference quality; tracking 0.95-0.96, distractors 0.92; M4 Max 431 PP / 26 TG |
+| ...-119B-A5B-Niwaki-v2.4-3bit-gguf (19 Sep) | 119B / ~5.6B | 24 layers all 512, 24 layers 16 experts; expert width 640 | UD-Q3K 51.01 GB, UD-Q4K 64.32 GB | WikiText-2 PPL 7.04 (Q3K) / 6.88 (Q4K), 11% below gen-1 113B; tracking 1.00/0.96, distractors 0.93 |
+(also gen-1 113B: Q3K 49.09 / Q4K 62.84 GB). License: "other" (Qwen base terms) on all. Quant: backbone Q6_K, embeddings Q8_0, experts Q3_K/Q4_K, PLE n-gram table INCLUDED in packed layout ("ple.row_pack", block-256).
+
+2. RUNTIME: stock llama.cpp CANNOT load them. Required: github.com/Neopolita/neopolita-llama.cpp (2 stars, last push 25 Sep). It is only 7 commits ahead of ggml-org master but 584 behind; files touched: src/llama-graph.cpp, src/llama-arch.*, src/llama-hparams.h, src/llama-model.h, src/models/qwen4exp.cpp, qwen35moe.cpp, gguf-py, conversion. Backends listed: CUDA, Vulkan, Metal, CPU - no gfx900 report anywhere. Our working build is danielhanchen/llama.cpp qwen4exp/mtp + PR #27861 + my MTP-batch cache patch; the Niwaki commits touch the same llama-graph.cpp/qwen4exp.cpp, so merging = real conflict work (est. 1-3 h + risk), not a clean cherry-pick.
+
+3. MTP / PLE: no MTP head in the Niwaki files. The Unsloth shared MTP module (mtp-...-shared-Q4_K_M, 1.9 GB) is a separate layer and could in principle draft for it (it reuses the main token_embd), but untested and Niwaki's narrowed experts may lower acceptance. PLE table is inside the GGUF -> must be mmap/lazy (like the ISTA coder); with dio it would be pulled into RAM.
+
+4. RAM/VRAM on OLD GORAST (32 GB RAM, ~27 GB free): the smallest file (102B UD-Q3K, 43.9 GB) does NOT fit as resident experts. Even if the packed PLE table stays lazy, routed experts + backbone are well above ~27 GB -> continuous NVMe paging under mmap, i.e. TG collapse. VRAM side would be fine (backbone Q6_K on card 05 + MTP + KV within 8 GB with --cpu-moe-draft). VERDICT: not practical on the old board without more RAM; realistic on the MR9A with 96 GB (102B Q3K or even 119B Q3K fit with headroom).
+
+5. COMPARISON with what is MEASURED on GORAST (card 05 only, coder Jab Q4_K_M 160 experts, 26.4 GB, REF 15600, 900 mV, greedy 32K):
+- MTP5 + f16 KV + dio: PP 198 / TG 17.7 (steady ~19.7); projected 90K PP ~134.
+- + expert cache 16 slots / 4 inserts / draft experts on CPU: TG 23.8 (steady ~25.5), PP 168 (90K ~107). 8K cache screen running now.
+- ngram speculation: dead (fake gain on a quoting prompt, worse on real code edits).
+Niwaki 102B reads ~5.3B active params/token at ~3.5 bpw vs the coder's ~3B active at ~4.8 bpw -> similar or slightly MORE bytes per token, so I would NOT expect it to be faster than the coder on the old board even with enough RAM; its argument is quality (near-full-model, all 512 experts kept in half the layers) rather than speed.
+
+6. SAFE SINGLE-VEGA VIABILITY TEST: not proposed on the old board - with 32 GB RAM it would only measure NVMe paging, and it needs the fork merged first. Proposal for the MR9A (96 GB): build neopolita fork as-is (Vulkan, ~5 min), load 102B UD-Q3K with mmap + -ot per_layer_token_embd=CPU on card 05, 16K greedy smoke (PP/TG + coherence) ~10 min; then try the shared MTP module; then quality vs coder/Ornith via compete_harness.
+
+7. Nothing changed for this request: no reboot, no riser use, no GPU profile change, no production change. (REF 15600 + undervolt were set earlier tonight on Gorast's explicit instruction; the riser cards were moved by Gorast to the ASUS and tested fine there.)
+
+BOTTOM LINE: Niwaki v2.4 is a credible quality candidate (author numbers) but needs a lightly-maintained fork and >=48-64 GB RAM. On old GORAST it is not viable; the 160-expert coder stays the old-board candidate. Revisit on the MR9A, 102B UD-Q3K first.
