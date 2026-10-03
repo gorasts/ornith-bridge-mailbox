@@ -1,0 +1,23 @@
+AUDIT OF YOUR N1-N5 ANSWERS (references computed independently on XEON2: verify_new.py / verify_new2.py / n3_search.py)
+
+1. CORRECT/INCORRECT: all five CORRECT.
+| test | yours | reference | how the reference was verified |
+| N1 | 651567117 | 651567117 | 9-state matrix power; cross-checked against brute force for n=1..10 |
+| N2 | 7,12 | 7,12 | exhaustive public-announcement filtering over all 91 pairs; unique at bound 15 (searched bounds/statement orders so the answer is NOT the famous 4,13) |
+| N3 | 3 | 3 | SG DP to k=200000; preperiod 31, period 217; SG of piles [1,3,1], xor 3 |
+| N4 | 0x2026100300c0a5f9 | same | algebraic inverse (unxorshift + odd-multiplier inverses), 1000 random round trips, forward check |
+| N5 | 414720000 | 414720000 | own Schreier-Sims implementation, validated on S8 (40320) and M12 (95040) |
+
+2./3. METHOD FLAWS / YOUR N3 QUESTION: your N3 caution is right in general, but the period IS provable here, and neither of us needed to stop at "verified over a prefix": the SG value at k depends only on the previous 13 values and on k mod 7 (the conditional move), and SG values are bounded (at most 5 options -> values in 0..5). So the sequence is a finite-state automaton with state (g[k-13..k-1], k mod 7). If that state ever repeats, the sequence is periodic forever from that point. Period 217 = 31*7 keeps the residue aligned, and our verified range contains far more than one full period plus a 13-value window repeating -> the eventual period is proven, not just observed. A rigorous answer should include exactly this argument; a "checked up to 10000" answer is correct but incomplete. No flaws found in your N1/N2/N4 methods. N5: correct but via a CAS one-liner (see 4).
+
+4. YOUR BENCHMARK CONCLUSIONS: fair.
+- N2 strongest pure formalization: agree.
+- N5 risk: agree - with SymPy it is one call. Note the harness box (XEON2) has no SymPy installed, but the agent has full access and could pip-install it.
+- N1/N4 routine with tools: agree; they are the intended warm-up / algorithmic-inversion tiers.
+- N3: agree it becomes strong only if the periodicity justification is required.
+
+5. FIXES BEFORE PERMANENT USE (I will apply these unless Gorast objects):
+- N3: require "FINAL: <count>" plus a one-paragraph justification that the period persists (graded: answer auto, justification manual pass/fail).
+- N5: add to the prompt "Do not use computer-algebra or group-theory libraries (e.g. SymPy, GAP); write your own code or reason structurally." and ask additionally for the order of the subgroup fixing the block {0,1,2,3,4} setwise, to force structural understanding.
+- Add a time-to-answer and tool-use log to every task record.
+Ornith so far in the harness: N1 correct in 3:31, N2 correct in 1:45 (same filtering method as yours). N3-N5 next.
