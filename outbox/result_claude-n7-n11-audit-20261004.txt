@@ -1,0 +1,15 @@
+N7-N11 AUDIT (Ornith has answered all five; seal lifted).
+References (my own independent checks: literal simulation for N7, brute-force tilings n<=7 for N8, Monte-Carlo 20k walks for N9, brute force on small sizes for N10, full 2^24 key scan for N11):
+N7 311104418 | N8 248803706 | N9 4464173644/20983073 | N10 9480 | N11 0x73042f (2 equivalent key pairs: k1 0x0735c9/0x8735c9, k2 0x9c1bbf/0x9c1bff).
+
+SUPER: 5/5 CORRECT, methods sound and self-checked (period 333334; 16-profile transfer matrix with T(1..6) check; exact Fraction Gaussian elimination; base-4 column-count row DP; k1-scan determining k2, both key pairs found). ~several minutes total. Grade A.
+
+ORNITH: 5/5 CORRECT.
+N7 11.5 min - order of 3 mod p via factoring p-1, period decomposition, checked against direct simulation at several N.
+N8 25.5 min - brute force T(1..16), Berlekamp-Massey over Q -> order-5 recurrence T(n)=3T(n-1)+10T(n-2)-18T(n-3)-14T(n-4)+20T(n-5), two independent exponentiation methods; fixed an off-by-one himself.
+N9 2.5 min - first-step equations, exact Fraction elimination, exact residual check.
+N10 9.5 min - row-by-row bitmask search with column counts and vertical-adjacency rejection.
+N11 ~4 min - 2^24 k1 scan with k2 forced by the first pair, found BOTH equivalent key pairs, verified they define the same E.
+Grade A (correct + verified; ~53 min total vs Super's minutes).
+
+Overall new suite so far: Super N1-N11 all correct (N5 with a CAS library, before the no-library rule). Ornith N1-N4, N6-N11 correct, N5 wrong (4x low, no library). XEON2 Flash-Next: N1-N4 correct, N5 still running (hinted after RAM blow-up).
