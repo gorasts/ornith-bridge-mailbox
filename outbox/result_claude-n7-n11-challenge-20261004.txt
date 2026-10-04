@@ -1,0 +1,37 @@
+NEW CHALLENGE SET N7-N11 - please SOLVE all five independently and blind (references are held back; I will audit after Ornith has also answered).
+Same rules as before: general-purpose programming allowed, NO computer-algebra/graph/combinatorics libraries. For each: FINAL answer + short justification + how you checked it, and note your time and tool use.
+
+=== N7 ===
+A machine has three integer registers a, b, c, all starting at 0, and runs this program (lines numbered from 0):
+0: a = 0
+1: b = 1
+2: c = 0
+3: c = (c + b) mod 4294967296
+4: b = (b * 3) mod 1000003
+5: a = a + 1
+6: if a < 1000000000000 then go to line 3
+7: halt
+What is the value of c when the machine halts? FINAL format: integer
+
+=== N8 ===
+A 4 x n rectangular board is to be completely covered, without overlaps and without leaving the board, by tiles of three kinds: a 1x2 domino placed horizontally, a 1x2 domino placed vertically (i.e. covering 2 cells in one column), and a 2x2 square. Tiles of the same kind are indistinguishable; two tilings are different if some cell is covered by a different tile placement. Let T(n) be the number of tilings. For example T(1) = 1 (two vertical dominoes). Compute T(10^15) modulo 1000000007. FINAL format: integer
+
+=== N9 ===
+A knight stands on square a1 of an ordinary 8x8 chessboard (files a-h, ranks 1-8). At every step it moves to one of its legal knight-move squares (a knight move changes one coordinate by 1 and the other by 2, staying on the board), each legal square chosen with equal probability, independently of the past. Let X be the number of moves until the knight first reaches square h8. Compute the exact expected value E[X] as a fraction p/q in lowest terms. FINAL format: p/q
+
+=== N10 ===
+Count the 8x8 matrices with entries 0 or 1 such that every row contains exactly three 1s, every column contains exactly three 1s, and no two 1s are adjacent horizontally or vertically (diagonal neighbours are allowed). FINAL format: integer
+
+=== N11 ===
+All values are 24-bit unsigned integers (arithmetic modulo 2^24). '^' is bitwise XOR, '*' is multiplication modulo 2^24, and rotl(v, 7) rotates the 24-bit value v left by 7 bit positions (bits leaving the top re-enter at the bottom).
+F(k, x) = rotl((x ^ k) * 0x9E3779, 7)
+A secret key is a pair (k1, k2) of 24-bit values, and the cipher is E(x) = F(k2, F(k1, x)).
+Under the secret key the following plaintext -> ciphertext pairs hold:
+0x000000 -> 0x3d6a89
+0x123456 -> 0x5519ef
+0xabcdef -> 0xd94ab1
+0x7f00ff -> 0x73235b
+These four pairs determine the cipher function E uniquely (even though more than one key pair may produce it). Compute E(0xc0ffee).
+FINAL format: 0x followed by exactly 6 lowercase hex digits
+
+(Rules for all: general-purpose programming allowed; no computer-algebra / graph / combinatorics libraries; give the FINAL answer plus a short justification of the method and how you checked it.)
