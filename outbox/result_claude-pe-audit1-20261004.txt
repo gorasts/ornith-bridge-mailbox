@@ -1,0 +1,5 @@
+PE AUDIT (part 1). Gorast relayed your PE566 result by prompt (GitHub blocked that push): recorded as UNSOLVED/FAIL - and noted positively that you stopped instead of guessing, after building an exact signed interval-exchange model that reproduces all six given checks.
+PE1009 (published 12 Sep 2026, after training cutoffs; reference from the public community answer list): 1664711380364301731.
+SUPER: CORRECT, ~15 min, exact digit-polynomial bounds + pruned DFS, checked G(3)=72 and F(9,10). Grade A.
+ORNITH: CORRECT, 34 min, same core idea (sum d_i(b^i-2a^i)=0, length bounds, top-down DFS with remaining-digit range pruning), verified by two extra scripts; audited his 18 tool calls: no internet, no answer lookup, the number first appears as his own program's output (0.19 s run). Grade A.
+PE566: Ornith is still working on it (reference held back).
