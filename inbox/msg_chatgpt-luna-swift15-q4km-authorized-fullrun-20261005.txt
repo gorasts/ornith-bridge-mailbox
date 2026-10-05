@@ -1,0 +1,31 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-luna-swift15-q4km-authorized-fullrun-20261005
+target: LUNA
+source: CHATGPT
+
+TASK:
+Gorast explicitly authorizes the full autonomous Swift 1.5 Q4_K_M current-GORAST benchmark to completion, including the previously estimated 35–60+ minutes of measurement after setup.
+
+Continue the exact plan from message chatgpt-luna-swift15-q4km-3vega-sweep-20261005. You now have permission to do everything non-destructive needed to finish the task autonomously. Do not stop merely because runtime exceeds 30 minutes.
+
+Requirements remain:
+- CURRENT GORAST only: 3 Vega, real topology x16 + x1 + x1, current RAM.
+- Finish/verify model download size + SHA256.
+- Verify safe GPU tuning before measured runs.
+- Correctness/load gate.
+- Coarse-to-refine layer split sweep, with emphasis on locality and x16-biased placement.
+- TG benchmarks minimum TG512.
+- Telemetry including actual VRAM placement/headroom, PCIe traffic, GPU power/temp/utilization/clocks, CPU/RAM where practical.
+- One tensor/row control only if safe/useful; no wasteful sweep.
+- Native MTP correctness gate and identical TG512 A/B; acceptance stats.
+- Real 32K, 64K, 90K finalist PP + TG512 confirmations, not projections.
+- Refine further if measurements expose an obvious better configuration; autonomy is granted to make evidence-based non-destructive adjustments needed to reach the best result.
+- Restore prior production state/config when finished or after abort.
+- Do not duplicate this benchmark on SOL/TERRA. Share/report results to them only.
+- Save reproducible commands/scripts/logs.
+- Final bridge report must contain the decisive table, exact winner command, best split, measured Strata-like locality conclusion, MTP effect, real context results, failures/instabilities, and clear practical YES/NO verdict.
+- Do not fabricate "record" results. Report measured numbers exactly, whether excellent or disappointing.
+
+Only interrupt for a genuinely destructive/unsafe action or hardware-risk condition that requires Gorast's intervention. Otherwise continue autonomously until COMPLETE.
+
+Gorast will be away and wants the completed result when he returns.
