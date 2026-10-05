@@ -1,0 +1,157 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-sol-swift15-vulkan-pipeline-engineering-20261005
+target: CHATGPT
+source: SOL
+status: COMPLETE
+audience: CHATGPT, SUPERVISOR
+
+# Swift 1.5 Vulkan pipeline engineering report
+
+## Executive conclusion
+
+The approximately 141 PP tok/s ceiling is caused primarily by a real serialized producer/consumer dependency in llama.cpp's multi-backend path, combined with the Vulkan backend's lack of asynchronous copies between different physical Vulkan devices. It is not caused by batch/ubatch selection, scheduler-copy count, or GTT spill.
+
+For every 256-token PP microbatch, Vulkan1 must complete before its activation can be copied to Vulkan2, and Vulkan2 must complete before its activation can be copied to Vulkan0. Both cross-device attempts are rejected by `ggml_backend_vk_cpy_tensor_async`, after which the scheduler blocks in `ggml_backend_synchronize(input_backend)` and performs a host-mediated synchronous copy. A representative microbatch spent 1249.679 ms in the two required source-completion waits, 57.899 ms in synchronous copies, and only 0.040 ms in destination synchronization, out of 1550.942 ms traced scheduler time.
+
+The safe graph-copy rotation hypothesis was tested using the existing `LLAMA_GRAPH_REUSE_DISABLE=1` mechanism and normal four scheduler copies. It produced 140.074 PP, below the 141.25 baseline, and did not create any three-GPU overlap. No synchronization was removed because the trace proves that the dominant waits protect actual activation dependencies. A small patch cannot safely overlap these stages.
+
+No behavior patch reached 5%. The established production-like command and binary remain the recommendation. No 8K or 64K run was warranted.
+
+## Exact root cause and source regions
+
+1. `ggml/src/ggml-vulkan/ggml-vulkan.cpp`, function `ggml_backend_vk_cpy_tensor_async`, original lines 13286-13308:
+   - It tests whether the source is a Vulkan buffer.
+   - It explicitly returns `false` when source and destination buffers belong to different Vulkan devices: `Async copy only works within the same device`.
+
+2. `ggml/src/ggml-backend.cpp`, function `ggml_backend_sched_compute_splits`, original region approximately 1802-2000; instrumented function begins at line 1819:
+   - The scheduler tries `split_backend->iface.cpy_tensor_async(...)`.
+   - When that returns false, it calls `ggml_backend_synchronize(input_backend)`.
+   - It synchronizes the destination event/backend and calls `ggml_backend_tensor_copy`, which falls back to host-mediated transfer for distinct device buffers.
+
+3. `src/llama-context.cpp`, function `llama_context::process_ubatch`, lines 1416-1425:
+   - Reusing a graph with pipeline parallelism calls `ggml_backend_sched_synchronize(sched.get())` before overwriting shared inputs.
+   - Disabling graph reuse rotates scheduler copies, but the within-microbatch Vulkan1 -> Vulkan2 -> Vulkan0 dependency still serializes execution.
+
+The source-completion waits are data dependencies. Removing them would allow a consumer device to copy or read an activation before its producer finishes writing it.
+
+## Measured timeline
+
+Workload: real 2048-token prompt, Q8 K/V, MTP off, layer split 33,40,26, devices Vulkan1,Vulkan2,Vulkan0, main GPU 0, t/tb14, FA on, b4096/ub256.
+
+Representative PP microbatch, trace call 15, four graph splits:
+
+| step | device/path | measurement |
+|---|---|---:|
+| CPU input split | CPU | 0.611 ms |
+| stage 1 command construction/submission | Vulkan1 / PCI 0c | 111.202 ms host call |
+| wait for stage 1 producer before V1 -> V2 copy | Vulkan1 | about 540.6 ms blocked |
+| stage 2 full split interval | Vulkan2 / PCI 0f | 619.742 ms, including source wait/copy/submission |
+| wait for stage 2 producer before V2 -> V0 copy | Vulkan2 | 709.068 ms blocked |
+| V2 -> V0 synchronous activation copy | host-mediated | 14.717 ms |
+| stage 3 command construction/submission | Vulkan0 / PCI 05 | 78.971 ms host call |
+| complete traced microbatch | all stages | 1550.942 ms |
+
+Across the eight large PP microbatches, calls 14-21:
+
+| call | elapsed ms | source-sync ms | destination-sync ms | synchronous-copy ms |
+|---:|---:|---:|---:|---:|
+| 14 | 1830.041 | 158.567 | 0.032 | 59.977 |
+| 15 | 1550.942 | 1249.679 | 0.040 | 57.899 |
+| 16 | 1556.043 | 1254.259 | 0.032 | 58.053 |
+| 17 | 1566.491 | 1263.280 | 0.035 | 58.339 |
+| 18 | 1571.074 | 1268.030 | 0.034 | 57.938 |
+| 19 | 1575.808 | 1271.990 | 0.035 | 57.900 |
+| 20 | 1577.109 | 1273.296 | 0.034 | 57.466 |
+| 21 | 1588.548 | 1282.638 | 0.049 | 58.106 |
+
+Async-copy evidence across the complete request:
+
+- Vulkan1 -> Vulkan2: 534 attempts, 0 accepted.
+- Vulkan2 -> Vulkan0: 534 attempts, 0 accepted.
+- Total async-copy attempts: 4806; 2670 rejected and handled by the synchronous fallback.
+- The PP activation size was normally 5,242,880 bytes per transition; the last microbatch used 5,160,960 bytes.
+
+The 20 Hz debugfs trace collected 293 PP samples. Mean load for PCI 05/0c/0f was 23.82% / 38.92% / 44.59%; each GPU reached 100%, but all three were above 10% simultaneously in 0/293 samples.
+
+## Changes and hypotheses tested
+
+### Instrumentation-only patch
+
+Isolated worktree: `/home/ubuntu/llama-pipeline-eng`
+
+Base revision: `7d8013f07cb8a563ece72123726d644c3037e838`
+
+Instrumentation commit: `991f384748126ef2902a9bd25aa4a5d7f5de80e2`
+
+Exact diff: `/home/ubuntu/swift15-q4km-20261005/pipeline-instrumentation.diff`
+
+The patch adds `GGML_PIPE_TRACE` monotonic timestamps and call/copy/split/backend identifiers around split start/end, async-copy acceptance, source/destination synchronization, synchronous copy, compute submission, and event recording. It changes no scheduling or synchronization behavior.
+
+Build commands:
+
+```text
+cmake -S /home/ubuntu/llama-pipeline-eng -B /home/ubuntu/llama-pipeline-eng/build-trace -DGGML_VULKAN=ON -DGGML_SCHED_MAX_COPIES=1 -DCMAKE_BUILD_TYPE=Release
+cmake --build /home/ubuntu/llama-pipeline-eng/build-trace --target llama-server -j 14
+```
+
+Instrumentation overhead was negligible: 141.262 PP versus the prior non-instrumented MAX_COPIES=1 result of 141.255 PP.
+
+### Graph reuse disabled with four scheduler copies
+
+The isolated build was reconfigured with `-DGGML_SCHED_MAX_COPIES=4`. The run added `LLAMA_GRAPH_REUSE_DISABLE=1`, using llama.cpp's existing safe diagnostic mechanism. This forces graph allocation to rotate scheduler copies instead of removing a dependency.
+
+Result: 140.074 PP / 11.796 TG512. Source synchronization stayed at 1.26-1.29 seconds per large PP microbatch. Mean GPU load was 24.05% / 39.08% / 45.05%, and all-three overlap remained 0/295 samples. The hypothesis was rejected.
+
+### Synchronization-removal candidates rejected without unsafe execution
+
+- Removing the destination wait cannot matter: measured destination synchronization was about 0.04 ms per PP microbatch.
+- Removing the explicit source synchronization is unsafe and does not create a dependency mechanism. `ggml_backend_tensor_copy` would still need to wait before reading the producer buffer.
+- The current Vulkan event/timeline semaphore objects are local to one physical device. They cannot express the required dependency to a different Vega without a new shared/external synchronization and staging design.
+
+## Clean results
+
+| configuration | PP tok/s | TG512 tok/s | PP minimum free VRAM MiB 05/0c/0f | overlap all three |
+|---|---:|---:|---:|---:|
+| prior diagnostic MAX_COPIES=1 | 141.255 | 13.156 | 3623/2523/2135 | 1/75 in prior 5 Hz trace |
+| instrumentation-only MAX_COPIES=1 | 141.262 | 13.111 | 3623/2523/2135 | 0/293 at 20 Hz |
+| graph reuse off, MAX_COPIES=4 | 140.074 | 11.796 | 3591/2498/2110 | 0/295 at 20 Hz |
+
+Both new runs passed the established smoke/correctness gate, produced non-empty output, completed the real 2048-token prompt and TG512, retained 66/66 GPU layer offload, and preserved ample physical VRAM headroom. No GPU reset, VM fault, OOM, uncontrolled think leakage, or model/GTT spill occurred.
+
+## Final validation decision
+
+Best final 2K result: 141.262 PP / 13.111 TG512. This is effectively identical to the 141.255 diagnostic baseline and below the 5% candidate threshold.
+
+A real 8K F16/MTP6 validation was not run because there was no material PP improvement. The canonical result remains 140.297 PP / 22.826 TG512 on the known-good binary.
+
+64K was not revisited because the instrumentation and graph-copy experiment did not materially change VRAM capacity or execution speed.
+
+## Dominant remaining limiter
+
+The dominant limiter is the Vulkan multi-device dependency/copy architecture, not raw PCIe copy time alone. The two x1 links contribute roughly 58 ms of synchronous copying per representative 1.55-second microbatch, while required producer completion waits consume about 1.25 seconds. Faster PCIe would reduce the copy portion, but the stages would remain serialized until llama.cpp can keep multiple microbatches in flight with safe cross-device activation buffers and dependencies.
+
+## Production recommendation
+
+There is no new production winner. Keep the known-good Vulkan binary and canonical command:
+
+```text
+/home/ubuntu/llama-master/build-vk/bin/llama-server -m /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf -ngl 999 -sm layer -ts 33,40,26 -dev Vulkan1,Vulkan2,Vulkan0 -mg 0 -c 9216 -b 2048 -ub 1024 -t 14 -tb 14 -fa on -ctk f16 -ctv f16 --fit off -np 1 --reasoning off --spec-type draft-mtp --spec-draft-n-max 6
+```
+
+Single best next action: design a four-slot pinned-host activation ring with explicit per-slot completion state so Vulkan1 can process microbatch N+1 while Vulkan2 processes N and Vulkan0 processes N-1. It must replace the current cross-device synchronous fallback and prove buffer lifetime/correctness. This is a backend architecture project, not another tuning sweep or one-line synchronization patch.
+
+## Artifacts
+
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-trace-coarse.command.json`
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-trace-coarse.result.json`
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-trace-coarse.server.log`
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-trace-analysis.json`
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-reuse-off-copies4.command.json`
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-reuse-off-copies4.result.json`
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-reuse-off-copies4.server.log`
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-reuse-off-analysis.json`
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-trace-debugfs.jsonl`
+- `/home/ubuntu/swift15-q4km-20261005/pipeline-instrumentation.diff`
+- `/home/ubuntu/llama-pipeline-eng` branch `swift-pipeline-eng`, commit `991f384748126ef2902a9bd25aa4a5d7f5de80e2`
+
+Production prior and final state remained inactive. The known-good source and binaries were not modified. No llama-server process remained after testing.
