@@ -1,0 +1,41 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-luna-swift15-q4km-3vega-sweep-20261005
+source: LUNA
+state: DECISION_NEEDED
+decision_needed: yes
+audience: CHATGPT, Supervisor, SOL, TERRA
+
+RESULT:
+Single executor inspected CURRENT GORAST only. No benchmark was started and no duplicate job was found for this message in the independent mailbox clone. SOL/TERRA: this is the shared report; do not independently rerun.
+
+Decision requested: authorize approximately 35–60 minutes of measurement AFTER setup, or reduce scope. The requested >=4 placement screens, refinement/control, MTP A/B and actual 32K/64K/90K prompts exceed the 30-minute planning threshold. This is a planning estimate, not measured Swift speed. Rough basis: about 230K prompt tokens at an assumed 100–233 PP/s = 16–38 minutes; >=10 TG512 runs at an assumed 8–15 TG/s = 6–11 minutes; load/correctness/telemetry overhead adds several minutes. These throughput assumptions are unverified and must not become results.
+
+Verified preflight:
+- GORAST 192.168.100.116, kernel 6.8.0-139-generic. RAM 78 GiB reported, 48 GiB available, no swap. Model filesystem 572 GiB available.
+- GPU 05: PCIe3 x16 through the entire path. GPUs 0c/0f endpoints misleadingly report x16, but upstream bridges are PCIe2 x1: actual constraints confirmed.
+- Each GPU 8,573,157,376 bytes VRAM (8176 MiB). GTT parameter 69632 MiB; per-device GTT total 73,014,444,032 bytes (68 GiB), active.
+- Safe profile verification passed on all three: 05 1600@900mV, 0c 1536@900mV, 0f 1600@900mV; HBM1000, profile900 pinned. No measured run occurred. REF and every P-state still require explicit capture before measurement; this preflight did not independently verify them.
+- Existing Vulkan llama-server: /home/ubuntu/llama-master/build-vk/bin/llama-server, b11369 commit4ebdf2c74, GCC13.3.0. Enumerates all three RADV VEGA10 devices. Model-load/MTP compatibility not yet tested.
+- ornith-server.service was already inactive. No service or production configuration changed; prior state preserved.
+
+Model setup only (allowed to proceed by task):
+Exact file was absent in existing model locations checked. One finite download worker started, PID1329404; no inference runs or automatic continuation queued.
+Source: https://huggingface.co/bartowski/ukisai_Swift-1.5-Qwen3.8-27b-GGUF
+Target: /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+Manifest exact size: 17,442,400,576 bytes.
+Manifest expected SHA256: d883a07ecd32244af6f1655545186c408558f9400ccec2f386c6830f634623d4
+Actual final size/SHA256: pending download and local hashing, NOT verified. Last observed partial size622,649,344 bytes.
+No mmproj downloaded. Worker writes completion/failure status and validates both final size and hash.
+
+configuration | actual layer/VRAM placement | context | PP | TG512 | MTP/acceptance | VRAM | PCIe traffic | power/temp | correctness
+Not run | not measured | not measured | N/A | N/A | N/A | N/A | N/A | N/A | not tested
+
+Winner command: not established. Best split/locality/MTP benefit: unmeasured. Real32K/64K/90K results: not run. Practical YES/NO verdict: undetermined until benchmarks; no fabricated speed or quality claims. External reviewer233PP/9.9TG and342–390PP/~30TG are context supplied by requester, not GORAST measurements.
+
+Remote evidence/scripts:
+/home/ubuntu/swift15-q4km-20261005/download.py
+/home/ubuntu/swift15-q4km-20261005/download.log
+/home/ubuntu/swift15-q4km-20261005/download-status.json
+/home/ubuntu/swift15-q4km-20261005/download.pid
+/home/ubuntu/swift15-q4km-20261005/preflight.json
+Local evidence is attached under reports/chatgpt-luna-swift15-q4km-3vega-sweep-20261005/ in this commit. No writes were made inside any repo_cache.
