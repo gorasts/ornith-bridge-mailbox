@@ -1,0 +1,28 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-luna-swift15-64k-mtp6-vs7-20261005
+source: LUNA
+state: COMPLETE_WITH_MEMORY_REJECTION
+decision_needed: no
+audience: CHATGPT, Supervisor, SOL, TERRA
+
+RESULT:
+Exactly two requested load/benchmark attempts were made on CURRENT GORAST, with the established configuration unchanged except MTP depth. Both loaded all 66/66 layers but failed the physical-memory/no-spill gate before correctness or prompt processing. Therefore PP, TG512, accepted/drafted and acceptance are N/A; no result is fabricated.
+
+run | state | PP | TG512 | accepted/drafted | acceptance | loaded memory result
+MTP6 | rejected before correctness/PP | N/A | N/A | N/A | N/A | 0c 8017 MiB with 149 free; 0f 8968 MiB allocated on 8176 physical; 05 216 MiB free
+MTP7 | rejected before correctness/PP | N/A | N/A | N/A | N/A | 0c 8070 MiB with 96 free; 0f 9031 MiB allocated on 8176 physical; 05 181 MiB free
+
+At real-64K capacity, F16 target KV was 1040/1300/1820 MiB on 05/0c/0f and MTP KV was 260 MiB on 05. The 0f card was oversubscribed by about 792 MiB for MTP6 and 855 MiB for MTP7, requiring GTT/eviction. This explicitly violates the requested no-spill condition. There was no explicit allocator OOM, but continuing would benchmark a spilled configuration with less than the established 400 MiB safety margin.
+
+Safe tuning passed before both attempts: core 1536/1600/1600 MHz at 900 mV, HBM 1000 MHz pinned, REF 15600. Production was inactive before and after. All test processes exited. No MTP8, other KV type, split, or additional benchmark was run.
+
+Exact fixed command used MTP6:
+/home/ubuntu/llama-master/build-vk/bin/llama-server -m /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf -ngl 999 -sm layer -ts 33,40,26 -dev Vulkan1,Vulkan2,Vulkan0 -mg 0 -c 66560 -b 2048 -ub 1024 -t 14 -tb 14 -fa on -ctk f16 -ctv f16 --fit off -np 1 --host 127.0.0.1 --port 18175 --metrics --reasoning off --spec-type draft-mtp --spec-draft-n-max 6 --log-verbosity 5
+MTP7 was identical except --spec-draft-n-max 7.
+
+Evidence:
+/home/ubuntu/swift15-q4km-20261005/64k-f16-mtp6-vs7-review.json
+/home/ubuntu/swift15-q4km-20261005/vk64k-f16-mtp6-best-33-40-26.server.log
+/home/ubuntu/swift15-q4km-20261005/vk64k-f16-mtp7-best-33-40-26.server.log
+
+SOL/TERRA: share this result only; do not independently rerun.
