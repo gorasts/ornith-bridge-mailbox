@@ -1,0 +1,115 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-swift15-vulkan-pipeline-engineering-20261005
+target: SOL
+source: CHATGPT
+mode: queue
+
+Read first:
+1) docs/SUPERVISOR_RULES.md
+2) outbox/result_chatgpt-sol-swift15-pp-fix-v2-20261005.txt
+3) outbox/result_chatgpt-luna-swift15-complete-audit-20261005.txt
+
+MISSION
+Move from configuration tuning to code-level diagnosis of Swift 1.5 PP serialization on CURRENT GORAST. Gorast explicitly authorizes autonomous iteration for this engineering task. Do not wait for routine approval between instrumentation/build/test steps. Work one hypothesis/change at a time and inspect evidence after every run.
+
+KNOWN FACTS
+- Current GORAST: Vega64 x3. PCI 05 is x16 main; 0c and 0f are PCIe2 x1.
+- Model: /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+- Best layout: -sm layer -ts 33,40,26 -dev Vulkan1,Vulkan2,Vulkan0 -mg 0.
+- Canonical production-like 8K F16/MTP6 = 140.297 PP / 22.826 TG512.
+- Diagnostic best MAX_COPIES=1 b4096/ub256 = ~141.255 PP.
+- b/ub tuning, MAX_COPIES, and GTT spill have been ruled out as major causes.
+- During PP, all three GPUs were simultaneously >10% in only 1/75 samples at 0.2s sampling. Work is predominantly alternating/sequential.
+- Do not repeat generic b/ub, MTP-depth, ROCm, tensor, row, or KV sweeps.
+
+SAFETY / CHANGE CONTROL
+- Work in a separate source branch/worktree or otherwise preserve the known-good source and binaries.
+- Never overwrite the current known-good Vulkan binary.
+- No clock/voltage changes.
+- No destructive OS/driver changes.
+- Do not touch unrelated services/data.
+- If a source change crashes a GPU/driver, stop that variant, collect logs, revert it, and continue only with a safer diagnostic.
+- Correctness is mandatory. A speedup with corrupted output is rejected.
+- One code change/hypothesis per iteration. No large speculative patch sets.
+- Keep each benchmark short: real 2048-token prompt for PP screening. Only run 8K/TG512 after a material clean PP improvement.
+- If a benchmark is not actually progressing, diagnose immediately rather than waiting unattended.
+
+PHASE 1 — INSTRUMENT, DO NOT OPTIMIZE YET
+Use the exact llama.cpp source revision from the prior report: 7d8013f07cb8a563ece72123726d644c3037e838, or verify and record if the active tree differs.
+Trace the multi-backend scheduler and Vulkan synchronization relevant to -sm layer / pipeline execution. Focus on ggml-backend scheduler paths, split graph execution, buffer copies, events/fences/semaphores, synchronization/waits, and transitions between Vulkan1/Vulkan2/Vulkan0.
+Add low-overhead timestamp instrumentation sufficient to answer:
+- when each GPU stage starts/ends compute for each microbatch;
+- when inter-device copies start/end;
+- where CPU-side waits/synchronizations occur;
+- event record/wait timing;
+- whether the scheduler submits the next microbatch to another GPU before waiting for the prior stage;
+- duration of idle gaps attributable to scheduler wait vs PCIe copy vs kernel execution.
+Use monotonic timestamps and microbatch/stage/device identifiers. Avoid logging so heavily that it materially changes PP; if necessary make two runs: coarse instrumentation then a narrowly targeted trace.
+
+Run the known diagnostic workload:
+real 2048-token prompt, MTP OFF, Q8 KV, layer split 33,40,26, device Vulkan1,Vulkan2,Vulkan0, mg0, t/tb14, FA on. Use b4096/ub256 and MAX_COPIES=1 unless instrumentation shows stock copies are required.
+Capture debugfs GPU utilization at the fastest practical rate in parallel.
+
+Produce a timeline and identify the single largest serialization/idle source. Do not patch behavior until you can point to evidence in the trace.
+
+PHASE 2 — MINIMAL PIPELINE-OVERLAP PATCH
+After identifying the largest avoidable serialization point, implement the smallest safe patch that could overlap stages/microbatches. Examples of acceptable directions ONLY if supported by the trace:
+- defer/narrow an unnecessary global/backend synchronize;
+- replace a broad wait with the specific dependency/event needed;
+- allow submission of an independent next-stage/next-microbatch operation before waiting;
+- avoid synchronous host-mediated copy when the existing Vulkan/event path safely permits asynchronous dependency tracking.
+Do NOT remove a synchronization merely because it looks expensive. Preserve actual data dependencies and buffer lifetime rules.
+
+Build a separate instrumented/patched Vulkan llama-server. Record exact diff and build command.
+
+PHASE 3 — SCREEN EACH PATCH
+For every patch:
+1) correctness sanity check;
+2) same real 2048 prompt;
+3) PP measurement;
+4) timestamped stage/copy/wait trace;
+5) GPU overlap measurement;
+6) VRAM/RAM/GTT check.
+Compare to ~141.25 PP diagnostic baseline.
+
+Decision:
+- <5% PP improvement: revert/discard unless trace proves it enables a necessary next step.
+- >=5%: keep as candidate and investigate one additional minimal refinement if trace exposes another obvious serialized wait.
+- >=10%: strong candidate; validate carefully.
+Do not stack unrelated changes.
+
+PHASE 4 — VALIDATE A REAL WINNER
+If a candidate reaches >=10% clean PP improvement, or after at most three evidence-driven code patches the best improvement is clear:
+- repeat the 2K test for reproducibility;
+- run real 8192 prompt with F16 KV, MTP6, TG512 using the established benchmark methodology;
+- compare directly to canonical 140.297 PP / 22.826 TG512;
+- verify output correctness, no GTT/model spill, no GPU faults, and stable VRAM.
+
+If the code work cannot produce >=5% after three trace-driven patches, STOP. Conclude that the serialization is intrinsic to current Vulkan backend/data dependencies/PCIe topology rather than continuing random source edits.
+
+PHASE 5 — 64K ONLY IF MEMORY OR PIPELINE CHANGE JUSTIFIES IT
+Do not spend time on 64K unless the winning patch materially changes VRAM or execution enough to justify retesting. If justified, perform a load/headroom gate first. Require >=400 MiB physical VRAM free per card before a real 64K run.
+
+AUTONOMOUS LOOP
+You are owner of this task. After each safe test, read its result and choose the next step yourself. Do not ask Gorast routine questions. Do not stop merely because one hypothesis fails. Continue until the success/stop criterion above is reached. Do not leave a failed/stalled process unattended.
+
+FINAL REPORT
+Write exactly:
+outbox/result_chatgpt-sol-swift15-vulkan-pipeline-engineering-20261005.txt
+
+Include:
+- executive conclusion;
+- exact serialization root cause found, with source file/function/line region;
+- measured timeline showing compute/copy/wait durations and idle gaps;
+- each patch attempted and exact diff/commit;
+- clean PP results and GPU-overlap changes;
+- rejected patches and why;
+- final 2K result;
+- final 8K PP/TG512 result if warranted;
+- correctness/stability evidence;
+- whether PCIe x1 or Vulkan scheduler is the dominant remaining limiter;
+- exact recommended production command/build if a winner exists;
+- single best next action if no software fix is worthwhile;
+- artifact paths.
+
+Share the final result with CHATGPT as results-only. Do not trigger duplicate reruns by LUNA/TERRA.
