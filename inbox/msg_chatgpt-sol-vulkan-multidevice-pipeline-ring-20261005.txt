@@ -1,0 +1,145 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-vulkan-multidevice-pipeline-ring-20261005
+target: SOL
+source: CHATGPT
+mode: queue
+
+Read:
+- docs/SUPERVISOR_RULES.md
+- outbox/result_chatgpt-sol-swift15-vulkan-pipeline-engineering-20261005.txt
+- its trace artifacts and instrumentation diff
+
+MISSION
+Build a real multi-device PP pipeline for llama.cpp Vulkan layer-split inference on CURRENT GORAST. The prior report proved the dominant cost is serialized producer completion, not the ~58 ms activation-copy time. We want multiple independent PP microbatches in flight across physical GPUs while preserving every true producer/consumer dependency.
+
+This is backend/scheduler engineering, not flag tuning. The solution should be generic enough to benefit other layer-split models such as Ornith if successful.
+
+TARGET
+First milestone: >=2x clean Swift PP versus ~141 tok/s.
+Stretch target: approach 300-400 PP if stage balance permits.
+A 5% TG regression is acceptable if PP becomes dramatically faster. Correctness is not negotiable.
+
+ARCHITECTURE TO INVESTIGATE FIRST
+Implement a bounded multi-slot activation pipeline across Vulkan devices.
+
+Conceptually:
+slot/ring depth >= number of pipeline stages, initially 4.
+For microbatches N,N+1,N+2:
+  Vulkan1 computes N+2
+  Vulkan2 computes N+1
+  Vulkan0 computes N
+concurrently once the pipeline is filled.
+
+Do NOT attempt to make a consumer read unfinished producer data. Instead, give each in-flight microbatch independent activation storage and independent completion state.
+
+Because current Vulkan cross-physical-device async copy is unsupported, investigate this safe transport first:
+1. Allocate reusable page-locked/pinned host staging buffers per device boundary and ring slot.
+2. Producer completion for slot S releases only that slot's activation.
+3. Copy producer activation -> pinned host staging for S.
+4. Copy staging S -> destination device activation buffer for S.
+5. Destination may consume S only after its transfer completion.
+6. Meanwhile producer GPU must be free to submit/compute the next independent slot instead of waiting for downstream completion.
+7. Never globally synchronize a backend when only one slot/dependency requires completion.
+8. Ring-slot reuse waits only for that slot's final consumer/lifetime completion.
+
+Critical point: the gain comes from PIPELINING INDEPENDENT MICROBATCHES, not pretending the dependency within one microbatch can be removed.
+
+PHASE A — DESIGN FROM THE TRACE
+Before coding behavior, map the exact ownership/lifetime of:
+- scheduler graph copies;
+- split input tensors;
+- activation buffers;
+- backend events;
+- graph input overwrite/reuse in llama_context::process_ubatch;
+- ggml_backend_sched_compute_splits;
+- Vulkan copy/event APIs.
+Determine the minimum structures that must become per-slot so N+1 can enter Vulkan1 while N is on Vulkan2/Vulkan0.
+
+Write a short design note artifact before implementation. If pinned memory is already available in ggml/Vulkan, reuse it rather than inventing a second allocator.
+
+Also inspect whether Vulkan external-memory/external-semaphore host or device mechanisms supported by RADV/Vega can safely improve transport. Do not depend on peer-device Vulkan features that Vega/RADV does not actually expose. The first implementation may use pinned host staging if that is the portable safe path.
+
+PHASE B — MINIMUM PROTOTYPE
+Use the isolated worktree. Preserve all known-good binaries.
+Prototype only PP/prefill scheduling first. Decode/TG behavior must remain unchanged unless necessary.
+
+Start with 2 in-flight slots if that is substantially simpler, prove overlap, then expand to 3 or 4. Do not build the full abstraction before proving that two independent microbatches overlap correctly.
+
+Instrumentation must expose, per slot:
+microbatch id; producer compute start/end; D2H/H2D start/end; consumer compute start/end; slot reuse wait; device.
+
+Success for prototype is not PP speed first. It is:
+- simultaneous useful compute on >=2 physical GPUs for repeated samples;
+- exact dependency correctness;
+- stable buffers/no overwrite;
+- deterministic output;
+- no VM faults/reset/OOM.
+
+PHASE C — ITERATE EVIDENCE-FIRST
+After each prototype/change:
+1. real 2048-token PP test, same Swift Q4_K_M split/device order;
+2. compare output/correctness against baseline;
+3. measure PP;
+4. 20 Hz or faster per-GPU utilization;
+5. compute/copy/wait timeline by slot;
+6. VRAM, host pinned-memory footprint, RAM/GTT;
+7. inspect immediately.
+
+If two-slot overlap works, measure stage service times and choose ring depth from measured pipeline latency rather than guessing.
+If one stage dominates, consider rebalancing layer split ONLY AFTER pipeline overlap exists, using measured per-stage service times to equalize throughput. This is the one split optimization now allowed because the objective changes from serial latency to pipeline stage balance.
+
+Do not waste time on b/ub sweeps before overlap is demonstrated.
+
+PHASE D — PERFORMANCE
+Once stable overlap exists:
+- tune ring depth minimally (2/3/4 as justified);
+- rebalance layer ownership so stage service times are approximately equal while respecting VRAM;
+- compare b/ub only if trace shows bubbles caused by microbatch granularity.
+Aim first for >=282 PP (2x baseline). If >=2x is reached cleanly, continue toward the measured pipeline throughput limit; 300-400 PP is the stretch target, not a promise.
+
+A PP gain can accept up to ~5% TG loss. Reject larger TG loss unless there is a compelling separate production mode where pipeline PP can be enabled only for prefill and disabled/bypassed for decode.
+
+PHASE E — VALIDATION
+For a real winner:
+- repeat 2K PP at least twice;
+- real 8K prompt;
+- MTP6/F16 KV TG512 using established methodology;
+- output correctness/smoke comparison;
+- no model/GTT spill;
+- no GPU faults;
+- record CPU cost and pinned-host bandwidth.
+If pipeline can be selectively used for PP while retaining the existing fast decode path, prefer that design.
+
+GENERIC VALUE
+Keep model-specific assumptions out of the scheduler/backend patch where possible. After Swift validation, do ONE short Ornith PP A/B if it can be done without disturbing production state and within the standing time rules. The purpose is only to establish whether the same generic pipeline benefits another layer-split model. Do not start a new Ornith tuning campaign.
+
+STOP CONDITIONS
+- If the prototype cannot safely have two independent microbatches in flight because scheduler graph/tensor lifetime architecture fundamentally prevents it, stop and report the exact architectural blocker plus the minimum upstream redesign required.
+- If two-GPU overlap works but performance is poor, continue only while traces identify a concrete bubble/bottleneck.
+- No unsafe synchronization deletion.
+- No clock/voltage changes.
+- No unrelated system modifications.
+- Ask before destructive work. Gorast authorizes this engineering/test loop beyond 30 minutes; continue autonomously for this mission.
+- Diagnose stalled tests immediately.
+
+FINAL REPORT
+Write:
+outbox/result_chatgpt-sol-vulkan-multidevice-pipeline-ring-20261005.txt
+
+Include:
+- design and why it is dependency-safe;
+- exact source changes/commits/diffs;
+- ring depth and staging design;
+- before/after per-slot timeline;
+- measured concurrent-GPU overlap;
+- Swift PP/TG before/after;
+- stage service times and final split if changed;
+- memory/bandwidth overhead;
+- correctness/stability evidence;
+- Ornith A/B if warranted;
+- what prevents further scaling;
+- exact build/command for winner;
+- whether patch is generic/upstreamable;
+- artifact paths.
+
+Share results with CHATGPT. Do not duplicate this job through LUNA/TERRA.
