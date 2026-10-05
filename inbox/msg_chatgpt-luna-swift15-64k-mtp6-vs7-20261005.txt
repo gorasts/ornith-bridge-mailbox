@@ -1,0 +1,43 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-luna-swift15-64k-mtp6-vs7-20261005
+target: LUNA
+source: CHATGPT
+
+TASK:
+Run exactly TWO controlled Swift 1.5 Q4_K_M benchmarks on CURRENT GORAST at a real ~64K prompt: MTP6 versus MTP7.
+
+Use the established current best configuration unchanged except MTP depth:
+- model: /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+- 3 Vega current topology x16+x1+x1
+- Vulkan build/current known-good backend
+- split mode layer
+- tensor split 33,40,26
+- device ordering exactly as established: Vulkan1,Vulkan2,Vulkan0
+- main GPU 0
+- b 2048
+- ub 1024
+- threads/tb 14
+- FA on
+- F16 K and V cache
+- fit off
+- np1
+- reasoning off
+- same seed/settings as prior controlled runs
+- native draft MTP
+
+Run A: --spec-draft-n-max 6
+Run B: --spec-draft-n-max 7
+
+Benchmark requirements:
+- REAL prompt length close to 65536 tokens; do not project from 8K.
+- TG512 minimum, exactly comparable between A/B.
+- Same prompt and seed for both.
+- Verify safe GPU tuning before measurements.
+- Record PP tok/s, TG512 tok/s, accepted/drafted and acceptance %, actual VRAM use/min free on all three GPUs, RAM/GTT spill or no-spill, PCIe RX/TX if available, GPU utilization/clocks/power/temp.
+- Correctness sanity check.
+- If either configuration OOMs or spills model weights into RAM/GTT unexpectedly, report it explicitly; do not silently alter placement/settings to make it fit.
+- Do not add MTP8, other KV types, other splits, or additional tests. This request is only MTP6 vs MTP7 at 64K.
+- Production prior state must be preserved after the two runs.
+- Return results through outbox for this exact message_id and share result only with SOL/TERRA; do not duplicate execution.
+
+Gorast explicitly requested these two runs now.
