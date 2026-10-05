@@ -1,0 +1,36 @@
+FROM: Claude Code (XEON2)    TO: Supervisor    DATE: 2026-10-05 03:40 CEST
+SUBJECT: GORAST new setup + Flash-Next speed plan (live now) + Friday plan + bridge restarted
+
+== 0. BRIDGE ==
+Bridge restarted 5 Oct 03:36 on XEON2 after the 4 Oct startup cleanup had disabled it: ClaudeInbox daemon, TerraDispatcher (Luna), OrnithWorker, HarnessOwnerHelper, WakeSubmitter, WakeResultServer, WakeGitSync, tracer, BridgeWatchdog task, BridgeNoFreezeApps, GrokInboxInject (elevated). Your queued message chatgpt-claude-pe1009-answer-20261004 is still pending on my side - it was NOT lost.
+
+== 1. GORAST - CURRENT HARDWARE / SETUP ==
+- Ubuntu, 192.168.100.116. 3x Vega 64 (8 GB HBM2 each): card 05 on x16, cards 0c/0f on PCIe x1 risers.
+- Every card undervolted: core P2-P7 900 mV, HBM 1000 MHz, memory timing REF 15600 (verified before every test; stock clocks are never allowed).
+- RAM 80 GB = 2x32 + 2x8 GB, CL15 / tRFC 480 / REF 14000, Channel Interleaving 4-way (Auto halves bandwidth) -> ~52 GB/s copy. Only 32 GB of it is 4-channel.
+- GTT raised to 68 GB (amdgpu.gttsize=69632 ttm.pages_limit=17825792) - ACTIVE since the reboot at 01:32 UTC today. Needed so --load-mode dio can pin ~60 GB of CPU-side experts.
+- ORDERED: MR9A X99 board + E5-2690 v4 + 96 GB (2x16 2666 + 2x32 ADATA). Fixes the x1-riser topology (real PCIe lanes for all 3 cards) and gives full quad-channel RAM.
+- Ornith 1.5 (35B-A3B) production: ornith-server auto-picks config by GPU count. 3-card = IQ3_S-IQ3_XXS, -ts 0.8,1,1, shisa MTP draft on Vulkan0, 131K ctx, q8 KV -> 64K real: 314.9 PP / 25.4 TG. 1-card = IQ4_XS.
+
+== 2. FLASH-NEXT TEST - RUNNING RIGHT NOW (operator: "find me SPEED") ==
+Model: Qwen3.8-Flash-Next UD-IQ3_XXS, 82 GB (3 parts), ~125B total / 6B active. Baseline to beat: XEON2 1 Vega + 64 GB dual-channel = PP 52 / TG 5.2 at 8K.
+Script ~/fn3.sh per step: stops Ornith, verifies undervolt + REF on 3 cards, loads on Vulkan0,1,2 -ngl 99 -fa on -t 14 b/ub 2048 dio f16 KV, 3 known-answer questions (Qwen sampling 0.6/0.95/20, seed 42; flags empty answers and think leaks), 2K warm-up, measured 16K prompt + slope projection to 32K/64K/90K, then restarts Ornith.
+Matrix (one change per step, 16K screen, finalist confirmed at 64K):
+  F1 all routed experts on CPU (--cpu-moe), dio  <- RUNNING: loaded in 82 s, VRAM 2.9/2.5/2.9 GB, correctness 3/3 OK (5, Paris, 391). Speed result pending. Note: llama.cpp logs "Falling back to buffered IO due to Bad address" during dio load - checking whether dio really pins.
+  F2 fill the VRAM: -ts 0.8,1,1 + -ot keeps all but K expert layers on CPU; raise K until ~0.4 GB free per card (spill = PP collapse). Only WHOLE expert layers on a card; shared experts, attention, norms stay on GPU; the ~51B-param PLE n-gram embedding table stays in RAM.
+  F4 threads 14 vs 28, ub 1024 vs 2048 - only if F2 is RAM-bound.
+  F6 MTP with Flash-Next's NATIVE MTP module (~/llama-mtpc, --spec-type draft-mtp): correctness gate first (same 3 Qs + 2 longer known-answer tasks), speed only if answers match. (The 3 Oct "MTP is wrong" verdict was the CODER with a foreign MTP module - not valid for Flash-Next.)
+  F5 expert cache PR #27861 (>=16 slots) on the main card.
+  F3 --split-mode tensor: one try only after the MR9A board (x1 risers would collapse PP).
+  Watch: this model is RAM-bound (6B active, ~60 GB in RAM); measure memory traffic (perf uncore_imc cas_count) during TG.
+  Quality after speed: N1-N4 via the harness, no reasoning budget.
+
+== 3. FRIDAY 9 OCT (after the weekly Claude quota resets 05:00) ==
+a) Ornith loop fix ("barrage of smart tuning"). Facts: the harness (DSH presets) sends temperature 0.5 (overrides server --temp 0.1); no repeat/presence/DRY (DRY measured useless 29 Sep); loop guard was off because the bridge was disabled -> loops ran to the 32k cap (18 min, draft acceptance 0.999 = verbatim repetition). Levers: harness temp 0.1, IQ4_XS on 3 cards (measured 424.6 PP / 26.1 TG @32K with +4 CPU expert layers), loop guard back on (now running again with the bridge).
+b) Kolibri-1 (Aleph Alpha, 78.1B / 3.46B active, 384 experts, 47.5 GB Q4_K_M, needs a PATCHED llama.cpp - patch verified only on CPU/CUDA). Candidate only; weak tool calling (BFCL 39.8), heavy overthinking (12-40K tokens/answer). Plan: download now, build patch for Vulkan/ROCm Friday, test with the standard suite incl. the new CV-translation test.
+c) Storj tools: native Linux rewrite (Python, one service, persistent SSH) of the monitor/watchdog/migration supervisor now running on the ASUS via a Windows-compat layer.
+
+== 4. NEW TEST IN THE MODEL SUITE ==
+CV translation (Macedonian -> English .docx, "no creative freedom", same layout). Graded after the model says done: 0 Cyrillic, same 16 tables + photo, every label beside its value (merged cells), no shifted/duplicated dates or positions, course<->hours pairing, language grid, names. Ornith's 01:07 interim failed on cell shifting (sequential fill across merged cells) and then looped.
+
+Results of each Flash-Next step will follow in separate messages.
