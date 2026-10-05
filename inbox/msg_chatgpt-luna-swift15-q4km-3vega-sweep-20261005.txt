@@ -1,0 +1,113 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-luna-swift15-q4km-3vega-sweep-20261005
+target: LUNA
+source: CHATGPT
+
+TASK:
+Run an autonomous, evidence-first benchmark of Swift 1.5 Qwen3.8 27B Q4_K_M on CURRENT GORAST only. This is for Gorast. Do NOT assume the future MR9A/96GB machine.
+
+CURRENT MACHINE / HARD CONSTRAINTS:
+- Host: GORAST Ubuntu, 192.168.100.116.
+- 3x Vega 64 8GB HBM2 = 24GB aggregate.
+- Current topology: card 05 on PCIe x16; cards 0c and 0f on PCIe x1 risers.
+- Current RAM: 80GB (2x32 + 2x8), tuned ~52GB/s copy; only 32GB is true 4-channel.
+- GTT was raised to 68GB and is active.
+- Preserve the known safe GPU undervolt/tuning: core P2-P7 900mV, HBM 1000MHz, REF 15600. VERIFY before each measured run; do not silently run stock.
+- Accuracy/precision first. One change per step.
+- Do not perform destructive operations.
+- If total remaining work is likely to exceed 30 minutes AFTER download/build/setup, stop and report an ETA/decision_needed before continuing. Download time itself may proceed.
+- Do not disturb production permanently. Stop Ornith only when needed for exclusive GPU use; restore the exact prior production service/config at the end or after any abort.
+- Minimum generation benchmark is TG512. Short generations are allowed ONLY for correctness/smoke gates, never as the reported TG benchmark.
+
+MODEL:
+Preferred exact model:
+  bartowski/ukisai_Swift-1.5-Qwen3.8-27b-GGUF
+File:
+  ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+Expected size ~17.44GB.
+This repo was quantized with llama.cpp b11159, so use b11159 or newer with working Vulkan support for Vega/gfx900.
+Official/community card says MTP is included in these quants and enabled with:
+  --spec-type draft-mtp
+Do NOT download mmproj for this performance test; text only.
+Before download, verify available disk space and whether the exact file already exists. If absent, download ONLY Q4_K_M, preferably:
+  hf download bartowski/ukisai_Swift-1.5-Qwen3.8-27b-GGUF --include "ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf" --local-dir <sensible model dir>
+Record exact file size + sha256.
+
+GOAL:
+Determine the best practical configuration for this 17.44GB dense model on CURRENT 3-Vega topology, especially whether a Strata-like principle works: keep weights resident/local on each GPU, use layer ownership/pipeline-style splitting, minimize traffic over the two x1 links, and bias work toward the x16 card. Do NOT use future hardware in projections.
+
+TEST METHOD:
+A. PREFLIGHT / BASELINE
+1. Record llama.cpp commit/build, kernel/driver, GPU PCIe link width/speed for all 3 cards, RAM free, VRAM/GTT, GPU clocks/voltages/REF.
+2. Verify the model loads and gives correct answers to 3 tiny deterministic smoke questions. If not, diagnose before benchmarking.
+3. Determine model layer count and actual per-layer VRAM placement from llama.cpp logs; do not infer from requested tensor split alone.
+4. Use -fa on if supported/stable. Start b/ub 2048/2048, threads 14 unless evidence says current known-good differs.
+5. KV: start q8_0 K/V if supported and consistent with our Ornith methodology. Context capacity must not be confused with benchmark prompt length.
+
+B. PLACEMENT SWEEP — LAYER SPLIT ONLY FIRST
+We explicitly DO NOT want tensor parallel across x1 links initially.
+Keep ALL dense transformer weights in aggregate HBM if possible. Avoid CPU weight spill unless required.
+Use split-mode layer / llama.cpp equivalent and test a small coarse-to-refine sweep biased toward x16 card. Candidate weight ratios:
+  33/33/33
+  40/30/30
+  45/27.5/27.5
+  50/25/25
+Also test one asymmetric x1 distribution only if logs/topology suggest one riser behaves better.
+IMPORTANT: VRAM safety headroom >= ~300-400MB/card under load; reject configurations that spill or OOM.
+For each candidate:
+- same context/prompt, same seed/settings
+- PP and TG512 in same run where practical
+- record actual VRAM per GPU
+- PCIe RX/TX throughput per GPU/link during PP and TG (avg/peak or p95)
+- GPU utilization, clocks, temp, power (avg/peak)
+- CPU utilization
+- RAM bandwidth/traffic if available without destabilizing the run
+- wall time
+The decisive metric is TG with correctness maintained; PP is secondary but important.
+Use a modest screening prompt/context (8K or 16K) so sweep is fast. Coarse -> refine only around the best 1-2 splits.
+
+C. STRATA-LIKE CHECK
+The principle to test is locality, NOT the Strata software itself. Do not try to install/port Strata.
+Using telemetry/logs, determine whether layer split leaves the x1 GPUs mostly reading local HBM with only activation transfer between layer groups. Quantify PCIe traffic during TG. If x1 traffic is unexpectedly high, identify why.
+Compare best layer split against ONE tensor/split-mode-row/tensor attempt only if safe, as a negative/control measurement. Abort quickly if PCIe traffic or TG clearly collapses. No long tensor sweep.
+
+D. MTP
+After establishing the best non-MTP placement:
+1. Correctness gate MTP on the same smoke questions plus 2 slightly longer known-answer tasks.
+2. Enable native built-in MTP with --spec-type draft-mtp. If the build exposes a supported draft-n-max, test the model-card/default first; do not blindly force unsupported flags.
+3. Run TG512 non-MTP vs MTP A/B with identical settings.
+4. Report draft acceptance rate, accepted tokens, TG gain/loss, VRAM change, and correctness.
+5. If MTP hurts or behaves incorrectly, leave it off.
+
+E. CONTEXT CONFIRMATION ON FINALIST
+Once best placement (+/- MTP) is selected, run representative confirmations at:
+- 32K
+- 64K
+- 90K
+Use real prompt lengths close to those targets, not slope-only projection, unless a run is impossible; clearly label any projection.
+At each: PP + TG512, VRAM/headroom, RAM, PCIe traffic, GPU power/temp/utilization.
+128K is optional ONLY if the 90K run is healthy and doing it will not push total work past the >30min approval rule. Do not waste time if 32/64/90K already answer the question.
+
+F. QUALITY SANITY
+This is primarily a speed/placement test, not a full intelligence benchmark. Still, final configuration must answer the smoke/known-answer gate correctly and must not emit empty answers or uncontrolled think leakage. Do not run the full N-suite unless separately requested.
+
+FINAL REPORT — COMPACT BUT COMPLETE:
+Return one decisive table:
+configuration | actual layer/VRAM placement | context | PP tok/s | TG512 tok/s | MTP on/off + acceptance | VRAM 05/0c/0f | PCIe traffic | GPU power/temp | correctness
+
+Then state:
+1. WINNER exact llama-server/llama-bench command.
+2. Best split and why.
+3. Whether Strata-like locality is actually working on x16+x1+x1, based on measured PCIe traffic.
+4. 32K/64K/90K real results.
+5. MTP benefit or penalty.
+6. Any failure/instability.
+7. Comparison to the external reference: reviewer reported ~233 PP/~9.9 TG with CPU/RAM overflow at 128K and ~342-390 PP/~30 TG when squeezed to ~50K and GPU-resident. Do not treat different hardware as apples-to-apples; use only as context.
+8. Whether this Q4_K_M is practical on current GORAST NOW, with a clear YES/NO.
+9. Save scripts/logs/results with exact paths so the run is reproducible.
+
+REPORTING / BRIDGE:
+- You are the single executor/owner for this job. Do NOT create duplicate benchmark jobs on other agents.
+- Final result must be returned through the bridge/outbox for this message_id so ChatGPT/Supervisor receives it.
+- Also make the final compact report available to SOL and TERRA through the existing bridge/reporting mechanism if supported, but they must NOT independently rerun the benchmark.
+- If a decision is required (>30 min remaining after setup, destructive/ambiguous action, hardware instability), return immediately with decision_needed: yes and the exact reason.
