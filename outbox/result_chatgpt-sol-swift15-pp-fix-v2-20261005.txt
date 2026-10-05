@@ -1,0 +1,98 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-sol-swift15-pp-fix-v2-20261005
+target: CHATGPT
+source: SOL
+status: COMPLETE
+audience: CHATGPT, SUPERVISOR
+
+# Swift 1.5 Q4_K_M PP investigation v2
+
+## Executive conclusion
+
+The current practical PP ceiling is confirmed at about **140-141 tok/s** on CURRENT GORAST. The best reproducible result was **141.255 PP tok/s** using the isolated `GGML_SCHED_MAX_COPIES=1` build, b4096/ub256. This is only **+0.83%** versus the matched stock b4096/ub256 result (140.088), so it is not a meaningful speed improvement. `RADV_PERFTEST=nogttspill` produced 141.224 PP, showing the result did not depend on GTT spill.
+
+MAX_COPIES=1 reduced each Vulkan compute buffer from **93.09 MiB to 67.77 MiB** and the host compute buffer from **32.16 MiB to 11.79 MiB**, but recovered only **25.32 MiB** on the limiting GPU. That is far too little to solve the established 64K Q8 headroom failure. The required gates therefore correctly skipped the real 8K finalist and new 64K runs.
+
+## Clean results
+
+All rows used Vulkan layer split `33,40,26`, devices `Vulkan1,Vulkan2,Vulkan0`, main GPU 0, Q8 K/V, MTP off, FA on, threads/tb14, a real 2048-token prompt, TG512, and verified safe tuning. VRAM order is PCI `05/0c/0f`.
+
+| test | build | b/ub | PP tok/s | TG512 tok/s | load free MiB 05/0c/0f | PP min free MiB 05/0c/0f | PP peak GTT MiB 05/0c/0f | decision |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| ppv2-stock-b2048-ub1024 | stock | 2048/1024 | 133.698 | 13.087 | 3344.6/2230.8/1842.7 | 3319.2/2221.9/1833.7 | 143.1/59.8/64.8 | screen/control |
+| ppv2-stock-b2048-ub512 | stock | 2048/512 | 138.514 | 13.081 | 3528.7/2414.9/2026.7 | 3503.7/2406.0/2017.8 | 81.1/49.4/54.8 | screen/control |
+| ppv2-stock-b2048-ub256 | stock | 2048/256 | 140.055 | 13.182 | 3620.7/2506.9/2118.8 | 3591.3/2498.0/2109.8 | 50.1/43.4/48.6 | screen/control |
+| ppv2-stock-b2048-ub128 | stock | 2048/128 | 120.411 | 13.188 | 3666.7/2552.9/2164.8 | 3641.8/2543.8/2155.6 | 34.6/41.1/45.4 | screen/control |
+| ppv2-stock-b2048-ub64 | stock | 2048/64 | 90.226 | 13.182 | 3689.8/2575.9/2187.8 | 3665.3/2566.8/2178.6 | 26.8/40.6/39.1 | screen/control |
+| ppv2-stock-b4096-ub256 | stock | 4096/256 | 140.088 | 13.184 | 3620.7/2506.9/2118.8 | 3591.3/2498.0/2109.8 | 50.1/43.4/48.6 | screen/control |
+| ppv2-maxcopies1-b4096-ub256 | MAX1 | 4096/256 | 141.252 | 13.153 | 3646.1/2532.2/2144.1 | 3623.2/2523.3/2135.2 | 29.7/43.3/48.5 | best candidate |
+| ppv2-nogttspill-max1-b4096-ub256 | MAX1 | 4096/256 | 141.224 | 13.157 | 3646.1/2532.2/2144.1 | 3623.2/2523.3/2135.2 | 29.7/43.3/48.5 | matched nogttspill control |
+| ppv2-util-max1-b4096-ub256 | MAX1 | 4096/256 | 141.255 | 13.156 | 3646.1/2532.2/2144.1 | 3623.2/2523.3/2135.2 | 29.7/43.3/48.5 | winner telemetry repeat |
+
+## Timestamped three-GPU PP utilization
+
+Debugfs `amdgpu_pm_info` was sampled every 0.2 seconds from **2026-10-05T21:32:21.216525+00:00** through **2026-10-05T21:32:36.115968+00:00** during the matched winner PP phase: **75 samples**.
+
+| PCI GPU | topology | mean load | peak load | samples above 10% |
+|---|---|---:|---:|---:|
+| 0000:05:00.0 | x16, main | 23.59% | 100% | 19/75 |
+| 0000:0c:00.0 | x1 | 39.83% | 100% | 32/75 |
+| 0000:0f:00.0 | x1 | 44.97% | 100% | 36/75 |
+
+All three GPUs were above 10% load simultaneously in only **1/75 samples**. The one overlap sample was `2026-10-05T21:32:35.709018+00:00`, loads `05/0c/0f = 32/46/25%`. Activity is therefore predominantly sequential layer-group execution with brief pipeline overlap, rather than sustained three-GPU overlap. Raw evidence: `/home/ubuntu/swift15-q4km-20261005/ppv2-util-debugfs-timeline.jsonl`.
+
+## Scheduler-copy result
+
+Source revision: `7d8013f07cb8a563ece72123726d644c3037e838`. Stock definition is `ggml/CMakeLists.txt:188` (`4`); it becomes a compile definition in `ggml/src/CMakeLists.txt:4`; pipeline mode assigns it at `ggml/src/ggml-backend.cpp:2028`.
+
+Isolated configure command:
+
+```text
+cmake -S /home/ubuntu/llama-master -B /home/ubuntu/llama-master/build-vk-maxcopies1 -DGGML_VULKAN=ON -DGGML_SCHED_MAX_COPIES=1 -DCMAKE_BUILD_TYPE=Release
+```
+
+Build command:
+
+```text
+cmake --build /home/ubuntu/llama-master/build-vk-maxcopies1 --target llama-server -j 14
+```
+
+Matched delta: PP `140.088 -> 141.252` (+0.83%); limiting load headroom `2118.76 -> 2144.08 MiB` (+25.32 MiB); per-GPU compute buffer `93.09 -> 67.77 MiB`; host compute buffer `32.16 -> 11.79 MiB`. Model, KV, recurrent-state placement and 66/66 GPU offload were unchanged.
+
+## GTT-spill control
+
+The MAX1 winner with `RADV_PERFTEST=nogttspill` loaded and completed: **141.224 PP / 13.157 TG512**, versus **141.252 / 13.153** without the environment override. Load and PP free VRAM were identical within measurement resolution. The result is not explained by GTT spill.
+
+## Rejected and skipped results
+
+- ub128 and ub64 were clean runs but rejected as candidates: 120.409 and 90.228 PP. The PP collapse as ubatch shrank established the bad direction.
+- b4096/ub256 did not materially improve over b2048/ub256, so b8192 was not run.
+- MAX_COPIES=1 did not meet the meaningful speed or memory-recovery gate. The real 8K F16/MTP6 validation was therefore not run; the canonical result remains **140.297 PP / 22.826 TG512**.
+- No new 64K run was justified. The prior Q8/MTP6 load left about 50 MiB on 0f; applying the measured +25.32 MiB recovery would still leave roughly 75 MiB, about **325 MiB short** of the 400 MiB safety requirement. No rebalance or MTP7 was attempted.
+- There were no crashes, OOMs, GPU faults, or contaminated measurements in this sequence.
+
+## Exact winner command/build
+
+```text
+/home/ubuntu/llama-master/build-vk-maxcopies1/bin/llama-server -m /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf -ngl 999 -sm layer -ts 33,40,26 -dev Vulkan1,Vulkan2,Vulkan0 -mg 0 -c 3072 -b 4096 -ub 256 -t 14 -tb 14 -fa on -ctk q8_0 -ctv q8_0 --fit off -np 1 --host 127.0.0.1 --port 18175 --metrics --reasoning off --spec-type none --log-verbosity 5
+```
+
+This winner is a diagnostic PP configuration. It is not promoted over the established 8K F16/MTP6 production benchmark because the measured gain is below the meaningful threshold and it was not revalidated at 8K.
+
+## Remaining bottleneck and next engineering action
+
+Batch and ubatch tuning, scheduler copy count, and GTT spill are not the main PP bottleneck. The 0.2-second activity trace shows long alternating stage activity across the x16+x1+x1 layer groups and almost no sustained three-GPU overlap. The remaining limit is pipeline scheduling and synchronization around the two x1 stages.
+
+The single best next engineering action is to instrument Vulkan scheduler split/copy/event waits in `ggml-backend.cpp` for one 2K prompt, then remove the largest serialized wait or add safe stage overlap. More batch/ubatch sweeps are not justified by these measurements.
+
+## Preserved state and artifacts
+
+Production prior and final state: `ornith-server.service` inactive; no llama process remained. GPU tuning was verified before every run and was not altered.
+
+Primary artifacts:
+
+- `/home/ubuntu/swift15-q4km-20261005/pp-fix-v2-summary.json`
+- `/home/ubuntu/swift15-q4km-20261005/ppv2-*.command.json`, `.result.json`, `.server.log`, `.timestamped-telemetry.json`, `.load-memory.json`
+- `/home/ubuntu/swift15-q4km-20261005/ppv2-util-debugfs-timeline.jsonl`
+- `/home/ubuntu/swift15-q4km-20261005/maxcopies1-build-command.json` and `maxcopies1-build.log`
+- `/home/ubuntu/swift15-q4km-20261005/pp-fix-v2-prior-state.json` and `pp-fix-v2-final-state.json`
