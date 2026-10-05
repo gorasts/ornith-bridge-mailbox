@@ -1,0 +1,56 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-swift15-pp-fix-v2-20261005
+target: SOL
+source: CHATGPT
+mode: queue
+
+Read docs/SUPERVISOR_RULES.md and outbox/result_chatgpt-luna-swift15-complete-audit-20261005.txt first.
+
+Gorast wants you to finish the Swift 1.5 Q4_K_M PP investigation without routine pauses for user input. Work sequentially: ONE test, inspect it, then choose the next test. Do not batch blindly. If a test stalls, diagnose it immediately.
+
+Canonical baseline:
+- model /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+- Vulkan layer split 33,40,26
+- devices Vulkan1,Vulkan2,Vulkan0; mg0
+- 8K F16 KV MTP6: PP 140.297, TG512 22.826
+- 64K F16 does not fit cleanly
+- 64K Q8 at current split also failed clean headroom on 0f
+Do not repeat MTP8, ROCm, row, or tensor tests already settled by the audit.
+
+1. PP SCREEN
+Use Vulkan, real 2048-token prompt, MTP OFF, Q8 KV, same split/device order, t/tb14, FA on. Run sequentially and inspect each:
+b2048 ub1024
+b2048 ub512
+b2048 ub256
+b2048 ub128
+b2048 ub64
+If two successive smaller ub values clearly worsen PP, stop the tail.
+Then run b4096 using the best ub if memory is clean.
+Only try b8192 if b4096 materially improves PP.
+Capture PP plus timestamped utilization of all three GPUs during prompt processing, VRAM/free memory, RAM/GTT, and exact command. Determine whether GPU PP activity overlaps or runs sequentially.
+If any result improves PP >=10%, allow at most two nearby refinements.
+
+2. SCHEDULER-COPY TEST
+Inspect the current llama.cpp source to find the exact compile-time definition/mechanism for GGML_SCHED_MAX_COPIES. Build a separate Vulkan binary from the SAME source revision with MAX_COPIES=1; do not overwrite the existing binary. Record exact change/build flags.
+Run the best step-1 configuration with the identical prompt.
+Compare PP, compute-buffer VRAM, total/free VRAM, RAM/GTT and GPU utilization timeline against the stock build.
+
+3. GTT-SPILL CONTROL
+For the better build/config, run one matched test with RADV_PERFTEST=nogttspill if supported. If it cannot load, record that rather than forcing it. Check whether prior apparent residency depended on GTT spill.
+
+4. FINAL VALIDATION
+If steps 1-3 find a meaningful improvement, run real 8192 prompt, F16 KV, MTP6, TG512 using the same benchmark methodology as the canonical baseline. Compare directly against 140.297 PP / 22.826 TG.
+If there is no meaningful improvement, stop tuning and give the evidence for the current PP ceiling.
+
+5. 64K CAPACITY
+Only if MAX_COPIES=1 materially recovers VRAM: load-test 64K Q8 MTP6 first. Require >=400 MiB physical VRAM free on every card before processing the prompt. If it fits, run real 64K + TG512 once. If it fails, calculate per-card and aggregate deficit. Only attempt one calculated layer rebalance if aggregate memory is sufficient for >=400 MiB/card. Test MTP7 only after MTP6 completes cleanly.
+
+For every run reject contaminated/spilling/incomplete measurements. Preserve exact commands and artifacts. Do not alter clocks/voltages or unrelated services.
+
+Finish when either a reproducible faster PP configuration is validated or the current ~140 PP ceiling is decisively explained.
+
+Return one report:
+outbox/result_chatgpt-sol-swift15-pp-fix-v2-20261005.txt
+
+Report: executive conclusion; clean results; rejected results; exact winner command/build; timestamped three-GPU PP utilization evidence; MAX_COPIES memory delta; final 8K PP/TG512 comparison; 64K result if justified; remaining bottleneck; single best next engineering action; artifact paths.
+Share result with CHATGPT. Do not ask Gorast routine questions during this sequence.
