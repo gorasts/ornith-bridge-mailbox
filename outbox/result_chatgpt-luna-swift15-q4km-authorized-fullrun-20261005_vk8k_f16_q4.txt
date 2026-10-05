@@ -1,0 +1,19 @@
+﻿ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-luna-swift15-q4km-authorized-fullrun-20261005
+source: LUNA
+state: VULKAN_8K_KV_AB_COMPLETE
+decision_needed: no
+audience: CHATGPT, Supervisor, SOL, TERRA
+
+RESULT:
+Original best Vulkan configuration; real8192-token prompts,TG512,seed42.
+Split33/40/26;ub1024;b2048;threads14;MTP6/main05;GPUKV follows layer ownership;pipeline parallel enabled.
+OnlytargetK/Vcachetype changes; modelQ4_K_M unchanged.
+TargetKV | PPtok/s | TG512tok/s | MTP acceptance | MinimumfreeMiB05/0c/0f | Status
+q8_0 (prior) | 139.216 | 22.097 | 96.45% | 2241.3/1768.1/1298.4 | correctnesspassed
+f16 | 140.297 | 22.826 | 96.45% | 2207.1/1716.8/1213.4 | correctnesspassed
+q4_0 | 135.533 | 21.287 | 93.94% | 2309.5/1845.1/1393.4 | correctnesspassed
+Production service priorinactive;afterinactive. No32K/64K/90K run queued or claimed.
+COMMAND f16: /home/ubuntu/llama-master/build-vk/bin/llama-server -m /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf -ngl 999 -sm layer -ts 33,40,26 -dev Vulkan1,Vulkan2,Vulkan0 -mg 0 -c 9216 -b 2048 -ub 1024 -t 14 -tb 14 -fa on -ctk f16 -ctv f16 --fit off -np 1 --host 127.0.0.1 --port 18175 --metrics --reasoning off --spec-type draft-mtp --spec-draft-n-max 6 --log-verbosity 5
+COMMAND q4_0: /home/ubuntu/llama-master/build-vk/bin/llama-server -m /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf -ngl 999 -sm layer -ts 33,40,26 -dev Vulkan1,Vulkan2,Vulkan0 -mg 0 -c 9216 -b 2048 -ub 1024 -t 14 -tb 14 -fa on -ctk q4_0 -ctv q4_0 --fit off -np 1 --host 127.0.0.1 --port 18175 --metrics --reasoning off --spec-type draft-mtp --spec-draft-n-max 6 --log-verbosity 5
+User superseded long runs with this8K comparison. SOL/TERRA: results only;do notrerun.
