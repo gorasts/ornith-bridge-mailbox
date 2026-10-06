@@ -1,0 +1,218 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-sol-postoffline-full-handoff-20261006
+source: TERRA
+state: COMPLETE
+
+RESULT:
+[Bridge workspace: C:\Users\XEON2\Desktop\OrnithBridge - mailbox repo gorasts/ornith-bridge-mailbox (main), regardless of this chat's project folder. The full task is in this message. Never write in any *\repo_cache; publish your result to outbox/ from your own clone as usual.]
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-postoffline-full-handoff-20261006
+target: SOL
+source: CHATGPT
+
+SOL â€” FULL POST-OFFLINE ENGINEERING HANDOFF FROM GORAST/CHATGPT
+
+This is the state/report of work performed after you went offline. Treat measured results as authoritative where marked VERIFIED. Do not make Gorast rediscover these settings. Where a value is historical/recovered rather than freshly revalidated, it is labeled accordingly.
+
+1. LAST STATE WHEN YOU WERE ONLINE
+Your last autonomous TP task was the Swift 1.5 Vulkan pin-root investigation:
+- Worktree /home/ubuntu/llama-tp-vulkan
+- Model /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+- 3x Vega64 Vulkan, layer split 29,33,38, device order Vulkan1,Vulkan2,Vulkan0, -mg0
+- ctx9216, B2048, UB128, T/TB14, FA on, F16 KV, fit off, np1, metrics, reasoning off, draft-mtp max6
+- TP plateau ~213.6 PP; serialized Vulkan baseline ~141.25 PP
+- profiler had split1->2 2,621,440-byte readback ~7 ms, split2->3 same transfer ~373-393 ms/wave
+- runtime pin probe at PP=213.591: calls417, pinned115, unpinned302, target 2,621,440 pinned107/unpinned106, errors2, verdict CONFIRMED_UNPINNED
+- next job was prove whether device-specific Vulkan host registration caused split2->3 unpinned fallback; never remove synchronization blindly.
+
+2. TURBOPREFILL BREAKTHROUGH AFTER THAT
+VERIFIED winner state to preserve:
+- Backend: Vulkan, 3 Vegas
+- split: 29/33/38
+- B8192 / UB128
+- TurboPrefill active
+- real prompt: 7,501 tokens
+- PP = 242.857 tok/s
+- 57 TurboPrefill ubatches
+- no GPU faults in the winning run
+- this is the ~240 PP milestone Gorast is referring to.
+This superseded the old ~213.6 PP plateau and represented about +13.1% versus the ~214.8 B2048 baseline in that branch.
+
+Additional measured longer-prompt results recorded after the breakthrough:
+- ~16.5K: TP PP 236.879 vs comparison 117.680 PP, ~2.013x.
+- 32K: PP 214.769 tok/s, TG 12.790 tok/s, MTP acceptance 52.4%.
+Preserve these as post-breakthrough measurements; if exact log provenance is needed, locate the tp_* / winner-real artifacts before changing anything.
+
+3. IMPORTANT TP ARTIFACT LINEAGE
+Do not delete/overwrite the experimental evidence. Relevant /home/ubuntu artifacts include families named:
+- tp_split_*
+- tp_stage_*
+- tp_store_*
+- tp_transition*
+- tp_vulkan2_opprofile*
+- tp_vulkan2_queueprobe*
+- tp_ub64*
+- tp_ub128*
+- tp_vk_*
+- turboprefill_inspect.txt
+- uv_sweep.*
+- winner-real.*
+These encode the path from the ~213 PP plateau to the ~243 PP winner.
+
+Settled lessons:
+- equal 33/33/33 is not automatically optimal because PCIe topology is asymmetric.
+- explored nearby/skew splits included 30/32/38, 30/33/37, 37/31/31, 37/34/28 and others.
+- excessive skew can collapse PP; one ~45/27.5/27.5 case was ~47.7 PP.
+- earlier equal-ish/ordinary Vulkan candidates were typically mid-140s PP before TP work.
+- ROCm was not automatically faster; one clean comparison was roughly ROCm117 vs Vulkan131 PP.
+- custom attention/KV placement regressed in one branch (~81 PP).
+- deeper MTP had a cliff, not monotonic benefit.
+- STORE whole-wave deferral failed graph dependencies; STORE traversal reversal was flat. Do not repeat.
+- naive graph deep-queue/overlap is unsafe because saved UB graph snapshots hold live tensor/node pointers and replay mutates metadata.
+
+4. GORAST 3-VEGA HARDWARE TOPOLOGY â€” DO NOT FORGET
+3x RX Vega64 8GB HBM2.
+- PCI 05:00.0 = good/full PCIe path.
+- PCI 0c:00.0 and 0f:00.0 = constrained paths; endpoint may report x16 but upstream bridge path is effectively PCIe2 x1.
+This is why placement/split direction matters and why symmetric distribution can lose.
+
+RAM ~80GB (2x32 + 2x8), measured copy bandwidth ~52GB/s; only part is truly four-channel.
+
+5. AMDGPU/GTT KERNEL CONFIG
+Intentional large-GTT setup:
+- amdgpu.ppfeaturemask=0xffffffff
+- amdgpu.gttsize=69632
+- ttm.pages_limit=17825792
+- ttm.page_pool_size=7340032
+- amdgpu.lockup_timeout=60000,180000,60000,60000
+Approx 68GB GTT. Do not casually revert it.
+
+6. GPU TUNING / UNDERVOLT
+Established three-card family:
+- core approximately 1600 / 1536 / 1600 MHz across the three Vegas
+- ~900mV core
+- HBM 1000 MHz
+- HBM high state intentionally maintained; idle 167 MHz collapse was undesirable during useful work.
+Freshly observed today on faulting PCI 0f:00.0 / card2:
+OD_SCLK:
+P0 852@800mV
+P1 991@900
+P2 1084@900
+P3 1138@900
+P4 1200@900
+P5 1401@900
+P6 1600@900
+P7 1600@900
+OD_MCLK:
+P0 167@800
+P1 500@800
+P2 800@950
+P3 1000@900
+At idle after cleanup: core 852 MHz, HBM 1000 MHz, load0%, temps about 25/26/24-25C, fan ~2880 RPM.
+Do not confuse older HBM voltage experiments with this current conservative state.
+
+7. ORNITH 3-GPU CONFIG RECOVERED AFTER YOU WENT OFFLINE
+Recovered from prior benchmark artifacts:
+Model:
+/opt/testmodels/models/Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS.gguf
+Exact recovered arguments:
+-dev Vulkan0,Vulkan1,Vulkan2
+-ts 0.8,1,1
+-ngl 99
+-c 131072
+-b 2048
+-ub 2048
+-ctk q8_0
+-ctv q8_0
+-fa on
+-t 14
+-tb 14
+--load-mode dio
+-np 1
+--jinja
+--no-webui
+Binary used:
+/opt/llama/llama-b10919/llama-server
+Test port 18176.
+Important: this recovered config contains NO MTP/spec flags and NO n-cpu-moe. Do not silently add them.
+
+8. TODAY'S REAL-WORLD 32K ORNITH ATTEMPT â€” INVALID RESULT / IMPORTANT FAULT
+Real corpus:
+/home/ubuntu/realwork-01.md
+Tokenizer count = 37,556 tokens.
+Benchmark selected first 32,768 tokens and requested TG512, temperature0, cache_prompt false, ignore_eos true.
+
+The run was catastrophically slow:
+- at 2,048 prompt tokens: 5.66 tok/s, ~362 s
+- at 4,096: 7.08 tok/s, cumulative ~578.78 s for that checkpoint
+This is NOT valid performance evidence and was aborted.
+
+Kernel diagnosis found repeated AMDGPU faults specifically on PCI 0000:0f:00.0, across two separate llama-server PIDs:
+- [mmhub0] no-retry page fault
+- VM_L2_PROTECTION_FAULT_STATUS 0x00800030
+- Faulty UTCL2 client ID MP0
+- PERMISSION_FAULTS 0x3
+- MAPPING_ERROR 0x0
+- RW 0x0
+Observed for llama-server PIDs 2215396 and 2232855 in the logs.
+Conclusion: do NOT blame the ~7 PP on ordinary PCIe slowness; the run was operating with a real AMDGPU memory/protection failure on 0f.
+
+After abort:
+- all llama-server and ornith32k benchmark processes were killed.
+- only a defunct/zombie llama-server process-table entry remained temporarily; no active workload.
+- card0/card1/card2 all reported 0% GPU busy.
+- VRAM released to roughly 8 MiB / 16 MiB / 8 MiB used respectively out of ~8GB each.
+- faulting 0f card's tuning/thermals looked normal at idle, so current evidence does NOT prove a physically dead Vega. Suspect runtime/memory path (DIO/Vulkan/multi-GPU/GTT/driver interaction) until isolated.
+
+DO NOT rerun the 32K Ornith benchmark until the 0f fault is isolated.
+
+9. BENCHMARK / OPERATIONAL RULES RELEARNED THE HARD WAY
+Gorast lost time today to orchestration/quoting failures. Preserve these rules:
+- Do NOT pipe benchmark Python through SSH stdin with python3 -.
+- Do NOT use giant nested PowerShell->SSH heredocs or deeply nested python3 -c quoting.
+- Put benchmark code in a real .py file, SCP it, then execute the file remotely.
+- Server stdout/stderr must go to /home/ubuntu/llama-live.log so permanent monitor works.
+- Windows live monitor known-good form:
+  ssh.exe -i C:\Users\XEON2\.ssh\gorast_ed25519 ubuntu@192.168.100.116 "tail -n 30 -F /home/ubuntu/llama-live.log"
+- TG512 minimum for representative generation benchmarks.
+- One experiment -> inspect -> decide. No broad autonomous sweep after a bad result.
+- Every benchmark should end with compact FINAL RESULT: prompt_n, PP, TG, draft acceptance, TurboPrefill timing/state, GPU mean/telemetry, overlap if applicable, errors.
+- Real prompt must not be duplicated/padded if short. Abort instead.
+- Health checks must show ALL THREE cards compactly: PCI mapping, configured/current core, HBM, voltage, temp, fan, power/load, VRAM and recent faults. Do not dump raw sysfs spam at Gorast.
+- Before drawing conclusions from a slow run, inspect kernel AMDGPU faults and actual GPU state.
+
+10. OLDER ORNITH PRODUCTION CONTEXT STILL RELEVANT
+Historical single-GPU production lineage:
+- /opt/ornith-models/ornith-ad-q4k-iq4xs-mtp.gguf
+- clean backbone /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+- standalone draft /opt/ornith-models/shisa12k-mtp-standalone.gguf
+Known production work centered around CTX131072, B/UB2048, T/TB14, FA on, MTP1, np1 and careful CPU-MoE placement.
+Do not conflate this Q4 production branch with today's recovered 3-GPU IQ3 configuration.
+
+11. WHAT SOL SHOULD DO ON RESUME
+FIRST: ingest this handoff and inspect existing logs/artifacts. Do not rerun settled work.
+SECOND: preserve the ~242.857 PP Swift winner and its exact artifacts/config before modifying TP source.
+THIRD: if continuing Ornith, isolate 0f:00.0 failure with the smallest controlled test before any long 32K run. Determine whether fault follows physical GPU, Vulkan device index/order, DIO, split placement, or GTT/memory path.
+FOURTH: keep one-change-per-test discipline and TG512 for final validation.
+FIFTH: report any discrepancy between this handoff and on-disk logs before changing the known-good state.
+
+Gorast explicitly asked that all the hours of debugging, corrections, settings and winner state be preserved so he is never forced to rediscover them. Treat this as a continuity handoff, not a request to start a fresh optimization sweep.
+
+Please reply through the bridge confirming you received and ingested this handoff, and state the exact winner/config and the 0f fault in your confirmation.
+Yes — that is the
+actual bridge payload that reached the desktop side
+, not a reconstruction.
+So the route is working correctly:
+ChatGPT →
+gorasts/ornith-bridge-mailbox
+→
+inbox/msg_chatgpt-sol-postoffline-full-handoff-20261006.txt
+→ desktop bridge → Sol.
+Now we wait for Sol's
+outbox/result_chatgpt-sol-postoffline-full-handoff-20261006.txt
+response. That response should confirm he ingested the handoff and repeat back the
+242.857 PP winner
+and the
+MMHUB/UTCL2 fault
+.
+Ask ChatGPT
