@@ -1,0 +1,81 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-swift15-vulkan2-op-gpu-profile-20261006
+source: SOL
+target: CHATGPT
+status: BOUNDARY_REACHED
+decision_needed: yes
+
+EXECUTIVE CONCLUSION
+No operator-cost result is reported because the existing Vulkan GPU timestamp profiler is incompatible with TurboPrefill's multiple in-flight command contexts. It owns one backend-level query pool and asserts that ctx->compute_ctx is expired at each profiled graph. TP intentionally retains/reuses outstanding compute contexts across pipelined split graphs, so the profiler aborts before it can safely produce timestamps. A request-gated retry reached requested=1 active=1, then failed on the first pipelined TP graph at the same guard. Inferring operator cost from CPU enqueue time would violate the task. A correct solution requires per-command-buffer query ownership and deferred result collection, which is a materially new >30-minute backend branch.
+
+EXISTING INFRASTRUCTURE INSPECTED
+- ggml/src/ggml-vulkan/ggml-vulkan.cpp already contains GPU timestamp queries under GGML_VK_PERF_LOGGER.
+- It writes timestamps around dispatched nodes/fusions and aggregates operator shape/name, count, total GPU time, and mean.
+- It stores query_pool/query_idx/query metadata in ggml_backend_vk_context (one per backend), resets the pool for each graph, asserts ctx->compute_ctx.expired(), then submits and synchronously waits a fence before reading results.
+- This lifecycle is valid only when one graph exclusively owns the backend compute context/query pool.
+
+BOUNDED ATTEMPTS
+1. Existing profiler with high aggregation frequency and a device-index output label:
+   - server aborted during model warmup/capacity work;
+   - assertion: ggml-vulkan.cpp graph_compute, GGML_ASSERT(ctx->compute_ctx.expired());
+   - server exit -6; no benchmark run; no GPU fault/device-lost signature.
+2. Same profiler with --no-warmup:
+   - aborted during common_context_can_seq_rm/capacity check at the same assertion;
+   - no TP benchmark; no operator timestamps.
+3. Request-gated profiler, inactive during load/reservation and enabled only while /home/ubuntu/tp_measure_active existed:
+   - loading succeeded;
+   - exact request reached TurboPrefill requested=1 active=1, n_tokens=2048, UB128;
+   - first pipelined TP graph hit the same ctx->compute_ctx.expired assertion;
+   - connection closed, server exit -6; no PP/correctness result and no valid operator aggregate.
+
+WHY THE SIMPLE PROFILER CANNOT BE PATCHED SAFELY
+- Reusing the outstanding ctx->compute_ctx would mix commands from different TP graphs and make operator attribution invalid.
+- Resetting the single query pool while prior submissions are pending is invalid.
+- Forcing a global synchronize/submit before each graph would change TP scheduling, destroy pipeline behavior, and still misattribute commands already present in the context.
+- Removing the assertion without changing ownership would risk query reuse, command-buffer lifetime violations, or corrupt timing.
+
+SMALLEST SAFE PROFILING DESIGN (>30 MINUTES)
+1. Add a profiling record to each in-flight vk_context/command-buffer slot, not ggml_backend_vk_context globally.
+2. Allocate a dedicated query-pool range (or pool) per profiled TP graph/UB context: n_fused_dispatches+1 timestamps.
+3. When split2/Vulkan2 graph recording begins, write a start timestamp and one timestamp after each fused dispatch. Capture immutable metadata per query: op type, fusion name, tensor name, parsed layer number when present, and UB/stage ID.
+4. Attach the query allocation and metadata to the command context until its existing authoritative compute_done/event/fence completes. Never reset/reuse its queries while pending.
+5. Collect query results only after the normal TP completion event is known complete; do not insert a new global wait in graph_compute.
+6. Aggregate compactly by op/fusion and layer/group: calls, total GPU ms, mean GPU ms, and percent of split2 total. Record first/last graph timestamps to reconcile with the independently measured 363.778 ms service interval.
+7. Use a bounded ring sized to the actual in-flight TP copies/UB slots; free query pools only after all associated events complete.
+8. Gate collection to split2/Vulkan2 and the measured request so model load, reserve graphs, and other devices remain untouched. Split1/split3 totals can use start/end graph timestamps only.
+
+LIFETIME / STORAGE CONSTRAINTS
+- Query pools/ranges, node metadata, and graph labels must outlive command submission until completion.
+- TP saved UB snapshots contain live tensor/node pointers and replay mutates live metadata; profiler records must copy names/op/layer identifiers instead of retaining pointers for later aggregation.
+- Query ownership must follow the same in-flight command-buffer/copy slot as activation storage; one global pool/index is unsafe.
+- Result collection must respect Vulkan timestamp valid bits/period and handle fused dispatches consistently with existing vk_perf_logger naming.
+
+EXPECTED OUTPUT AFTER APPROVAL
+- Top split2 ops/layers by GPU total and percentage.
+- Split2 GPU timestamp span reconciled against 363.778 ms mean critical compute.
+- Lightweight split1/split3 graph-span totals for stage balance.
+- One evidence-based layer-placement or kernel experiment; no retuning in the profiling branch itself.
+
+ARTIFACTS
+- /home/ubuntu/tp_vulkan2_opprofile.patch
+- /home/ubuntu/tp_vulkan2_opprofile_build.log
+- /home/ubuntu/tp_vulkan2_opprofile.server.log
+- /home/ubuntu/tp_vulkan2_opprofile.result.txt
+- /home/ubuntu/tp_vulkan2_opprofile_nowarmup.server.log
+- /home/ubuntu/tp_vulkan2_opprofile_nowarmup.result.txt
+- /home/ubuntu/tp_vulkan2_opprofile_gated.patch
+- /home/ubuntu/tp_vulkan2_opprofile_gated_build.log
+- /home/ubuntu/tp_vulkan2_opprofile_gated.server.log
+- /home/ubuntu/tp_vulkan2_opprofile_gated.result.txt
+- /home/ubuntu/tp_vulkan2_opprofile_restore_build.log
+- preserved checkpoint: /home/ubuntu/tp_perdevice_hostfix_focused.patch
+
+FINAL SOURCE / BUILD STATE
+- Temporary profiler label/gating changes removed: OPPROFILE_PROBES_PRESENT=NO.
+- Clean successful per-device host-memory patch remains applied.
+- RESTORE_BUILD_RC=0; git diff --check RC=0.
+- No llama-server benchmark process remains (the pgrep output only matched the restore shell command itself).
+- Production build/config untouched.
+
+FINAL RESULT
+top_operators=not_measured_safely; reference_split2_compute=363.778ms; profiler_failure=single_backend_query_pool_incompatible_with_inflight_TP_contexts; gated_run_TP_active=1_before_assert; PP=not_available; faults=0_device_fault_signatures; restored=yes; production_untouched=yes; decision_needed=yes; reason=per-command-buffer_query_ownership_and_deferred_collection_is_a_new_over_30_min_backend_branch.
