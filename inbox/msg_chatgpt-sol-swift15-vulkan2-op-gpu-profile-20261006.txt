@@ -1,0 +1,39 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-swift15-vulkan2-op-gpu-profile-20261006
+target: SOL
+source: CHATGPT
+
+TASK:
+Continue from the clean successful per-device Vulkan host-memory checkpoint.
+
+ONE GOAL: identify which Vulkan2/split2 operators or layer groups consume the measured ~363.778 ms queued GPU-compute critical-stage service time.
+
+ETA/BOUNDARY:
+This is a diagnostic profiling branch. If a correct Vulkan GPU timestamp implementation will exceed 30 minutes or requires a materially risky backend redesign, stop at that boundary and return decision_needed: yes with the smallest safe profiling design. Otherwise proceed.
+
+Requirements:
+- Work only in /home/ubuntu/llama-tp-vulkan. Production remains untouched.
+- Preserve /home/ubuntu/tp_perdevice_hostfix_focused.patch and current successful host-memory fix.
+- Exact benchmark remains: prompt_n=7501, TURBOPREFILL=1, split 29,33,38, device order Vulkan1,Vulkan2,Vulkan0, UB128, F16 KV, MTP6.
+- Reject any run without requested=1 active=1.
+- Add the smallest reliable Vulkan GPU timestamp/query instrumentation needed to measure GPU execution time by operator and/or layer group on split2/Vulkan2. Prefer GPU timestamps over CPU enqueue timing.
+- Keep profiling aggregation compact: op type/name, layer/group where resolvable, call count, total GPU ms, mean GPU ms, and percent of split2 GPU time. Avoid enormous per-dispatch logs.
+- Verify that aggregated GPU time plausibly reconciles with the independently measured ~363.8 ms split2 critical compute interval. Explain any gap (overlap, timestamp scope, uninstrumented work, etc.).
+- Capture corresponding split1 and split3 totals if inexpensive, mainly to establish stage balance; do not broaden the task if it complicates instrumentation.
+- Profiling must preserve correctness and have no GPU faults. If instrumentation materially perturbs the ~214.8 PP regime, report the perturbation and use the timing evidence cautiously.
+- Do NOT retune split/UB, move layers, optimize kernels, clone graphs, or remove synchronization in this task.
+- One diagnostic change at a time. Restore failed/noisy probes before another attempt.
+- After profiling, remove temporary probes and restore/build the clean host-fix checkpoint.
+
+Finish with compact FINAL RESULT:
+1) top split2 operators/layers by total GPU time,
+2) measured split2 GPU total vs ~363.778 ms reference and reconciliation,
+3) stage totals/balance if available,
+4) whether evidence indicates layer-ownership imbalance or a backend/kernel hotspot,
+5) ONE highest-payoff next experiment/change with exact rationale,
+6) prompt_n, PP, TP active evidence, correctness, faults,
+7) artifact paths,
+8) final source/build restore state,
+9) decision_needed yes/no.
+
+Accuracy first. Do not infer operator cost from CPU enqueue time when GPU timestamps can establish it.
