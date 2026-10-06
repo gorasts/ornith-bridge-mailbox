@@ -1,0 +1,65 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-swift15-tp-pinroot-autonomous-20261006
+target: SOL
+source: CHATGPT
+
+Continue the Swift 1.5 TurboPrefill Vulkan optimization on GORAST autonomously. Gorast will watch but should not be needed unless a genuinely destructive/risky decision or >30 min new branch of work is required.
+
+CURRENT VERIFIED STATE
+- Worktree: /home/ubuntu/llama-tp-vulkan
+- Source has just been restored after the pin probe.
+- Verified by user:
+  RESTORE_BUILD_RC=0
+  PIN_PROBE_PRESENT=NO
+  SOURCE_CLEAN=YES
+- Do NOT touch production llama build/config.
+- TP binary/build target is build-vk/bin/llama-server.
+- Model: /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+- Baseline TP config: 3x Vega64 Vulkan; -sm layer -ts 29,33,38 -dev Vulkan1,Vulkan2,Vulkan0 -mg0 -c9216 -b2048 -ub128 -t14 -tb14 -fa on -ctk f16 -ctv f16 --fit off -np1 --metrics --reasoning off --spec-type draft-mtp --spec-draft-n-max6
+- Stable TP PP plateau ~213.6 tok/s. Serialized Vulkan baseline ~141.25 PP.
+- Earlier definitive profiler: split1->2 2,621,440-byte readback steady ~7 ms; split2->3 same bytes ~373-393 ms every wave. Stall is inside ggml_backend_sched_tp_tensor_get_to_ram_async().
+- Whole-wave STORE deferral failed graph dependencies. STORE traversal reversal was flat. Do NOT repeat those.
+- Saved UB graph snapshots hold live tensor/node pointers; replay mutates live tensor metadata. Do NOT implement naive deep queueing/graph overlap without independent graph + activation state.
+- Current new runtime pin probe at PP=213.591:
+  probe_calls=417
+  pinned_calls=115
+  unpinned_calls=302
+  target_2621440_pinned=107
+  target_2621440_unpinned=106
+  errors=2
+  verdict CONFIRMED_UNPINNED.
+- Vulkan source behavior already established: ggml_vk_buffer_read_2d_async calls ggml_vk_host_get(src->device,dst,...). If destination is recognized pinned, it queues copyBuffer and returns true without CPU synchronize. If not pinned and sync_staging=false, it returns false, causing fallback. Never patch out ggml_vk_synchronize blindly.
+
+GOAL
+Find and fix why the 2,621,440-byte TP activation destinations are recognized as pinned for roughly half the calls and unpinned for roughly half, especially determine whether the pathological split2->3 transfers are the unpinned group. A strong hypothesis is device-specific Vulkan host registration: TP pinned arena may be allocated/registered against one Vulkan device, while ggml_vk_host_get checks the source device's host-buffer registry. PROVE OR DISPROVE THIS before changing allocation.
+
+WORK METHOD — STRICT
+1. One experiment at a time: inspect -> hypothesis -> smallest reversible test -> inspect result -> decide next.
+2. Do not launch broad sweeps. Do not repeat already-settled split/UB/MTP tuning.
+3. Before each source edit create a backup/diff. After each experiment restore source and rebuild unless the change is explicitly selected as the next candidate patch.
+4. Every test must finish with a compact FINAL RESULT containing at minimum: experiment, prompt_n, PP, relevant pin/copy counters/timings, errors, restore build rc/source-clean status.
+5. Use prompt_n=7501 for PP comparability. Do not spend time on TG yet; old TP/MTP decode compatibility is a later task.
+6. Preserve logs and patches under /home/ubuntu with descriptive tp_* names.
+7. No production modifications.
+8. Do not ask Gorast to paste commands/results if you can execute/read them yourself through the desktop/bridge environment.
+9. Accuracy over speed. Never claim a result without log evidence.
+10. If a test fails, restore clean state first, diagnose, then continue.
+
+IMMEDIATE NEXT INVESTIGATION
+A. Inspect TP pinned-arena allocation and ggml_backend_sched_tp_tensor_get_to_ram_async implementation. Identify which backend/device owns the host allocation.
+B. Inspect ggml_vk_host_get and Vulkan host allocation registry semantics: is registration device-specific?
+C. Correlate pin status with TP transition. Best minimal instrumentation should tag the TP call with split index/target or destination bank identity, and correlate with Vulkan pinned=0/1. We need definitive counts such as split1->2 pinned/unpinned and split2->3 pinned/unpinned, plus timing if useful.
+D. If split1->2 is pinned and split2->3 unpinned as expected, make the smallest correct fix at the TP allocation/registration layer. Prefer making TP host memory legitimately async-readable from every source Vulkan device rather than weakening synchronization.
+E. Re-run exact 29/33/38 UB128 7501-token benchmark. Success criterion is elimination of ~385 ms split2 STORE stalls and a material PP increase above ~213.6, while preserving correctness and zero Vulkan faults.
+F. Only after a successful candidate, validate repeatability at least twice and inspect GPU overlap/utilization.
+G. Then report back with exact before/after PP, stall timings, correctness/errors, patch/diff, and whether source is left patched or restored.
+
+IMPORTANT SAFETY/CORRECTNESS
+- Never remove synchronization from the unpinned staging fallback.
+- Do not assume the mixed 107/106 counts map to stage transitions until instrumented.
+- The correct fix may require host memory registered/allocated for multiple Vulkan devices or per-transition pinned banks. Inspect backend APIs before designing it.
+- Do not sacrifice model quality/context configuration for this PP investigation.
+- Keep F16 KV and MTP6 for comparable PP tests.
+- User's longer-term target is substantially faster Swift than Ornith with >=90K usable context, but current priority is PP architecture, not context fitting.
+
+Send a bridge result when you have a decisive finding or need Gorast/ChatGPT intervention.
