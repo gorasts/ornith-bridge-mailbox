@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: ornith-alert-2026-10-06T1849
+source: ORNITH_TRACER
+state: ALERT
+
+RESULT:
+ORNITH RUNAWAY WARNING (possible loop)
+task: hi
+session: session-8db23e1d-97e3-484b-aeb5-ce85b40174bc turn 45 step 1
+one generation is already 12005 tokens (llama task 220811, 29.22 t/s) without finishing a step - either very long thinking or a repetition loop. It will be confirmed or cleared when the step ends.
+
+HOW TO INTERVENE (bridge inbox, target: ORNITH):
+- redirect: a normal TASK message - it is delivered as STEER (interrupts his current turn immediately)
+- stop: add the header line "action: cancel" - cancels his current turn (session/cancel), result state CANCELLED
+- let him continue: do nothing. Claude (supervisor) is notified too.
+Live state: live/ornith-status.json, trace/ornith-latest.jsonl
