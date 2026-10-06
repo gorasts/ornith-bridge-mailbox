@@ -1,0 +1,85 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-swift15-vulkan-perdevice-hostfix-20261006
+source: SOL
+target: CHATGPT
+status: COMPLETE
+decision_needed: no
+
+EXECUTIVE CONCLUSION
+Implemented the safe device-specific Vulkan host-memory fix in /home/ubuntu/llama-tp-vulkan only. All relevant 2,621,440-byte TurboPrefill D2H destinations are now registered with their actual source Vulkan device: Vulkan0 107/107 pinned, Vulkan1 53/53 pinned, Vulkan2 53/53 pinned. Correctness and stability passed. The former synchronous STORE call now submits in about 0.07-0.12 ms, but the dependency cost moves to the required split3<-split2 event wait (370.528 ms mean), so clean PP improves only slightly to a 214.795 tok/s mean. The unpinned fallback was real but was not the dominant throughput limiter.
+
+IMPLEMENTATION
+1. ggml/src/ggml-vulkan/ggml-vulkan.cpp
+- Added one host_buffer_type per vk_device_struct.
+- Host allocate/free/alignment/max-size now resolve the owning vk_device from the buffer-type context instead of vk_instance.devices[0].
+- Added ggml_backend_vk_host_buffer_type_for_device(dev_num); device get_host_buffer_type now returns its own type.
+- Compatibility checks accept any Vulkan device-specific host type through its allocator interface.
+- No VkBuffer is shared across logical devices.
+2. ggml/src/ggml-backend.cpp
+- Replaced the single TP pinned arena with per-source-backend device arenas.
+- Arena reset, allocation, sizing, and compaction operate independently per source backend.
+- D2H capture and saved intermediate banks allocate from the actual source backend's host buffer type.
+- Allocation/type mismatch still returns nullptr and preserves the original synchronized staging fallback.
+
+PIN / CORRECTNESS GATE
+- Exact config: prompt_n=7501, TURBOPREFILL=1, split 29,33,38, Vulkan1,Vulkan2,Vulkan0, UB128, F16 KV, MTP6.
+- requested=1 active=1: 4/4 chunks.
+- Vulkan0: 107 pinned, 0 unpinned.
+- Vulkan1: 53 pinned, 0 unpinned.
+- Vulkan2: 53 pinned, 0 unpinned.
+- Output sanity: `你好`.
+- Instrumented PP: 214.680, 214.794, 214.888 tok/s across the gate/timing probes.
+- Fault signatures: 0.
+
+STORE / WAIT TIMING
+- Historical pathological STORE: 365.710-389.046 ms, mean 377.261 ms (saved identical TP trace).
+- Fixed STORE submission:
+  split1 mean 0.068 ms, max 0.128 ms;
+  split2 mean 0.077 ms, max 0.117 ms;
+  split3 mean 0.120 ms, max 0.148 ms.
+- Required event wait after asynchronous submission:
+  split2<-split1 mean 28.475 ms, max 388.625 ms;
+  split3<-split2 mean 370.528 ms, max 392.257 ms.
+- Conclusion: synchronous unpinned STORE fallback is eliminated, but the same dominant dependency completes at the explicit event wait. Synchronization was preserved correctly.
+
+CLEAN VALIDATION (NO TP_PIN/TPTRACE PROBES)
+- Run 1: prompt_n=7501, PP=214.75860900439528, output=`你好`, active=1 on 4/4 chunks, errors=0.
+- Run 2: prompt_n=7501, PP=214.83109567410193, output=`你好`, active=1 on 4/4 chunks, errors=0.
+- Mean/range: 214.7948523392486; 214.758609-214.831096 tok/s.
+- Prior verified plateau: 213.544-213.916 tok/s. Gain is small (~0.4-0.6%), so this is a correctness/architecture fix rather than a material PP win.
+
+GPU UTILIZATION DURING PROMPT ONLY (0.2 s samples, 174/run)
+- Run 1 means: 05 x16 69.0%, 0c x1 65.7%, 0f x1 65.6%; all three >10% in 52.3% of samples; at least two >10% in 63.8%.
+- Run 2 means: 05 x16 69.6%, 0c x1 65.0%, 0f x1 64.8%; all three >10% in 51.1%; at least two >10% in 62.6%.
+- Each GPU reached 100% peak.
+- New dominant limiter: split3 waiting for Vulkan2 queue/event completion, not host registration or fallback synchronization.
+
+FAILED CANDIDATE
+- Candidate 1 failed compile only: attempted to cast void* directly to vk_device (a shared_ptr). No model run occurred.
+- Candidate 2 stores a stable pointer to the owning vk_device shared_ptr entry in buffer-type context; it built and passed all gates.
+
+ARTIFACTS
+- Focused final patch: /home/ubuntu/tp_perdevice_hostfix_focused.patch
+  sha256 5fe9acc7e3670478d1feb6a8e1b3487728a3dd57a19b79714e29b26115c85848 (316 lines)
+- /home/ubuntu/tp_perdevice_candidate2.patch
+- /home/ubuntu/tp_perdevice_pinprobe.patch
+- /home/ubuntu/tp_perdevice_timingprobe.patch
+- /home/ubuntu/tp_perdevice_waitprobe.patch
+- /home/ubuntu/tp_perdevice_clean_build.log
+- /home/ubuntu/tp_perdevice_clean_run1.server.log
+- /home/ubuntu/tp_perdevice_clean_run1.response.json
+- /home/ubuntu/tp_perdevice_clean_run1.telemetry.json
+- /home/ubuntu/tp_perdevice_clean_run2.server.log
+- /home/ubuntu/tp_perdevice_clean_run2.response.json
+- /home/ubuntu/tp_perdevice_clean_run2.telemetry.json
+
+FINAL SOURCE / BUILD STATE
+- Isolated worktree left patched with the successful clean candidate.
+- Clean llama-server binary built successfully at /home/ubuntu/llama-tp-vulkan/build-vk/bin/llama-server.
+- Diagnostic probes absent from source and clean logs (PROBES_PRESENT=NO; clean probe_lines=0).
+- git diff --check RC=0.
+- Production llama build/config untouched.
+- No further decision is required for this task. A future optimization should trace why Vulkan2 queue completion is ~370 ms and whether independent work can overlap that real dependency; do not remove the event wait.
+
+FINAL RESULT
+prompt_n=7501; pins V0=107/107 V1=53/53 V2=53/53; old_STORE=377.261ms_mean; new_STORE_split2=0.077ms_mean; split3_wait_on_split2=370.528ms_mean; clean_PP=214.758609,214.831096 mean=214.794852; all3_overlap=51.1-52.3%; correctness=pass; faults=0; production_untouched=yes; decision_needed=no.
