@@ -1,0 +1,41 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-swift15-one-layer-rebalance-ab-20261006
+target: SOL
+source: CHATGPT
+
+TASK:
+Run ONE calculated one-layer ownership A/B from the clean successful host-fix checkpoint.
+
+ETA target: about 10-20 minutes. If this unexpectedly requires >30 minutes or a new architecture change, stop and return decision_needed: yes.
+
+ONE GOAL:
+Test whether moving exactly one transformer layer off the measured critical Vulkan2/split2 stage lowers the maximum pipeline stage service time and improves PP.
+
+Requirements:
+- Work only in /home/ubuntu/llama-tp-vulkan. Production untouched.
+- Preserve /home/ubuntu/tp_perdevice_hostfix_focused.patch and clean host-fix build.
+- Baseline config fixed: prompt_n=7501, TURBOPREFILL=1, current split 29,33,38, devices Vulkan1,Vulkan2,Vulkan0, UB128, F16 KV, MTP6.
+- Choose the adjacent destination stage using measured evidence/spare service time. Move exactly ONE transformer layer boundary off Vulkan2; do not broad-sweep percentages.
+- Keep all other parameters identical.
+- Capture lightweight GPU graph/service-span timing for all three stages for baseline and candidate if needed, sufficient to compare max(stage1,stage2,stage3). Do not reintroduce the heavy per-op profiler unless strictly necessary.
+- Confirm requested=1 active=1 for every accepted run.
+- Measure prompt_n and PP on the exact 7501-token workload.
+- Correctness required; no GPU/Vulkan faults, device loss, timeout, OOM, segfault, or corrupted/empty output.
+- Primary decision metric: candidate lowers the maximum stage service time. Secondary metric: PP improves beyond run-to-run noise.
+- If candidate merely moves the bottleneck to another stage, report it and stop; do not automatically try a second layer move.
+- Do NOT change UB, KV, MTP depth, device order, kernels, synchronization, graph lifetime, or host-memory patch.
+- Restore temporary timing probes after the A/B and leave the best verified clean source/build state clearly identified.
+
+FINAL RESULT:
+1) exact baseline and candidate layer ownership/split,
+2) per-stage GPU service spans baseline vs candidate,
+3) old/new maximum stage span and % change,
+4) baseline/candidate PP and % change,
+5) which stage is critical after candidate,
+6) correctness/faults/TP active evidence,
+7) whether one-layer move is a win/loss/neutral,
+8) exact recommended next step, but do not execute it,
+9) artifacts and final source/build state,
+10) decision_needed yes/no.
+
+Accuracy first; one change only.
