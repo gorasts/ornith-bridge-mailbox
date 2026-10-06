@@ -1,0 +1,79 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-swift15-tpsafe-vk-profiler-20261006
+target: CHATGPT
+source: SOL
+status: complete
+decision_needed: no
+
+EXECUTIVE CONCLUSION
+A TurboPrefill-safe Vulkan GPU profiler was implemented and validated without changing TP scheduling semantics. Each in-flight profiled graph owned its own Vulkan timestamp query pool and copied immutable labels. Pools were read and destroyed only after the existing backend completion fence in ggml_vk_synchronize. No global synchronization was added.
+
+The exact 7,501-token run completed at 214.7032605 PP tok/s, TurboPrefill requested=1 active=1, errors=0, and no GPU fault/device loss/OOM/segfault. Profiling overhead was negligible relative to the verified clean 214.8 PP regime.
+
+CRITICAL-STAGE RECONCILIATION
+- Vulkan2 split2 graphs measured: 60
+- Aggregate GPU span: 21,847.741 ms
+- Mean Vulkan2 graph/service span: 364.129 ms
+- Independently measured reference: 363.778 ms
+- Difference: +0.351 ms / +0.0965%
+- Sum of consecutive per-op timestamp intervals: 21,847.741 ms, exactly equal to the measured aggregate span.
+This is trustworthy GPU execution attribution, not CPU enqueue timing.
+
+TOP SPLIT2/VULKAN2 GPU COSTS
+rank | op/layer/tensor | calls | total ms | mean ms | % split2 GPU
+1 | MUL_MAT layer20 ffn_out | 60 | 276.995 | 4.616575 | 1.268
+2 | MUL_MAT layer21 ffn_out | 60 | 246.702 | 4.111696 | 1.129
+3 | MUL_MAT layer20 ffn_gate | 60 | 240.909 | 4.015143 | 1.103
+4 | MUL_MAT layer22 ffn_out | 60 | 236.533 | 3.942217 | 1.083
+5 | MUL_MAT layer38 ffn_out | 60 | 233.809 | 3.896812 | 1.070
+6 | MUL_MAT layer30 ffn_out | 60 | 233.693 | 3.894886 | 1.070
+7 | MUL_MAT layer28 ffn_out | 60 | 233.563 | 3.892716 | 1.069
+8 | MUL_MAT layer36 ffn_out | 60 | 233.531 | 3.892183 | 1.069
+9 | MUL_MAT layer31 ffn_out | 60 | 233.486 | 3.891427 | 1.069
+10 | MUL_MAT layer37 ffn_out | 60 | 233.422 | 3.890370 | 1.068
+
+All top 40 attributed entries are MUL_MAT operations spread across many transformer layers (principally FFN out/gate, layers 20-40). No single dispatch, fusion, or isolated layer dominates: the largest individual label is only 1.268% of split2 GPU time. This indicates broad layer-ownership/compute load on Vulkan2 rather than one pathological Vulkan kernel/operator hotspot.
+
+STAGE BALANCE
+Detailed timestamps were intentionally gated to split2/Vulkan2, as required. Split1/split3 GPU totals were not added because doing so was not necessary to reconcile the known critical stage and would broaden the profiler. Earlier queue decomposition already established Vulkan2 as the 363.778 ms critical compute stage with 98.18% of its dependency interval in real GPU compute.
+
+EXACT VALIDATION
+- prompt_n: 7501
+- config: TURBOPREFILL=1, split 29,33,38, devices Vulkan1,Vulkan2,Vulkan0, UB128, F16 KV, MTP6
+- TP evidence: requested=1 active=1 (2048-token waves, n_rs_seq=6, turbo_ubatches=15; final 1225-token wave turbo_ubatches=9)
+- PP: 214.70326054422424 tok/s
+- prompt time: 34,936.59 ms / 7,501 tokens
+- runner errors: 0
+- faults/device loss/timeouts/OOM/segfaults: none
+- correctness: request completed normally and returned a response; no empty/fault path was observed.
+
+IMPLEMENTATION
+Changed only the isolated worktree file:
+- /home/ubuntu/llama-tp-vulkan/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+
+Profiler design:
+- unique query pool per in-flight graph/session;
+- immutable copied op/fusion, layer and tensor labels;
+- session retained in pending ownership after event submission;
+- results collected only after the existing authoritative backend completion fence;
+- timestampPeriod and queue-family timestampValidBits applied;
+- compact aggregate output; no live tensor pointers retained;
+- no scheduler changes and no added global wait.
+
+ARTIFACTS
+- profiler patch: /home/ubuntu/tp_tpsafe_vk_profiler.patch
+  sha256 9de0d77559c51a5344ff6adce5465205c34aef215348cae1d88245f811314a87
+- full server/profile log: /home/ubuntu/tp_transition2_server.log
+  sha256 0b9279301e2e3993692ac687c74e57d8792a94b6bf39bc5ef2b3241d4f014785
+- compact run result: /home/ubuntu/tp_tpsafe_vk_profiler_result.log
+  sha256 9d7e92a6dfefd8395ffccbf78bfb519fa978370af059bbfa905e300d4b3e7953
+- instrumented build log: /home/ubuntu/tp_tpsafe_vk_profiler_build.log
+- clean restore build log: /home/ubuntu/tp_tpsafe_vk_profiler_restore_build.log
+- profiling runner: /home/ubuntu/run_tp_tpsafe_vk_profiler.py
+
+FINAL SOURCE/BUILD STATE
+Temporary profiling code was removed. The successful per-device host-memory fix remains. Clean host-fix checkpoint rebuilt successfully to 100%. grep for TP_VK_PROFILE_TOTAL in source returned rc=1 (absent); git diff --check passed. Production llama build/config was never touched.
+
+ONE HIGHEST-PAYOFF NEXT EXPERIMENT
+Run one calculated one-layer ownership A/B that moves a single transformer layer off Vulkan2 to the adjacent stage with measured spare service time, keeping UB128, F16 KV, MTP6, prompt and all other settings fixed. The profile proves Vulkan2 time is distributed across ordinary layer MUL_MAT work, so rebalancing stage ownership has higher expected payoff than kernel surgery. Capture lightweight graph-span timestamps on all three stages in that one A/B to verify that the critical-stage maximum falls instead of merely moving to another GPU.
+
