@@ -1,0 +1,377 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-complete-postoffline-record-20261006-b
+target: SOL
+source: CHATGPT
+
+SOL — COMPLETE POST-OFFLINE CONTINUITY RECORD. READ ALL OF THIS.
+
+Gorast explicitly requested that EVERYTHING done after you went offline be handed to you, not a short summary. This message consolidates the complete known post-offline record from the reconstructed session, prior handoffs, recovered artifacts, measured results, failures, and operational corrections. Preserve it before doing new work. If disk logs contradict any value, report the discrepancy first. Do not silently rerun settled work.
+
+A. STATE AT THE MOMENT SOL WENT OFFLINE / OPEN TP PROBLEM
+Worktree: /home/ubuntu/llama-tp-vulkan
+Model: /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+Old TP config:
+- 3x Vega64 Vulkan
+- -sm layer
+- -ts 29,33,38
+- -dev Vulkan1,Vulkan2,Vulkan0
+- -mg 0
+- -c 9216
+- -b 2048
+- -ub 128
+- -t 14 -tb 14
+- -fa on
+- -ctk f16 -ctv f16
+- --fit off
+- -np 1
+- --metrics
+- --reasoning off
+- --spec-type draft-mtp
+- --spec-draft-n-max 6
+Old TP plateau ~213.6 PP; serialized Vulkan baseline ~141.25 PP.
+Definitive profiler: split1->2 2,621,440-byte readback ~7 ms; split2->3 same 2,621,440 bytes ~373–393 ms each wave.
+Runtime pin probe at PP=213.591:
+- probe_calls 417
+- pinned_calls 115
+- unpinned_calls 302
+- target_2621440_pinned 107
+- target_2621440_unpinned 106
+- errors 2
+- verdict CONFIRMED_UNPINNED
+Vulkan behavior already established: ggml_vk_buffer_read_2d_async calls ggml_vk_host_get(src->device,dst,...). Recognized pinned destination can queue copyBuffer and return async. Unpinned with sync_staging=false returns false and falls back. Never remove synchronization blindly.
+Open question at Sol-offline point: prove/disprove device-specific Vulkan host registration causing pathological split2->3 unpinned fallback.
+
+B. WHAT TURBOPREFILL ACTUALLY DOES — RECOVERED SOURCE
+From saved tp_core_code/source captures:
+- Normal layer split was too serialized.
+- TP changes prompt processing into UB-level diagonal/wavefront replay so separate Vegas can execute separate UB/stage work concurrently.
+- capture_turboprefill_ub(...) snapshots each UB scheduler state.
+- saved state includes split graphs, tensor metadata, live input banks, intermediate banks, input plans, per-split metadata indexes.
+- phases: TP_PHASE_PREPARE_H2D, TP_PHASE_COMPUTE, TP_PHASE_STORE.
+- split0 is run/captured first; diagonal replay begins at split1 when possible.
+- backend/GPU events include compute_done, d2h_done, h2d_ready.
+- required previous D2H dependency is synchronized before H2D of dependent split input.
+- intermediate host storage prefers a 256-byte-aligned pinned arena and falls back to vectors if pin allocation fails.
+- before replay current tensor metadata and live scheduler split snapshots are captured.
+- after replay original scheduler state is restored.
+- scheduler emits turboprefill version/accumulation_us/compute_us/total_us.
+- saved UB series is cleared and pinned arena compacted afterward.
+This was real concurrent 3-GPU prompt processing, not just fast sequential alternation.
+
+C. EARLY REAL PARALLELISM PROOF / UB SWEEP
+Measured:
+- UB256 ~183.25 PP
+- UB128 ~186.15 PP
+- UB64 ~159.61 PP
+At UB128:
+- ~25.9% sampled time had ALL THREE GPUs simultaneously >10% utilization.
+- mean GPU util ~56.6% / 39.0% / 64.9%.
+This was direct proof of genuine 3-GPU overlap.
+
+D. THREE-VEGA PHYSICAL TOPOLOGY AND WHY SPLITS ARE ASYMMETRIC
+3x RX Vega64 8GB HBM2, ~24GB aggregate.
+- PCI 05:00.0 = good/full PCIe path.
+- PCI 0c:00.0 = constrained path.
+- PCI 0f:00.0 = constrained path.
+The constrained cards can report wide endpoint links but upstream bridge paths are effectively PCIe2 x1.
+Working Swift order: -dev Vulkan1,Vulkan2,Vulkan0, -mg 0, -sm layer.
+This topology is why equal 33/33/33 is not automatically optimal and split direction matters.
+
+E. SPLIT EVOLUTION
+Ordinary/initial family included -ts 33,40,26.
+TP winner became 29,33,38.
+Explored nearby/skew candidates included 30,32,38; 30,33,37; 37,31,31; 37,34,28 and others.
+Extreme skew ~45/27.5/27.5 collapsed to ~47.7 PP.
+Equal-ish/ordinary Vulkan candidates before TP optimization were generally mid-140 PP.
+
+F. VERIFIED ~240 PP BREAKTHROUGH — PRESERVE THIS
+Backend Vulkan, 3 Vegas.
+Model /opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+Winner family:
+TURBOPREFILL=1
+-ngl 999
+-sm layer
+-ts 29,33,38
+-dev Vulkan1,Vulkan2,Vulkan0
+-mg 0
+-b 8192
+-ub 128
+-t 14
+-tb 14
+-fa on
+-ctk f16
+-ctv f16
+--fit off
+-np 1
+--metrics
+--reasoning off
+--spec-type draft-mtp
+Real prompt = 7,501 tokens.
+PP = 242.857 tok/s.
+57 TP ubatches.
+No GPU faults in winner run.
+This is Gorast's ~240 PP milestone.
+It superseded ~213.6 PP plateau and was ~+13.1% vs ~214.8 B2048 branch baseline.
+
+G. LONGER-PROMPT RESULTS AFTER BREAKTHROUGH
+~16.5K:
+- TP ON PP 236.879
+- comparison PP 117.680
+- ~2.013x
+32K:
+- PP 214.769
+- TG 12.790
+- MTP acceptance 52.4%
+- accepted/generated around 387/739
+- mean accepted length ~4.12
+
+H. OLD TP-BRANCH 32K MTP DEPTH RESULTS
+MTP2: PP ~216.594 / TG ~15.439
+MTP3: PP ~211.435 / TG ~14.056
+MTP4: PP ~209.479 / TG ~13.888
+MTP6: PP ~214.769 / TG ~12.790
+MTP OFF: PP ~226.668 / TG ~12.483
+Interpretation: MTP OFF best PP; MTP2 best TG tradeoff in that 32K TP branch; deeper MTP is non-monotonic and has a cliff.
+
+I. MODERN LLAMA.CPP NON-TP REFERENCE — DIFFERENT WINNER OBJECTIVE
+Binary: /home/ubuntu/llama-master/build-vk/bin/llama-server
+Strong ~8K config:
+-ngl 999 -sm layer -ts 33,40,26 -dev Vulkan1,Vulkan2,Vulkan0 -mg 0
+-c 9216 -b 2048 -ub 1024 -t 14 -tb 14 -fa on
+-ctk f16 -ctv f16 --fit off -np 1 --metrics --reasoning off
+--spec-type draft-mtp --spec-draft-n-max 6
+Measured ~8K:
+- PP ~140.30–140.52
+- TG512 ~22.83–22.85
+- acceptance ~96.45%, one capture 435/451, mean length 6.72
+Modern 32K:
+- MTP OFF PP115.512 / TG12.469
+- MTP1 PP110.808 / TG14.695
+- MTP2 PP111.539 / TG15.023 / acceptance71.02%
+- MTP7 PP124.642 / TG13.386 / acceptance57.85%
+Therefore long-prompt PP winner = TP branch; shorter-context TG winner = modern branch. Do not collapse these into one “best config.”
+
+J. SETTLED NEGATIVE RESULTS — DO NOT WASTE TIME REPEATING
+- equal 33/33/33 not automatically optimal.
+- ROCm not automatically superior; one clean comparison roughly ROCm117 vs Vulkan131 PP.
+- custom attention/KV placement regressed (~81 PP).
+- whole-wave STORE deferral broke graph dependencies.
+- reversing STORE traversal was flat.
+- naive deep graph queue/overlap unsafe because saved UB graph snapshots contain live tensor/node pointers and replay mutates live metadata.
+- deeper MTP not monotonically better.
+- do not remove Vulkan synchronization blindly.
+- old split2->3 problem was tied to pinning/host registration/asymmetric path, not “queue more work.”
+
+K. TP ARTIFACT/SOURCE LINEAGE — DO NOT DELETE
+/home/ubuntu families:
+tp_split_*
+tp_stage_*
+tp_store_*
+tp_transition*
+tp_vulkan2_opprofile*
+tp_vulkan2_queueprobe*
+tp_ub64*
+tp_ub128*
+tp_vk_*
+turboprefill_inspect.txt
+uv_sweep.*
+winner-real.*
+Saved source captures include:
+tp_core_code.txt
+tp_store_full_source.txt
+tp_graph_lifetime_source.txt
+tp_copy_slot_source.txt
+tp_clone_source.txt
+tp_vk_async_source.txt
+tp_vk_read2d_source.txt
+These preserve the debugging path from ~213 to ~243 PP.
+
+L. GPU TUNING FAMILY — CORRECTION TO “ALL 1600”
+Current continuity family is approximately:
+- card0 ~1600 MHz core
+- card1 ~1536 MHz core
+- card2 ~1600 MHz core
+- ~900mV core
+- HBM 1000MHz
+HBM high state intentionally kept; 167MHz idle collapse undesirable during useful work.
+Fresh OD table from faulting 0f/card2:
+OD_SCLK:
+P0 852@800mV
+P1 991@900
+P2 1084@900
+P3 1138@900
+P4 1200@900
+P5 1401@900
+P6 1600@900
+P7 1600@900
+OD_MCLK:
+P0 167@800
+P1 500@800
+P2 800@950
+P3 1000@900
+Post-cleanup idle observation: SCLK852, HBM1000, load0%, temps ~25/26/24-25C, fan ~2879 RPM.
+Do not confuse older HBM 875/850mV experiments with this conservative continuity state.
+
+M. RAM / GTT / KERNEL
+RAM ~80GB from 2x32 + 2x8; copy bandwidth ~52GB/s; only part truly 4-channel.
+Intentional kernel/GTT:
+amdgpu.ppfeaturemask=0xffffffff
+amdgpu.gttsize=69632
+ttm.pages_limit=17825792
+ttm.page_pool_size=7340032
+amdgpu.lockup_timeout=60000,180000,60000,60000
+~68GB GTT. Do not casually revert.
+
+N. RECOVERED 3-GPU ORNITH IQ3 CONFIG
+Recovered from prior artifacts, not to be silently “improved”:
+Model:
+/opt/testmodels/models/Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS.gguf
+Binary:
+/opt/llama/llama-b10919/llama-server
+Args:
+-dev Vulkan0,Vulkan1,Vulkan2
+-ts 0.8,1,1
+-ngl 99
+-c 131072
+-b 2048
+-ub 2048
+-ctk q8_0
+-ctv q8_0
+-fa on
+-t 14
+-tb 14
+--load-mode dio
+-np 1
+--jinja
+--no-webui
+Test port 18176.
+NO MTP/spec flags. NO n-cpu-moe. Do not silently add either.
+
+O. REAL-WORK 32K ORNITH BENCHMARK SCRIPT / CORPUS
+Corpus /home/ubuntu/realwork-01.md
+Current tokenizer count = 37,556 tokens.
+Benchmark requirement was exact first 32,768 tokenizer tokens, TG512, temperature0, cache_prompt=false, ignore_eos=true.
+A robust script /home/ubuntu/ornith32k.py was created as a real file and copied to GORAST rather than streamed over SSH.
+It tokenized, verified >=32768, sliced first32768, detokenized, then called completion TG512.
+
+P. TODAY'S ORNITH 32K RUN WAS INVALID DUE GPU FAULT
+Observed:
+- 2048 prompt checkpoint: 362.08s / 5.66 tok/s
+- 4096 checkpoint: 578.78s / 7.08 tok/s
+Estimated run would take absurdly long; aborted.
+This is INVALID performance evidence.
+
+Kernel showed repeated AMDGPU faults on PCI 0000:0f:00.0 for at least two llama-server PIDs 2215396 and 2232855:
+- amdgpu [mmhub0] no-retry page fault
+- VM_L2_PROTECTION_FAULT_STATUS 0x00800030
+- Faulty UTCL2 client ID MP0
+- PERMISSION_FAULTS 0x3
+- MAPPING_ERROR 0x0
+- RW 0x0
+Do not explain ~7 PP as ordinary PCIe bottleneck. There was an actual memory/protection fault.
+Do not rerun 32K until 0f fault is isolated.
+
+Q. POST-ABORT CLEANUP / HEALTH
+Killed active llama-server and ornith32k.py.
+A defunct/zombie llama-server entry appeared in ps, but it was not active and consumed no GPU/VRAM/CPU.
+After kill:
+- all 3 GPU busy = 0
+- VRAM used approx card0 8,388,608 bytes; card1 16,683,008; card2 8,388,608
+- each total VRAM 8,573,157,376 bytes
+- tuning/thermals normal at idle
+Thus current evidence does NOT prove physical Vega failure. Suspect DIO/Vulkan/multi-GPU/GTT/driver/memory path until isolated.
+
+R. HEALTH-CHECK TOOLING LESSON
+rocm-smi is NOT installed/on PATH on GORAST. Do not suggest it again.
+Use amdgpu sysfs or available native tools.
+Several overcomplicated nested health one-liners failed or dumped sysfs directory listings/awk errors. Future health command/script must be a real, simple script and print compact human-readable ALL-3-GPU status: PCI, current/config clocks, HBM, voltage if available, temp, fan, power/load, VRAM/headroom, recent faults.
+
+S. BENCHMARK/REMOTE ORCHESTRATION FAILURES — NEVER REPEAT
+The following wasted Gorast's time:
+1) giant PowerShell here-string piped to ssh -t "bash -s": pseudo-terminal/stdin/heredoc failure.
+2) nested python3 -c through SSH: quoting stripped, IndentationError / broken strings.
+3) "$script | ssh ... python3 -" contaminated/mangled stdin.
+4) complex sed patch over nested SSH hit PowerShell inputFormat/quoting errors.
+5) complex nested GPU-health quoting gave unexpected EOF.
+6) rocm-smi absent.
+7) raw sysfs one-liner exploded into directory listings and awk errors.
+Permanent rule: create actual local file, SCP it, execute normally. Avoid remote heredocs, python3 -, and deep nested quoting.
+
+T. PERMANENT MONITOR / CONTROL CONVENTION
+Server stdout/stderr MUST redirect to:
+/home/ubuntu/llama-live.log
+Otherwise permanent monitor appears dead.
+Known-good Windows live monitor:
+ssh.exe -i C:\Users\XEON2\.ssh\gorast_ed25519 ubuntu@192.168.100.116 "tail -n 30 -F /home/ubuntu/llama-live.log"
+User wants two permanent terminals:
+1) MONITOR: useful live llama lines (PP checkpoints, TG, draft acceptance, TP, faults/errors) without repetitive debug spam.
+2) CONTROL at ubuntu@gorast:~$; future test commands start/stop/replace server, log full console, and print compact FINAL RESULT.
+
+U. BENCHMARK DISCIPLINE FROM NOW ON
+- ETA before nontrivial command/build/test.
+- One experiment -> inspect -> decide.
+- TG512 minimum for representative generation.
+- real prompt: no repetition/padding; abort if insufficient.
+- cache_prompt=false for clean benchmark.
+- every test auto-prints FINAL RESULT: prompt_n, PP, TG, draft accepted, TP timing/state, GPU means/telemetry, overlap where relevant, errors.
+- inspect kernel AMDGPU faults before interpreting a slow result.
+- preserve prior state/artifacts; do not restore/change production unless asked.
+- full commands, not fragments.
+- telemetry every meaningful run: CPU/GPU util, clocks, power/temp, RAM/VRAM/headroom; network when multi-host.
+
+V. OLDER ORNITH PRODUCTION LINEAGE — DO NOT CONFUSE WITH IQ3 TEST
+Production model:
+/opt/ornith-models/ornith-ad-q4k-iq4xs-mtp.gguf
+Clean backbone:
+/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+Standalone draft:
+/opt/ornith-models/shisa12k-mtp-standalone.gguf
+Historical known-good single-card production family used CTX131072, B/UB2048, T/TB14, FA, MTP1, np1, careful CPU-MoE placement.
+Historical command included q4_0 KV, --n-cpu-moe40, mmap, -ngl99, --spec-type draft-mtp --spec-draft-n-max1.
+Historical single-card lesson: mmap was known-good; DIO/load-mode-none could trigger Vulkan device-loss/insufficient-memory in that branch. But DO NOT silently replace DIO in recovered 3-GPU IQ3 config: first isolate today's failure.
+Historical MoE fit: G4/ncm36 ~8078.4MiB used / 97.6MiB free rejected under 128MiB safety; G3/ncm37 ~7952.5MiB / 223.5MiB free selected.
+Historical draft placement: ngld0 ~5.071GB, ngld1 ~5.609GB, ngld2 ~5.812GB; ngld>=2 flat. Moving ngld2->0 frees ~741MB, 2->1 ~203MB.
+
+W. ORNITH HYBRID KV GEOMETRY PRESERVED
+40 main blocks + nextn.
+head_count16, head_count_kv2, key/value length256, full_attention_interval4.
+Only ~10/40 layers grow KV.
+Approx KV cost:
+F16 20KiB/token
+Q8_0 10.625KiB/token
+Q4_0 5.625KiB/token
+
+X. PRIOR MULTI-GPU ORNITH CONTEXT
+Historical dual-GPU G4_A10 TG512:
+2K17.63, 8K17.46, 16K16.21, 32K12.995, 64K12.517, 96K10.822, 120K9.725.
+Single G3 F16 examples: 64K13.27, 120K9.17.
+Lesson then: multi-GPU strongly helped PP but TG scaling was limited.
+
+Y. SEPARATE BONSAI/RPC DEBUGGING CONTINUITY
+In Bonsai/MTP distributed work, target -nkvo made draft context inherit target no_kv_offload, causing draft KV in RAM and repeated copies to accelerator/RPC; huge RPC traffic while GPUs idle.
+Proposed surgical fix in /opt/testmodels/prism-llama-mtp/common/speculative.cpp:
+result.cache_type_k = params_spec.cache_type_k;
+result.cache_type_v = params_spec.cache_type_v;
+result.no_kv_offload = false;
+Purpose: draft KV accelerator-resident while target KV remains RAM.
+At handoff this was PROPOSED, not confirmed.
+Failed/avoid: -ot workaround; ctx_other backend patch; incompatible private sched_mtp patch; no TG128 validation; no broad HIP rebuild without evidence.
+Final validation must be TG512 + telemetry + clean kernel.
+
+Z. WHAT TO DO WHEN YOU RESUME
+1) ACKNOWLEDGE THIS MESSAGE AS SOL, not Terra/echoed ChatGPT text.
+2) Preserve exact 242.857 PP Swift winner artifacts/config before touching TP source.
+3) Do not repeat settled TP/split/UB/MTP experiments.
+4) If continuing Ornith, first isolate 0f:00.0 with smallest controlled test. Determine whether fault follows physical card, Vulkan index/order, DIO, split placement, or GTT/memory path.
+5) One variable at a time. No 32K rerun until small test is kernel-clean.
+6) Final validation TG512 with telemetry.
+7) If any value above conflicts with disk logs, report the exact conflict before changing anything.
+8) Keep all source/log/artifact lineage. Gorast explicitly does not want to lose the hours spent reaching the ~243 PP state.
+
+REQUIRED ACK BACK THROUGH BRIDGE:
+State explicitly:
+- source SOL
+- winner = Vulkan1,Vulkan2,Vulkan0 / split29,33,38 / B8192 UB128 / 7501 prompt / 242.857 PP
+- tuning family = ~1600/1536/1600 core, ~900mV, HBM1000
+- today's 0f fault = MMHUB no-retry / UTCL2 MP0 / permission faults 0x3, invalidating ~7 PP
+- no settled work will be rerun and winner artifacts will be preserved before modification.
