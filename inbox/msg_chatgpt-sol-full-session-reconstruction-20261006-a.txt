@@ -1,0 +1,443 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-full-session-reconstruction-20261006-a
+target: SOL
+source: CHATGPT
+
+SOL — FULL SESSION RECONSTRUCTION / CONTINUITY UPDATE FROM CHATGPT
+
+TASK:
+Ingest this entire continuity update and treat VERIFIED values as authoritative unless on-disk logs contradict them. Do not rerun settled work. If any discrepancy exists between this message and saved artifacts/logs, report it before modifying known-good state.
+
+1. WHAT CHATGPT RECOVERED IN THIS CHAT
+Gorast asked me to reconstruct all three-Vega tuning/parallelism work, including the last session and bridge state. I searched the saved Library artifacts and source captures rather than relying on memory alone.
+
+The important correction versus our earlier shorthand:
+- The three-card tuning family is not simply “all three 1600/900”.
+- Current continuity state from the bridge handoff is approximately:
+  - card0: ~1600 MHz core
+  - card1: ~1536 MHz core
+  - card2: ~1600 MHz core
+  - ~900 mV core
+  - HBM 1000 MHz
+- HBM high state intentionally kept; 167 MHz idle collapse was undesirable during useful work.
+
+Fresh OD table from the faulting 0f card recorded in the prior handoff:
+OD_SCLK
+P0 852@800
+P1 991@900
+P2 1084@900
+P3 1138@900
+P4 1200@900
+P5 1401@900
+P6 1600@900
+P7 1600@900
+
+OD_MCLK
+P0 167@800
+P1 500@800
+P2 800@950
+P3 1000@900
+
+2. TURBOPREFILL — WHAT THE CODE ACTUALLY DOES
+From saved source artifact tp_core_code.txt:
+
+Normal llama.cpp layer split was effectively too serialized. TurboPrefill changes prompt processing into an ubatch-level diagonal/wavefront pipeline so different Vegas can work on different ubatches/stages concurrently.
+
+Recovered implementation details:
+- capture_turboprefill_ub(...) snapshots each UB’s scheduler state.
+- Saved state includes:
+  - split graphs
+  - tensor metadata
+  - live input banks
+  - intermediate banks
+  - input plans
+  - per-split metadata indexes
+- Explicit phases:
+  - TP_PHASE_PREPARE_H2D
+  - TP_PHASE_COMPUTE
+  - TP_PHASE_STORE
+- Split 0 is run/captured first; diagonal replay begins at split 1 when possible.
+- GPU/backend events are created for:
+  - compute_done
+  - d2h_done
+  - h2d_ready
+- Dependencies are preserved by synchronizing the required prior D2H before H2D of dependent split input.
+- Intermediate host storage preferentially uses a 256-byte-aligned pinned arena, falling back to ordinary vectors if pin allocation fails.
+- Before replay, current tensor metadata and live scheduler split snapshots are captured.
+- After TurboPrefill replay, original scheduler state is restored.
+- The scheduler logs:
+  turboprefill: version=... accumulation_us=... compute_us=... total_us=...
+- The saved UB series is cleared and the pinned arena compacted after completion.
+
+This is genuine concurrent three-card prompt-processing work, not just rapid sequential alternation.
+
+3. REAL THREE-GPU PARALLELISM PROOF
+Early UB sweep / utilization evidence:
+- UB256: ~183.25 PP
+- UB128: ~186.15 PP
+- UB64: ~159.61 PP
+
+At UB128:
+- roughly 25.9% of the sampled time had ALL THREE GPUs simultaneously above 10% utilization.
+- mean GPU utilization was approximately 56.6% / 39.0% / 64.9%.
+
+This was the proof of actual 3-GPU overlap.
+
+4. DEVICE / TOPOLOGY ORDER
+Working device order:
+-dev Vulkan1,Vulkan2,Vulkan0
+-mg 0
+-sm layer
+
+Physical topology continuity:
+- PCI 05:00.0 = good/full PCIe path
+- PCI 0c:00.0 = constrained path
+- PCI 0f:00.0 = constrained path
+The constrained paths are effectively behind PCIe2 x1 upstream bridges despite endpoint reporting that can look wider.
+
+This is why symmetric splits are not automatically optimal and split direction matters.
+
+5. SPLIT EVOLUTION
+Ordinary/initial split used:
+-ts 33,40,26
+
+TurboPrefill winner split:
+-ts 29,33,38
+
+Explored nearby/skew splits included:
+- 30,32,38
+- 30,33,37
+- 37,31,31
+- 37,34,28
+- others
+Extreme skew can collapse performance; one ~45/27.5/27.5 case was ~47.7 PP.
+
+6. VERIFIED TURBOPREFILL WINNER
+Backend: Vulkan
+3x Vega64
+Model:
+/opt/testmodels/models/swift15/ukisai_Swift-1.5-Qwen3.8-27b-Q4_K_M.gguf
+
+Winner family:
+TURBOPREFILL=1
+-ngl 999
+-sm layer
+-ts 29,33,38
+-dev Vulkan1,Vulkan2,Vulkan0
+-mg 0
+-b 8192
+-ub 128
+-t 14
+-tb 14
+-fa on
+-ctk f16
+-ctv f16
+--fit off
+-np 1
+--metrics
+--reasoning off
+--spec-type draft-mtp
+
+Verified real prompt winner:
+- prompt = 7,501 tokens
+- PP = 242.857 tok/s
+- 57 TurboPrefill ubatches
+- no GPU faults in winner run
+
+This is the ~240 PP milestone Gorast means.
+
+It superseded the old ~213.6 PP plateau and was about +13.1% versus the ~214.8 B2048 branch baseline.
+
+7. LONGER PROMPT RESULTS AFTER BREAKTHROUGH
+~16.5K:
+- TP ON = 236.879 PP
+- comparison = 117.680 PP
+- ~2.013x
+
+32K:
+- PP = 214.769 tok/s
+- TG = 12.790 tok/s
+- MTP acceptance = 52.4%
+- accepted/generated around 387/739
+- mean accepted length around 4.12
+
+8. 32K MTP DEPTH RESULTS ON OLD TP BRANCH
+Recovered table:
+MTP2:
+- PP ~216.594
+- TG ~15.439
+
+MTP3:
+- PP ~211.435
+- TG ~14.056
+
+MTP4:
+- PP ~209.479
+- TG ~13.888
+
+MTP6:
+- PP ~214.769
+- TG ~12.790
+
+MTP OFF reference:
+- PP ~226.668
+- TG ~12.483
+
+Interpretation:
+- MTP OFF maximizes PP.
+- MTP2 was the best 32K TG tradeoff on that TP branch.
+- Deeper MTP has a cliff; benefit is not monotonic.
+
+9. MODERN LLAMA.CPP NON-TP REFERENCE
+Modern binary:
+/home/ubuntu/llama-master/build-vk/bin/llama-server
+
+Strong 8K-ish config:
+-ngl 999
+-sm layer
+-ts 33,40,26
+-dev Vulkan1,Vulkan2,Vulkan0
+-mg 0
+-c 9216
+-b 2048
+-ub 1024
+-t 14
+-tb 14
+-fa on
+-ctk f16
+-ctv f16
+--fit off
+-np 1
+--metrics
+--reasoning off
+--spec-type draft-mtp
+--spec-draft-n-max 6
+
+Recovered result:
+- PP ~140.30
+- TG512 ~22.83
+- MTP acceptance ~96.45%
+
+Another captured 8K-ish modern run showed:
+- PP 140.52
+- TG 22.85
+- acceptance 96.452% (435/451)
+- mean length 6.72
+
+Modern 32K references:
+- MTP OFF: PP 115.512 / TG 12.469
+- MTP1: PP 110.808 / TG 14.695
+- MTP2: PP 111.539 / TG 15.023 / acceptance 71.02%
+- MTP7: PP 124.642 / TG 13.386 / acceptance 57.85%
+
+This means the “winner” depends on objective:
+- Long-prompt PP winner = TurboPrefill branch.
+- Shorter-context TG winner = modern llama.cpp branch.
+
+10. TP SOURCE/ARTIFACT LINEAGE TO PRESERVE
+Do not delete/overwrite these evidence families:
+/home/ubuntu:
+- tp_split_*
+- tp_stage_*
+- tp_store_*
+- tp_transition*
+- tp_vulkan2_opprofile*
+- tp_vulkan2_queueprobe*
+- tp_ub64*
+- tp_ub128*
+- tp_vk_*
+- turboprefill_inspect.txt
+- uv_sweep.*
+- winner-real.*
+
+Library/source captures made during the session also include:
+- tp_core_code.txt
+- tp_store_full_source.txt
+- tp_graph_lifetime_source.txt
+- tp_copy_slot_source.txt
+- tp_clone_source.txt
+- tp_vk_async_source.txt
+- tp_vk_read2d_source.txt
+
+These files represent the debugging path from the ~213 PP plateau to the ~243 PP winner.
+
+11. SETTLED NEGATIVE RESULTS / DO NOT REPEAT
+- equal 33/33/33 is not automatically optimal.
+- ROCm was not automatically faster; one clean comparison was roughly ROCm117 vs Vulkan131 PP.
+- custom attention/KV placement regressed in one branch (~81 PP).
+- STORE whole-wave deferral broke graph dependencies.
+- reversing STORE traversal was flat.
+- naive deep queue / graph overlap is unsafe because saved UB graph snapshots contain live tensor/node pointers and replay mutates metadata.
+- never remove synchronization blindly.
+- the earlier split2->3 readback problem was linked to pinning/host registration and asymmetric topology, not a trivial “just queue more work” problem.
+
+12. PIN-ROOT INVESTIGATION STATE BEFORE BREAKTHROUGH
+Worktree:
+/home/ubuntu/llama-tp-vulkan
+
+Old plateau config:
+- split 29,33,38
+- device order Vulkan1,Vulkan2,Vulkan0
+- mg0
+- ctx9216
+- B2048
+- UB128
+- T/TB14
+- FA on
+- F16 KV
+- fit off
+- np1
+- metrics
+- reasoning off
+- draft-mtp max6
+
+Old plateau:
+- ~213.6 PP
+- serialized Vulkan baseline ~141.25 PP
+
+Profiler:
+- split1->2 2,621,440-byte readback ~7 ms
+- split2->3 same-size transfer ~373–393 ms/wave
+
+Runtime pin probe at PP=213.591:
+- calls 417
+- pinned 115
+- unpinned 302
+- target-size 2,621,440 pinned107 / unpinned106
+- errors2
+- verdict CONFIRMED_UNPINNED
+
+The open question was whether device-specific Vulkan host registration caused split2->3 unpinned fallback.
+
+13. GTT / AMDGPU KERNEL STATE
+Intentional:
+- amdgpu.ppfeaturemask=0xffffffff
+- amdgpu.gttsize=69632
+- ttm.pages_limit=17825792
+- ttm.page_pool_size=7340032
+- amdgpu.lockup_timeout=60000,180000,60000,60000
+
+Approx 68GB GTT.
+Do not casually revert.
+
+RAM:
+- ~80GB total (2x32 + 2x8)
+- measured copy bandwidth ~52GB/s
+- only part truly four-channel
+
+14. RECOVERED ORNITH 3-GPU CONFIG
+Model:
+/opt/testmodels/models/Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS.gguf
+
+Binary:
+/opt/llama/llama-b10919/llama-server
+
+Recovered args:
+-dev Vulkan0,Vulkan1,Vulkan2
+-ts 0.8,1,1
+-ngl 99
+-c 131072
+-b 2048
+-ub 2048
+-ctk q8_0
+-ctv q8_0
+-fa on
+-t 14
+-tb 14
+--load-mode dio
+-np 1
+--jinja
+--no-webui
+
+Test port 18176.
+
+IMPORTANT:
+This recovered config contains NO MTP/spec flags and NO n-cpu-moe.
+Do not silently add them.
+
+15. INVALID ORNITH 32K RUN / 0f FAULT
+Real corpus:
+/home/ubuntu/realwork-01.md
+Tokenizer count 37,556 tokens.
+Benchmark used first 32,768 tokens and requested TG512.
+
+Catastrophically slow:
+- 2048 prompt tokens: ~5.66 tok/s
+- 4096 checkpoint: ~7.08 tok/s
+
+INVALID PERFORMANCE RESULT.
+
+Kernel logs showed repeated AMDGPU faults specifically on PCI 0000:0f:00.0 across two llama-server PIDs:
+- mmhub0 no-retry page fault
+- VM_L2_PROTECTION_FAULT_STATUS 0x00800030
+- Faulty UTCL2 client ID MP0
+- PERMISSION_FAULTS 0x3
+- MAPPING_ERROR 0x0
+- RW 0x0
+- PIDs 2215396 and 2232855
+
+Do NOT blame the ~7 PP on PCIe slowness.
+Do NOT rerun 32K Ornith until 0f is isolated.
+
+After abort:
+- all active llama-server/benchmark processes killed
+- card0/card1/card2 0% busy
+- VRAM roughly 8 MiB / 16 MiB / 8 MiB used
+- idle tuning/thermals looked normal
+So current evidence does NOT prove dead hardware.
+Suspect runtime/memory path (DIO/Vulkan/multi-GPU/GTT/driver interaction) until isolated.
+
+16. BENCH / ORCHESTRATION RULES TO KEEP
+- Do NOT pipe benchmark Python through SSH stdin with python3 -.
+- Do NOT use giant nested PowerShell->SSH heredocs.
+- Put benchmark code in a real .py file, SCP it, execute remotely.
+- Server stdout/stderr -> /home/ubuntu/llama-live.log.
+- Windows monitor:
+  ssh.exe -i C:\Users\XEON2\.ssh\gorast_ed25519 ubuntu@192.168.100.116 "tail -n 30 -F /home/ubuntu/llama-live.log"
+- TG512 minimum representative generation benchmark.
+- One experiment -> inspect -> decide.
+- No broad autonomous sweep after a bad result.
+- Every benchmark ends with compact FINAL RESULT:
+  prompt_n, PP, TG, draft acceptance, TP timing/state, GPU means/telemetry, overlap if applicable, errors.
+- Never duplicate/pad a real prompt if short; abort instead.
+- Before concluding from a slow run, inspect kernel AMDGPU faults and actual GPU state.
+
+17. WHAT TO PRESERVE AS CURRENT KNOWN-GOOD
+For 3-Vega Swift long-prompt PP:
+- TURBOPREFILL=1
+- Vulkan1,Vulkan2,Vulkan0
+- layer split 29,33,38
+- B8192 / UB128
+- FA on
+- F16 KV
+- T/TB14
+- fit off
+- np1
+- verified 7,501 prompt PP 242.857
+- ~16.5K PP 236.879
+- 32K PP 214.769
+
+For modern shorter-context TG:
+- 33,40,26
+- B2048 / UB1024
+- MTP6
+- ~8K TG around 22.83–22.85
+
+18. NEXT ACTION DISCIPLINE
+First preserve the exact ~242.857 PP winner artifacts/config before touching TP source.
+If continuing Ornith:
+- isolate 0f:00.0 with the smallest controlled test
+- determine whether fault follows:
+  1) physical GPU
+  2) Vulkan device index/order
+  3) DIO
+  4) split placement
+  5) GTT/memory path
+- one change at a time
+- final validation TG512
+
+Please confirm through the bridge that you ingested this expanded reconstruction. In your confirmation, state:
+1) exact Swift TP winner config/result,
+2) the 3-card tuning family (1600/1536/1600, ~900mV, HBM1000),
+3) the 0f MMHUB/UTCL2 fault,
+4) that you will not rerun settled work or touch the known-good TP winner before preserving artifacts.
