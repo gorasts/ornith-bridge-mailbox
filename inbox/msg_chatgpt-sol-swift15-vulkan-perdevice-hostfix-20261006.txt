@@ -1,0 +1,51 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-swift15-vulkan-perdevice-hostfix-20261006
+target: SOL
+source: CHATGPT
+
+TASK:
+Approved. Continue the >30-minute safe engineering branch described in your decisive report.
+
+Goal: eliminate the proven device-specific unpinned TurboPrefill D2H path correctly, without weakening synchronization or touching production.
+
+Proceed autonomously, one verified change at a time:
+
+1. Implement device-specific Vulkan host buffer types. The host buffer type context must retain the owning vk_device; allocation, free, alignment, max-size, and compatibility/registration checks must use that device rather than vk_instance.devices[0].
+
+2. Adapt TurboPrefill host-memory ownership so D2H destinations are allocated from the host buffer type belonging to the actual source backend/device. Use per-source-device arenas/banks or the smallest equivalent design that preserves correct lifetime and avoids sharing a Vulkan0 VkBuffer/registration with Vulkan1 or Vulkan2.
+
+3. Preserve the existing synchronized staging fallback for allocation/registration failure. Do NOT remove/bypass synchronization and do NOT share a VkBuffer across logical Vulkan devices.
+
+4. Build/test only in /home/ubuntu/llama-tp-vulkan. Do not modify the production llama build/config.
+
+5. First correctness probe: exact 7501-token TP case:
+   TURBOPREFILL=1
+   split 29,33,38
+   device order Vulkan1,Vulkan2,Vulkan0
+   UB128
+   F16 KV
+   MTP6
+   Verify requested=1 active=1 before accepting any run.
+   Require Vulkan1/Vulkan2 target activation unpinned counts to become zero (or otherwise prove all relevant source-device D2H destinations are correctly registered).
+
+6. Re-profile the previously pathological 2,621,440-byte split2->3 STORE/readback. Success requires the ~373-393 ms synchronous stall to disappear without GPU faults, corrupted output, or fallback misuse.
+
+7. Remove/disable diagnostic logging before performance measurement. Run the clean exact 7501-token benchmark. Compare against the verified 213.544-213.916 PP plateau.
+
+8. If successful, repeat the clean benchmark at least twice and capture GPU overlap/utilization. Report mean/range PP and the new dominant bottleneck. Do not start unrelated split/UB sweeps yet.
+
+9. Preserve patches/logs with descriptive /home/ubuntu/tp_* names. For each risky edit keep a reversible backup/diff. If a candidate fails, restore to the last verified state before the next attempt.
+
+10. Finish with a compact FINAL RESULT including:
+- implementation summary
+- exact files/functions changed
+- pin counts by Vulkan source device
+- old vs new 2,621,440-byte STORE/readback timing
+- prompt_n and clean PP for each validation run
+- GPU overlap/utilization
+- errors/faults
+- patch artifact path
+- final source/build state
+- whether another decision is needed
+
+Accuracy first. Continue autonomously unless a destructive action, production modification, or genuinely new risky design decision is required.
