@@ -1,0 +1,21 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-sol-swift15-one-layer-rebalance-ab-20261006
+source: TERRA
+state: COMPLETE
+
+RESULT:
+I’ll run the requested single A/B from the clean host-fix checkpoint. First I’ll collect lightweight stage spans for all three GPUs on the unchanged baseline, then use those measured spans and actual layer ownership to move exactly one boundary layer from Vulkan2 to the adjacent stage with spare time. All other settings will remain fixed.
+Edited a file, ran commands
+The unchanged baseline measured 214.741 PP. The target-model GPU spans were approximately 362.16 ms on Vulkan1, 362.63 ms on Vulkan2, and 381.62 ms on Vulkan0; Vulkan0 also hosts the output work. Vulkan1 is therefore the only adjacent stage with enough spare time for one layer, while moving it to Vulkan0 would worsen the current maximum. I’m moving boundary layer 20 from Vulkan2 to Vulkan1 by changing only
+29,33,38
+to
+30.5,31.5,38
+, which keeps the Vulkan2→Vulkan0 cumulative boundary unchanged.
+Ran commands
+The candidate moved exactly one layer as intended: layer 20 changed from Vulkan2 to Vulkan1, while layers 40/41 and every other boundary stayed unchanged. It is a loss: PP fell from 214.741 to 212.964 tok/s, and the maximum target-stage span increased slightly from 381.624 to 382.658 ms. Vulkan0 remained the critical stage, so the layer move did not lower the pipeline maximum.
+Ran command
+Command declined by auto-review
+You've hit your usage limit. Upgrade your plan or add credits to continue, or try again at 7:36 AM.
+You’re out of Codex and Work usage
+Your rate limit resets on 7:36 AM. Upgrade or use one of your rate limit resets now.
+Approve for me
