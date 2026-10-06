@@ -1,0 +1,66 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-swift15-tp-pinroot-autonomous-20261006
+source: SOL
+target: CHATGPT
+status: DECISIVE_FINDING
+decision_needed: yes
+
+EXECUTIVE CONCLUSION
+The mixed pin behavior is proven device-specific. In the exact 7501-token TurboPrefill run, every 2,621,440-byte readback sourced from Vulkan0 was pinned (107/107), while every matching readback from Vulkan1 and Vulkan2 was unpinned (0/53 and 0/53). PP remained at the established plateau: 213.544 tok/s, with zero GPU/Vulkan fault signatures. This maps the pathological x1-device transfers to the synchronous unpinned fallback without weakening synchronization.
+
+DECISIVE RUN
+- Model/config: exact requested 29,33,38; Vulkan1,Vulkan2,Vulkan0; UB128; F16 KV; MTP6; prompt_n=7501.
+- Required activation: TURBOPREFILL=1. The diagnostic runner initially omitted this; those fallback measurements are rejected below.
+- PP: 213.54417829347486 tok/s.
+- Vulkan target calls: 213 total.
+- Vulkan0: pinned=107, unpinned=0.
+- Vulkan1: pinned=0, unpinned=53.
+- Vulkan2: pinned=0, unpinned=53.
+- Deferred-path correlation: producer split 3 / Vulkan0 matched 49 calls; pinned=49, unpinned=0. The remaining calls use other TP storage paths, but Vulkan source-device counts are definitive.
+- Errors: 0 (no GPU reset, VM_L2 fault, device lost, timeout, OOM, or segmentation signature).
+
+ROOT CAUSE IN SOURCE
+- ggml/src/ggml-vulkan/ggml-vulkan.cpp around 16065-16124 hard-codes Vulkan host allocation, free, alignment, and max-size to vk_instance.devices[0]. The source contains its own TODO: host buffer type should be device-specific.
+- ggml_vk_host_malloc registers the host pointer only in that device's pinned_memory registry. ggml_vk_host_get checks only the source device's registry.
+- ggml/src/ggml-backend.cpp around 1155-1166 only selects CUDA host buffer types for the TP arena; Vulkan is excluded.
+- TP currently has one shared pinned arena/buffer type, so simply allowing Vulkan there would still allocate/register only for Vulkan0 and would not make the buffer valid on Vulkan1/Vulkan2.
+- Therefore removing synchronization or sharing a Vulkan0 VkBuffer handle across logical devices would be incorrect.
+
+REJECTED / DIAGNOSTIC RUNS
+1. Saved-graph call-site probe: PP 119.913; sched_calls=0, vk_calls=262, matches=0. Wrong call site and TP activation absent; rejected.
+2. tp_copy_via_ram probe: PP 120.683; sched_calls=0, vk_calls=58. Wrong call site and TP activation absent; rejected.
+3. common-helper probe: PP 120.654; sched_calls=0, vk_calls=58. TP activation absent; rejected.
+4. deferred-path probe without verbose logging but with TURBOPREFILL=1: PP 213.91562644097527, prompt_n=7501, errors=0. This confirms the known TP plateau and the corrected launch environment; probe lines were suppressed at normal verbosity.
+
+REQUIRED SAFE PATCH BRANCH
+1. Make Vulkan host buffer types device-specific. Store the vk_device in the buffer-type context; allocate/free/query alignment/max-size through that device. Preserve compatibility checks for any Vulkan host buffer type.
+2. Replace the single TP pinned arena with per-source-backend/per-device arenas (or per-transition banks).
+3. Allocate each D2H destination from the host buffer type of the actual source backend so ggml_vk_host_get(source_device, dst) returns that source device's valid VkBuffer.
+4. Keep the existing synchronized staging fallback for any allocation/registration failure.
+5. Re-run the exact 7501-token case and require Vulkan1/Vulkan2 unpinned counts to reach zero, disappearance of the ~373-393 ms split2->3 STORE stall, correctness, no faults, and material PP gain. Then repeat twice and capture overlap/utilization.
+
+WHY DECISION IS REQUESTED
+The correct fix crosses the Vulkan buffer-type implementation and TP arena ownership/lifetime logic. It is a new engineering branch likely exceeding 30 minutes. The task explicitly requires returning for a decision before a >30-minute new branch. No risky shortcut was applied.
+
+RESTORE STATE
+- Diagnostic source restored.
+- RESTORE_BUILD_RC=0.
+- SCHED_PROBE_PRESENT=NO.
+- VK_PROBE_PRESENT=NO.
+- git diff --check RC=0.
+- Production llama build/config was never touched.
+
+ARTIFACTS ON GORAST
+- /home/ubuntu/tp_transition2_server.log
+- /home/ubuntu/tp_transition2_response.json
+- /home/ubuntu/tp_transition2_analysis.json
+- /home/ubuntu/tp_transition2_command.json
+- /home/ubuntu/tp_transition2_tuning.txt
+- /home/ubuntu/tp_deferred_probe.patch
+- /home/ubuntu/tp_deferred_probe_build.log
+- /home/ubuntu/tp_deferred_probe_restore.log
+- /home/ubuntu/tp_helper_probe.patch
+- /home/ubuntu/tp_transition2_instrumentation.patch
+
+FINAL RESULT
+experiment=source-device pin correlation; prompt_n=7501; PP=213.54417829347486; target_calls=213; Vulkan0=107 pinned/0 unpinned; Vulkan1=0 pinned/53 unpinned; Vulkan2=0 pinned/53 unpinned; errors=0; restore_build_rc=0; probes_present=no; decision_needed=yes (>30-minute device-specific allocator/per-source-arena branch).
