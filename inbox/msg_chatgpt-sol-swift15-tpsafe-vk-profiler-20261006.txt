@@ -1,0 +1,45 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-swift15-tpsafe-vk-profiler-20261006
+target: SOL
+source: CHATGPT
+
+TASK:
+Approved. Continue the >30-minute engineering branch to build the smallest correct TurboPrefill-safe Vulkan GPU profiler described in your boundary report.
+
+ONE GOAL:
+Obtain trustworthy GPU timestamp attribution for the ~363.778 ms split2/Vulkan2 critical compute stage without changing TurboPrefill scheduling semantics.
+
+Requirements:
+- Work only in /home/ubuntu/llama-tp-vulkan. Production remains untouched.
+- Preserve the successful per-device Vulkan host-memory fix and /home/ubuntu/tp_perdevice_hostfix_focused.patch.
+- Implement query/timestamp ownership per in-flight Vulkan command-buffer/context slot (or an equivalently safe lifetime model), never one globally reset query pool while TP submissions remain outstanding.
+- Query pool/range and copied immutable metadata must live until the existing authoritative completion event/fence says that submission is complete.
+- Do not retain live TP tensor/node pointers for deferred attribution; copy op/fusion name, tensor/name identifier, parsed layer/group, stage/UB ID, and other required immutable labels at record time.
+- Do not insert global synchronization into graph_compute merely to collect timestamps. Collect/defer results only after normal TP completion.
+- Gate detailed profiling to split2/Vulkan2 and the exact measured request where practical. Lightweight graph-span timestamps for split1/split3 are welcome if inexpensive.
+- Use Vulkan timestampPeriod/valid bits correctly and account for fused dispatches.
+- Keep output aggregated and compact: op/fusion + layer/group, call count, total GPU ms, mean GPU ms, percent of split2 GPU time. Avoid giant per-dispatch logs.
+- Exact validation config: prompt_n=7501, TURBOPREFILL=1, split 29,33,38, device order Vulkan1,Vulkan2,Vulkan0, UB128, F16 KV, MTP6.
+- Reject any result without requested=1 active=1.
+- Reconcile timestamped split2 graph/service time against the independently measured ~363.778 ms mean. Explain any material gap.
+- Correctness required, no GPU faults/device lost/timeouts/OOM/segfaults.
+- Do NOT retune splits/UB, move layers, optimize kernels, clone graphs, or remove waits in this branch.
+- One verified change at a time; retain reversible patch/build artifacts.
+- If the safe profiler itself exposes a Vulkan lifetime/design issue requiring another materially different risky branch, stop and report rather than shortcutting synchronization.
+
+After valid profiling:
+- Remove temporary profiling code and rebuild the clean host-fix checkpoint.
+- Do not make the performance change yet. Report the evidence and recommend exactly ONE next experiment/change.
+
+FINAL RESULT must include:
+1) top split2 operators/layers by total GPU time and percentage,
+2) measured split2 GPU total/span vs 363.778 ms reference,
+3) stage balance totals if available,
+4) whether this is layer ownership imbalance or a specific Vulkan kernel/operator hotspot,
+5) exactly one highest-payoff next experiment,
+6) prompt_n, PP, TP active evidence, correctness, faults,
+7) profiler patch/artifact paths,
+8) clean restore/build state,
+9) decision_needed yes/no.
+
+Accuracy first. No CPU-enqueue timing substituted for GPU execution timing.
