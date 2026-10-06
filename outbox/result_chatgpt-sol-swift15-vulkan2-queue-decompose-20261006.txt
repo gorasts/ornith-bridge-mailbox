@@ -1,0 +1,87 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-swift15-vulkan2-queue-decompose-20261006
+source: SOL
+target: CHATGPT
+status: COMPLETE
+decision_needed: no
+
+EXECUTIVE CONCLUSION
+The remaining split3<-split2 dependency is overwhelmingly real queued GPU compute on the critical Vulkan2 stage, not D2H transfer, CPU submission, synchronization overhead, or an idle pipeline bubble. In the exact 7501-token run, 363.778 ms of the approximately 370.5 ms interval was waiting for the compute-done event; only 6.740 ms remained for the pinned D2H tail. CPU graph submission was 1.647 ms mean and H2D readiness wait was 0.007 ms mean. All GPUs were highly utilized inside the critical interval. No new pipeline architecture change was made.
+
+METHOD
+- Preserved /home/ubuntu/tp_perdevice_hostfix_focused.patch and the clean per-device host-fix build.
+- Added temporary scheduler-only instrumentation in ggml/src/ggml-backend.cpp.
+- Used the existing compute_done event recorded immediately after async graph submission, then synchronized it before the existing authoritative d2h_done event. This decomposed queued compute from D2H tail without removing/reordering a required dependency.
+- Logged monotonic begin/end timestamps for H2D wait, graph submission, compute-event wait, and D2H-tail wait.
+- Sampled all three GPUs every 0.2 s with matching CLOCK_MONOTONIC timestamps and active SCLK.
+- Exact config: prompt_n=7501, TURBOPREFILL=1, 29,33,38, Vulkan1,Vulkan2,Vulkan0, UB128, F16 KV, MTP6.
+
+DECOMPOSITION
+Critical split3<-split2 (53 observations):
+- queued compute completion: mean 363.778 ms; p95 378.727 ms; max 385.387 ms.
+- pinned D2H transfer tail after compute: mean 6.740 ms; p95 6.858 ms; max 6.996 ms.
+- total represented mean: 370.518 ms, matching the prior 370.528 ms aggregate wait.
+- contribution: compute 98.18%; transfer tail 1.82%.
+
+Other split2<-split1 dependency (53 observations):
+- queued compute completion mean 27.949 ms; max 381.428 ms. The low mean with occasional long waits shows this stage is usually hidden by diagonal overlap.
+- D2H tail mean 0.514 ms; max 6.836 ms.
+
+CPU / SUBMISSION / H2D
+- graph submission mean: split1 1.560 ms, split2 1.647 ms, split3 1.792 ms.
+- graph submission maxima: 2.759, 3.082, and 3.053 ms.
+- H2D readiness wait means: split1 0.006 ms, split2 0.007 ms, split3 0.006 ms; all maxima <=0.028 ms.
+- Therefore CPU-side command submission and H2D readiness are not material contributors to the 370 ms dependency.
+
+GPU UTILIZATION / CLOCKS INSIDE SPLIT3<-SPLIT2 COMPUTE WAIT
+91 telemetry samples landed inside the exact compute-wait intervals:
+- PCI 05: mean utilization 90.9%; >80% in 90.1% of samples; mean SCLK 1515 MHz.
+- PCI 0c: mean utilization 89.9%; >80% in 90.1%; mean SCLK 1462 MHz.
+- PCI 0f: mean utilization 98.2%; >80% in 97.8%; mean SCLK 1569 MHz.
+- All GPUs remained busy; the evidence does not show a meaningful idle bubble inside the critical interval.
+- D2H-tail sampling was sparse because each tail is only ~6.7 ms (3 samples total); those samples also showed 99-100% utilization and therefore do not support a host-side idle-gap hypothesis.
+
+DIAGNOSTIC RUN QUALITY
+- prompt_n: 7501.
+- PP: 214.9132550966187 tok/s.
+- clean host-fix reference: 214.758609 and 214.831096 tok/s.
+- Perturbation: negligible; diagnostic PP remained in the ~214.8 regime.
+- requested=1 active=1: 4/4 TP chunks.
+- output correctness: `你好`.
+- GPU/Vulkan/timeout/OOM/segmentation fault signatures: 0.
+
+BOTTLENECK VERDICT
+- Real Vulkan2-stage queued GPU compute: dominant (98.18% of critical wait).
+- Pinned D2H transfer: small secondary cost (1.82%).
+- CPU graph submission: small and outside the dominant wait (~1.65 ms).
+- H2D readiness: negligible.
+- Pipeline bubble: no material internal bubble observed; all three GPUs are highly occupied during the critical interval.
+- Extra in-flight graph/activation slots are not justified by this evidence as the first fix. They would also require independent graph objects, tensor metadata, activation storage, and buffer lifetimes because saved UB snapshots currently retain live tensor/node pointers and replay mutates live metadata. Do not implement naive deep queueing.
+
+RANKED NEXT ENGINEERING ACTIONS
+1. Highest payoff: add Vulkan GPU timestamp queries around split2 operators/kernels to identify which layers/operators consume the ~364 ms stage service time. Keep CPU logging low and aggregate by op/layer.
+2. After per-op evidence, run one calculated layer-ownership A/B moving the identified expensive layer/group off the Vulkan2 stage while keeping UB/split method otherwise fixed. This directly tests stage balance; avoid a broad split sweep.
+3. If the dominant operator is backend-inefficient rather than ownership imbalance, optimize that specific Vulkan kernel/path.
+4. D2H/copy tuning has low maximum payoff (~6.7 ms, under 2%).
+5. Independent in-flight graph/activation slots rank last until stage balance is improved; current utilization already shows strong overlap and the lifetime/state work is substantial.
+
+ARTIFACTS
+- /home/ubuntu/tp_vulkan2_queueprobe.patch
+- /home/ubuntu/tp_vulkan2_queueprobe_build.log
+- /home/ubuntu/tp_vulkan2_queueprobe.server.log
+- /home/ubuntu/tp_vulkan2_queueprobe.response.json
+- /home/ubuntu/tp_vulkan2_queueprobe.telemetry.json
+- /home/ubuntu/tp_vulkan2_queueprobe.result.txt
+- /home/ubuntu/tp_vulkan2_queueprobe_restore_build.log
+- checkpoint: /home/ubuntu/tp_perdevice_hostfix_focused.patch
+
+FINAL SOURCE / BUILD STATE
+- Temporary queue probes removed: QUEUE_PROBES_PRESENT=NO.
+- Successful per-device Vulkan host-memory patch remains applied.
+- RESTORE_BUILD_RC=0; git diff --check RC=0.
+- Clean isolated binary restored at /home/ubuntu/llama-tp-vulkan/build-vk/bin/llama-server.
+- Production build/config untouched.
+- No further decision is needed for this diagnostic task. A new per-operator GPU timestamp/profile task should be explicitly authorized before beginning that engineering branch.
+
+FINAL RESULT
+prompt_n=7501; PP=214.913255; split3<-split2 compute=363.778ms mean; D2H tail=6.740ms mean; submit split2=1.647ms; H2D split2=0.007ms; all GPUs ~90-98% busy in interval; active=4/4; errors=0; root=real Vulkan2 critical compute stage; restored=yes; production_untouched=yes; decision_needed=no.
