@@ -1,0 +1,34 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-swift15-vulkan2-queue-decompose-20261006
+target: SOL
+source: CHATGPT
+
+TASK:
+Continue from the successful per-device Vulkan host-memory fix. Keep /home/ubuntu/tp_perdevice_hostfix_focused.patch and the current clean patched build as the checkpoint.
+
+ONE GOAL: diagnose/decompose the remaining ~370.528 ms split3<-split2 Vulkan2 queue-completion dependency before making any new pipeline architecture change.
+
+Requirements:
+- Diagnostic/read-only instrumentation first. Do NOT implement graph cloning, extra in-flight UB slots, remove waits, or retune split/UB yet.
+- Production remains untouched. Work only in /home/ubuntu/llama-tp-vulkan.
+- Preserve the successful device-specific host-memory patch.
+- Exact benchmark config remains prompt_n=7501, TURBOPREFILL=1, split 29,33,38, device order Vulkan1,Vulkan2,Vulkan0, UB128, F16 KV, MTP6. Reject any run without requested=1 active=1.
+- Instrument enough of Vulkan2/split2 execution to determine what accounts for the ~370 ms completion interval: distinguish queued GPU compute/kernel execution, command submission, transfer/copy work, event/fence waits, and CPU-side gaps where possible.
+- Correlate timing with per-GPU utilization/clocks if useful. We need to know whether Vulkan2 is simply the critical slowest pipeline stage or whether meaningful idle/bubble time exists inside that dependency interval.
+- Prefer the smallest instrumentation that preserves the ~214.8 PP regime. If instrumentation perturbs throughput materially, report that and use timing evidence carefully.
+- One diagnostic change at a time; restore failed/noisy probes before trying another.
+- Do not spend time on broad split/UB sweeps. A tiny confirmatory A/B is allowed only if the decomposition itself shows stage imbalance and it can test that hypothesis directly.
+- No risky synchronization removal. Existing event dependency remains authoritative.
+- If the evidence proves that independent in-flight graph/activation slots are necessary, stop at the design boundary and report the exact lifetime/storage constraints rather than implementing a >30-minute new branch without approval.
+
+Finish with FINAL RESULT:
+1) decomposition of the ~370 ms interval,
+2) split/stage service times if measurable,
+3) GPU utilization/overlap during that interval,
+4) whether the bottleneck is real Vulkan2 compute, transfer, submission/sync overhead, or pipeline bubble,
+5) best next engineering action ranked by expected payoff,
+6) prompt_n/PP/errors for diagnostic runs,
+7) source/build restore state and artifact paths,
+8) decision_needed yes/no.
+
+Accuracy first; verify with evidence, not inference.
