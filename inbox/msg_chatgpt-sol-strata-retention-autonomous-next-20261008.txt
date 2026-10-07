@@ -1,0 +1,60 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-strata-retention-autonomous-next-20261008
+target: SOL
+source: CHATGPT
+
+Gorast explicitly authorizes autonomous continuation of the Strata retention/TurboPrefill investigation. Do NOT stop to ask him for routine approval. Execute the plan autonomously; only stop for unsafe/destructive/physical actions or a genuine blocker.
+
+CURRENT CONFIRMED CHECKPOINT
+- Two-generation retention is engaged and bank rotation fixed.
+- Verified 779 MB fewer PCIe transfers on the two x1 cards.
+- Identical 128-token output, zero faults.
+- Short diagnostic PP = 54.572 versus ~53.416 baseline (~+2.16%).
+- This is proof of concept, NOT the target.
+
+MISSION / GOAL
+We are not tuning for another 5 PP. The goal is to remove the structural cross-chunk expert retransmission bottleneck and then evolve Strata toward the same large-logical-horizon/small-execution-microbatch principle that made llama TurboPrefill B8192/UB128 successful. Retention alone will not reach 242.857 PP; use it as the first validated component of a broader scheduling/overlap design.
+
+AUTONOMOUS EXECUTION ORDER
+1. Preserve the current successful retention build, exact SHA, source patch, logs and 54.572 result as a recoverable checkpoint.
+2. Quantify the successful run completely:
+   - exact x1 H2D bytes per GPU vs unchanged baseline;
+   - retention hits/misses/saved bytes per GPU;
+   - GPU utilization/headroom/temps;
+   - timing categories, especially copy-wait/dequant/GEMM;
+   - verify 779 MB reduction is true HIP-traced PCIe H2D, not only internal counters.
+3. Improve retention architecture, not cosmetic knobs. Current safe two-bank 384MiB total arena gives only ~192MiB frozen generation. Find a design that approaches the previously simulated practical 384MiB frozen-tail benefit without requiring 768MiB/card. Prefer metadata/history + selective admission, in-place generation handoff, or another event-safe scheme that keeps useful previous-chunk experts alive while misses use existing STAGE=8. Do NOT consume unsafe VRAM headroom.
+4. Use 2048/TG128 only as fast architecture diagnostics. One change per experiment. For each candidate: correctness, zero faults, PP, retention hits, real H2D bytes, headroom.
+5. Short-run progression targets:
+   - first beat 56 PP repeatably;
+   - then pursue 60+ PP if H2D/copy-wait evidence supports it.
+   These are milestones, not final success criteria.
+6. Once a materially better architecture is found, validate at real 7501 prompt with TG512 minimum using fixed split21,35 and otherwise fixed accepted args. Compare against exact accepted Strata baseline 69.268 PP /17.983 TG, MTP232/328.
+7. If retention benefit grows with prompt length, proceed to longer real-work prompt(s), including 32K where safe, TG512 minimum. Monitor 0f:00.0 for VM_L2_PROTECTION_FAULT.
+8. In parallel/after retention is characterized, investigate the larger architectural step: keep execution microbatch around the known-good 512 footprint while planning expert reuse/staging over multiple chunks. This is the Strata analogue of llama B8192/UB128. Do NOT equate Strata --prefill 8192 with this.
+9. Instrument before redesign: determine which barriers/copy waits remain after retention. Preserve pinned transfers and avoid global synchronizations.
+10. Do not brute-force. Coarse -> refine only for parameters that materially affect overlap/reuse: retention/admission horizon, bank/generation scheme, window depth, split/device placement if evidence justifies.
+11. Preserve TG and stability. A PP win that destroys TG is not production success.
+12. Keep comparing architectural progress to the llama TP reference 242.857 PP, but do not claim retention alone should match it.
+
+IMPORTANT SETTLED FACTS
+- HIP0=05:00.0 x16; HIP1=0c:00.0 x1; HIP2=0f:00.0 x1.
+- x1 active H2D ~0.376-0.377 GB/s, already near physical limit.
+- At 512, stream_all=false and peer-stream feature inactive.
+- Baseline trace ~36.374GB H2D; x1 GPU1 ~7.936GB, GPU2 ~8.923GB.
+- Source audit: 24,346 H2D loads, 9,448 unique, 14,898 duplicates, ~61.13% theoretical duplicate bytes.
+- True adjacent reuse: GPU1 ~69.63%, GPU2 ~73.55%.
+- Practical offline 384MiB tail policy predicted GPU1 ~14.45% own-H2D reduction, GPU2 ~13.44%, ~1.61GB saved across measured transitions.
+- First rolling 384MiB cache was mechanically correct but had zero hits because next-chunk misses evicted prior tail before reuse.
+- Current fixed two-generation proof produced real improvement and 779MB fewer transfers.
+- Baseline x1 headroom ~549/565MiB. 384MiB allocation left ~165/181MiB and was stable. Do not exceed safe budget casually.
+- Existing resident_stage_swaps does D2H victim copies + synchronize and is wrong for this hot path.
+- Do not restart Ornith.
+- rocm-smi absent.
+- Serious/final TG benchmark minimum TG512.
+
+WORKFLOW
+- Continue autonomously now. Do not ask Gorast for approval between safe software experiments.
+- Save every meaningful result and source checkpoint.
+- If a candidate regresses, revert and continue.
+- Send concise milestone reports through the bridge when: (a) >56 PP repeatable, (b) >60 PP, (c) first 7501/TG512 validation, (d) architectural blocker or fault.
