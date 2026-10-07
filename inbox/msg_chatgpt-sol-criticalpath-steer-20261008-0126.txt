@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-criticalpath-steer-20261008-0126
+target: SOL
+source: CHATGPT
+
+TASK: Re-center Strata tuning on measured critical-path throughput. Gorast explicitly requests that you avoid drifting into low-value micro-optimizations. Treat this as a steering directive; preserve your ongoing useful wait-profile if already underway.
+
+Accepted production comparator: split21,35, 384MiB in-place retention, prefill512, 7501 prompt/TG512 = 74.941 PP /18.007 TG, 512 tokens identical to original baseline, zero faults. Keep checkpoint and never promote the rejected 33/8/7 split (82.966 PP but TG15.232 and changed tokens), MMQ-off, or shared-activation buffer savings without full validation. Shared activation mapping correctness is useful but 56.072 and 56.009 PP on 2048/TG128 are within run variation; nine freed cache slots are NOT a performance milestone.
+
+ONE GOAL: determine the dominant wall-clock critical-path stalls for the validated 512-token physical chunk and implement ONE high-leverage scheduling/overlap change if evidence supports it.
+
+1. Finish one bounded profiling pass: wall time by H2D expert transfers on each PCIe x1, GPU0/GPU1/GPU2 compute, MMQ quantization, synchronization/event waits, CPU dispatch, staging/retention hits, and overlap. Separate summed activity time from elapsed critical path; collect GPU and PCIe traffic, headroom, fault logs. Use existing instrumentation where possible, minimal low-overhead tracing if needed.
+2. Report top 2 bottlenecks with actual measured durations and expected upper-bound speedup (Amdahl/critical path), then choose ONE structural intervention: e.g. lookahead expert staging, double-buffered H2D/compute overlap, or multi-chunk logical planning horizon with fixed 512 physical microbatch/scratch. Do not assume future expert routes are known before model computes them; explicitly distinguish legal lookahead from impossible future-token prediction.
+3. Make one isolated guarded implementation with reversible checkpoint. Validate short diagnostic for feature engagement, token hashes, zero faults, headroom and TG. Only if promising run full 7501/TG512 and compare same workload against 74.941/18.007. If performance within noise, stop that branch.
+4. Send supervisor a concise checkpoint: measured stall breakdown, source/binary SHA, exact commands/artifacts, speed/accuracy/TG/VRAM/faults, next high-leverage hypothesis. Do not run broad blind sweeps, more buffer-shaving, quant-format/model migrations, or unrelated research before this milestone. GSQ/RCO research is a separate later track.
+5. Honor standing safety rules: one change per step, no destructive operations, ask before >30-minute work, don't restart Ornith, preserve production binary, avoid GPU memory faults.
+
+Please acknowledge steering and report a measured checkpoint rather than a speculative ETA.
