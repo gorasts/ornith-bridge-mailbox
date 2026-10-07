@@ -1,0 +1,60 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: sol-current-hardware-strata-turboprefill-20261007
+target: LOCAL_WORK
+source: CHATGPT_SOL
+
+Gorast wants autonomous work NOW on the CURRENT GORAST hardware while he is away. Do not wait for the future x16/x16/x4 motherboard.
+
+CURRENT TARGET
+- 3x Vega 64 8GB, gfx900.
+- Current host has asymmetric/constrained PCIe links; known good device order: Vulkan1,Vulkan2,Vulkan0.
+- Swift-1.5-Qwen3.8-27B Q4_K_M current TP work.
+- Preserve user constraints and existing work; do not silently rerun settled experiments.
+- Benchmark discipline: TG512 minimum where TG is measured; cache_prompt=false; record PP and TG.
+
+KNOWN SETTLED TURBOPREFILL BASELINE
+- Serialized Vulkan baseline about 141.25 PP.
+- Old pre-fix plateau about 213.6 PP.
+- Confirmed prior stall: split2->3 unpinned D2H fallback; 2.5 MB readback ~373-393 ms vs ~7 ms pinned. Pin probe confirmed unpinned.
+- TP uses UB-level diagonal replay with PREPARE_H2D / COMPUTE / STORE, pinned 256-B arena, snapshot/restore per UB.
+- UB sweep: 256 ~183.25 PP; 128 ~186.15; 64 ~159.61 in that stage.
+- Best later TP run: -sm layer -ts 29,33,38 -dev Vulkan1,Vulkan2,Vulkan0 -mg 0 -b 8192 -ub 128 -t 14 -tb 14 -fa on -ctk f16 -ctv f16 --fit off -np 1 --metrics --reasoning off --spec-type draft-mtp, TURBOPREFILL=1.
+- Prompt 7,501: PP 242.857 tok/s, 57 ubatches, +13.1% vs ~214.8 PP baseline.
+- Longer: ~16.5k PP 236.879; 32k PP 214.769, TG 12.790, MTP acceptance 52.4%.
+- Do not assume equal thirds; 29/33/38 was the known winner on current topology.
+
+MISSION: ADAPT STRATA + TURBOPREFILL TO CURRENT HARDWARE
+1. Recover/inspect the existing Strata source/worktree and all prior local patches/artifacts before changing code. Find the existing 2-GPU tensor-split/pipeline-windows implementation and document its exact assumptions.
+2. Make Strata build/run correctly on this older Xeon + gfx900/Vega environment. Avoid accidentally requiring CPU ISA features unsupported by this Xeon. Preserve a reproducible build command.
+3. Establish a clean 1-GPU Strata correctness/performance baseline on Vega.
+4. Establish the existing 2-GPU Strata path first. Validate correctness, transfers, synchronization, memory use, PP/TG, and whether pipeline windows genuinely overlap work.
+5. Extend/test 3 GPUs incrementally. Prefer the smallest adaptation of existing mechanisms over inventing a new scheduler. First determine whether current code can naturally generalize 2->3; instrument before redesign.
+6. Combine the useful Strata pipeline-window behavior with the already-proven TurboPrefill ideas: UB/microbatch overlap, pinned host staging, avoiding serialized PREPARE->COMPUTE->STORE boundaries where dependencies permit, and keeping multiple Vegas busy simultaneously.
+7. Current PCIe topology is the constraint. Optimize placement for CURRENT links. Use measured transfer/compute timing and GPU utilization. Do NOT apply the future-board x16/x16/x4 placement plan blindly.
+8. Investigate deliberate stage/layer placement rather than equal tensor division. Keep 29/33/38 as the reference winner but re-optimize if Strata's execution graph changes the communication balance.
+9. Eliminate pageable/unpinned transfer regressions. Verify every critical D2H/H2D staging path is pinned where expected and measure transfer latency.
+10. Instrument timeline/utilization sufficiently to distinguish compute bubbles, transfer bubbles, barriers, and synchronization serialization.
+11. Sweep only parameters that can materially improve overlap after correctness: UB/window depth, stage boundaries/splits, device order, buffering depth, and any Strata pipeline-window knobs. Coarse -> refine, not brute force.
+12. Compare every candidate against BOTH serialized baseline and known TP winner 242.857 PP. Do not declare success from utilization alone.
+13. Preserve TG. A PP win that destroys TG or stability is not a production win. Use TG512 for serious comparisons.
+14. Watch for prior amdgpu VM_L2_PROTECTION_FAULT behavior on 0f:00.0, especially long-context/TG. Treat faults as faults, not slow performance.
+15. Save source patches, exact commands, logs, timing summaries, and best configuration. Do not overwrite known-good branches/worktrees without a recoverable checkpoint.
+
+AUTONOMY WHILE USER IS AWAY
+- Do everything safe and reversible that does not require physical intervention.
+- Build, inspect, instrument, patch, benchmark, iterate, and leave reproducible artifacts.
+- Do not wait for Gorast merely to approve routine software experiments.
+- If blocked by hardware/physical action, document the blocker and continue all independent work.
+- Do not change GPU BIOS, dangerous power settings, destructive system config, or anything requiring physical intervention.
+- If a result contradicts the known record above, report the discrepancy before replacing the baseline.
+
+SUCCESS ORDER
+A. Reproducible gfx900/Xeon Strata build.
+B. Correct 1-GPU baseline.
+C. Correct measured 2-GPU pipeline.
+D. Correct 3-GPU pipeline on current topology.
+E. Demonstrated overlap with no pageable-transfer regression.
+F. Beat 242.857 PP if possible without unacceptable TG/stability regression.
+G. Leave the machine in a known-good state with a concise report for Gorast when he returns.
+
+Start immediately and use the available time while Gorast is away.
