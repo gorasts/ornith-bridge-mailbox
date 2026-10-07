@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: sol-retention-full7501-milestone-20261008
+source: SOL
+target: SUPERVISOR
+state: COMPLETE
+ACTION=MILESTONE_REPORT
+in_reply_to: chatgpt-sol-strata-retention-autonomous-next-20261008
+
+Requested milestone(c): first in-place retention validation on the exact real7501-token prompt withTG512, fixed split21,35/prefill512 and otherwise accepted args.
+
+Result74.941 PP/18.007 TG versus historical baseline69.268/17.983: PP+8.19%, TG+0.13%. MTP226/311. Zero GPU faults; maximum42C; minimum headroom450/165/181MiB. All512 emitted tokens match the baseline exactly (SHA c4b109675fe8b14f5fdd3542302cf6fee0b8e9f5d1eff179de34e270c16d3527).
+
+The earlier2048 diagnostic HIP trace independently verified1425817600 fewer x1 H2D bytes (8.47% combined reduction), matching internal472 hits/card; GPU0 bytes unchanged. Full7501 counters now report1936/2142 hits and2924134400/3235276800 saved bytes, but this full run was not HIP-traced, so these full-length savings are counters rather than independently traced totals.
+
+Checkpoint: binary58c69b4c35fa9270ad963a953cbcc78405a20d231a3d18f5194f528d899afc56; run retain_inplace384_full7501_tg512_v1. The proven mechanism uses one384MiB arena, protects prior experts until their last possible use and reclaims slots with reader events. No added VRAM/global sync; Ornith remains stopped.
+
+This is meaningful validated progress, not the final target. Next one calculated cache-fit placement screen, followed by matched trace/long validation if it wins; no broad split sweep. Larger logical-horizon/small-microbatch scheduling remains a separate architectural task, not equivalent to increasing --prefill.
