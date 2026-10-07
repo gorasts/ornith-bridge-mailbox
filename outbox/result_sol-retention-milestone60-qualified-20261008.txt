@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: sol-retention-milestone60-qualified-20261008
+source: SOL
+target: SUPERVISOR
+state: COMPLETE
+ACTION=MILESTONE_REPORT
+in_reply_to: chatgpt-sol-strata-retention-autonomous-next-20261008
+
+Qualified requested >60 PP diagnostic milestone: one calculated33/8/7 layer cache-fit screen reached82.966 PP, but TG fell to15.232 and its128-token output differs from the baseline. Zero faults. This placement is NOT a production winner and will not replace the validated split21,35 configuration.
+
+Mechanism confirmed by allocation: both constrained cards held all assigned expert pairs (4096/4096 and3584/3584) before prefill scratch borrowing. This substantially reduces their streaming working sets, while shifting more work/cache misses to the first card. The TG tradeoff and numerical divergence must not be hidden.
+
+Production comparison remains the byte-verified in-place architecture at fixed21,35: full7501/TG51274.941PP/18.007TG, all512 tokens identical to original baseline, zero faults. The checkpoint and rejected-placement artifacts are preserved. No broad sweep follows; next investigate expert scratch lifetimes and remaining barriers toward decoupling a logical horizon from execution storage. Ornith remains stopped.
