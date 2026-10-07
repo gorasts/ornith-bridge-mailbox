@@ -1,0 +1,210 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-strata-retention-full-report-20261007
+target: SOL
+source: CHATGPT
+
+SOL — FULL CURRENT STRATA / 3x VEGA CONTINUITY REPORT. READ BEFORE CONTINUING.
+
+Gorast explicitly asked for a full report of the current investigation and implementation state. Preserve measured results and do not silently rerun settled experiments. Current work is on GORAST Ubuntu/X99 with 3x Vega64 gfx900. Ornith is stopped and must not be restarted without explicit authorization.
+
+1. HARDWARE / TOPOLOGY
+- 3x RX Vega64 8GB HBM2.
+- PCI 05:00.0 = full PCIe3 x16.
+- PCI 0c:00.0 and 0f:00.0 are effectively PCIe2 x1 upstream despite endpoint x16 reporting.
+- Explicit HIP mapping:
+  HIP device0 -> 0000:05:00.0
+  HIP device1 -> 0000:0c:00.0
+  HIP device2 -> 0000:0f:00.0
+- Controlled x1 copy calibration ~381.6 MB/s.
+- Trace effective H2D: GPU0 ~10.617 GB/s, GPU1 ~0.376 GB/s, GPU2 ~0.377 GB/s.
+- Vega safe tuning currently 900mV / HBM1000 / REF15600.
+- RAM ~78/80GB; GTT ~68GB.
+
+2. LLAMA TURBOPREFILL REFERENCE
+Known successful Swift-1.5-Qwen3.8-27B-Q4_K_M 3-Vega TP:
+-sm layer -ts 29,33,38 -dev Vulkan1,Vulkan2,Vulkan0 -mg 0 -b 8192 -ub 128 -t/-tb 14 -fa on -ctk/-ctv f16 --fit off -np 1 --metrics --reasoning off --spec-type draft-mtp, TURBOPREFILL=1.
+7501 prompt PP 242.857 tok/s, +13.1% vs ~214.8 baseline.
+~16.5k PP 236.879.
+32k PP 214.769 / TG 12.790 / MTP acceptance 52.4%.
+Important conceptual lesson: B8192/UB128 separates a large logical work horizon from a small execution microbatch. Strata --prefill 8192 is NOT equivalent.
+
+3. STRATA WORKTREE / FIXED BASELINE
+Source: /home/ubuntu/strata-gorast-ready-combined
+Build: /home/ubuntu/strata-gorast-ready-combined/build-gfx900-rocm634/strata
+Tuning: /home/ubuntu/strata-tuning-20261007
+Python: /home/ubuntu/strata-vega-eval/.venv/bin/python
+Pack: /home/ubuntu/strata-packs/swift15-iq2xs
+Native/PLE: /opt/testmodels/models/strata-swift-iq2xs/Swift-Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00001-of-00002.gguf
+Expert profile: /home/ubuntu/strata-gorast-ready-combined/data/expert-profile.bin
+MTP: /home/ubuntu/strata-data/mtp/rt
+
+Fixed engine args:
+--serve --pack ... --native ... --ple-gguf ... --ple-io direct --mmap-experts --expert-profile ... --expert-cache auto --prefill 512 --spec 2 --mtp ... --max-context 8192 --kv int8 --pool-workers 15 --adapt-every 0 --vram-reserve-mib 700 --stats --trim-stage-weights --layer-split 21,35
+
+Exact full7501/TG512 accepted baseline:
+69.268 PP / 17.983 TG, MTP 232/328, split21,35, prefill512.
+Build is Release, STRATA_HIP_GFX906=ON, gfx900, ROCm6.3.4, portable off.
+STRATA_IQ_MT_MIN=1 is correctness path; do not remove blindly.
+STRATA_PREFILL_MMQ unsafe on legacy accepted build.
+--pcie-frac applies same fraction to all GPUs and bypasses probes, dangerous here.
+int8 KV, 700MiB reserve, trim stage weights, ~450MiB minimum headroom.
+
+Diagnostic 2048/TG128 baseline:
+chunk-ID audit run PP=53.416 TG=19.549 MTP=62/75=82.67%, faults0.
+Other unchanged512 runs ~52.88–53.50 PP / ~19.4–20.1 TG.
+
+4. COPY TRACE — PROVEN BOTTLENECK
+Shim: /home/ubuntu/strata-tuning-20261007/hip_copy_trace.so
+Baseline CSV: /home/ubuntu/strata-tuning-20261007/diag_copytrace512_21_35.copies.csv
+Analyzer: /home/ubuntu/strata-tuning-20261007/analyze_strata_copies.py
+Runner: /home/ubuntu/strata-tuning-20261007/tune_copy_trace_run.py
+Tracer requires LD_PRELOAD=.../hip_copy_trace.so plus STRATA_COPY_TRACE.
+
+Baseline instrumented unchanged512:
+52.880 PP /20.085 TG, zero faults, ~450MiB headroom, ~25,000 copies.
+GPU0: 13901 copies, 19.515GB, copy_time1.838s, active10.617GB/s.
+GPU1: 5353, 7.936GB, 21.099s, active0.376GB/s.
+GPU2: 5943, 8.923GB, 23.673s, active0.377GB/s.
+Global 25197 copies /36.374GB.
+~99% x1 traffic is repeated ~1.1–1.5MiB expert-sized transfers. x1 links are already near physical max while active. Optimization target is bytes/reuse/residency/scheduling, not link throughput.
+
+No-peer test proved STRATA_PF_PEER_STREAM is not responsible at T512: disabling it leaves copy counts/bytes essentially identical.
+
+5. EXACT SMALL-PREFILL PATH
+Source establishes:
+const bool stream_all = m.ring > STAGE && T >= stream_all_min() && m.src != nullptr;
+At T512 stream_all=false.
+Therefore 512 uses small path, not stream_all scheduler. STRATA_PF_PEER_STREAM inactive at 512.
+
+Small path has STAGE=8. stage_one for every routed nonresident expert issues a fresh H2D into recycled stage_dev slot. Execution waits copied event and compute() uses stage_dev. Persistent residents use cache->device_slot and compute(...,-1).
+Thus same (layer,expert) routed in successive 512 chunks is retransferred unless persistently resident.
+
+6. SOURCE AUDIT — REUSE IS HUGE
+Measurement-only STRATA_SMALL_STREAM_AUDIT added previously. Current audit format contains literal backslash-n separators; analyzers split raw text on "\\n". Cosmetic only.
+
+2048 prompt source audit:
+H2D loads 24346
+unique (layer,expert) 9448
+duplicate loads 14898
+actual 34.944896GB
+unique-once 13.583462GB
+duplicate 21.361434GB
+theoretical removable 61.13%
+reuse factor 2.573
+max reload count 4
+This independently corroborates HIP trace ~36.37GB.
+
+Chunk IDs were instrumented and revealed per-GPU asynchronous invocation IDs:
+GPU0 IDs [0,1,3,6]
+GPU1 [2,4,7,9]
+GPU2 [5,8,10,11]
+Each is four successive logical 512 chunks for that GPU.
+
+TRUE adjacent-chunk reuse:
+GPU0 weighted reuse 10342.7MiB, 78.07%.
+GPU1 weighted reuse 3645.12MiB, 69.63%.
+GPU2 weighted reuse 4256.76MiB, 73.55%.
+TOTAL adjacent reusable 19.130829GB = 75.17% of chunks1→3.
+Full adjacent working set does not fit: x1 GPUs need roughly 1.05–1.55GiB; measured baseline headroom ~549/565MiB.
+
+7. CACHE SIMULATIONS
+Optimistic static cache using all measured headroom projected only ~14.07% total H2D reduction, so naive permanent cache alone is insufficient.
+
+Oracle retention budget, per GPU:
+GPU1 384MiB -> saved1.206170GB, own H2D reduction21.97%, peak383.64MiB.
+GPU2 384MiB -> saved1.205606GB, own H2D reduction19.87%, peak383.69MiB.
+
+Practical current-chunk-tail/MRU simulation:
+GPU1 384MiB -> saved0.792960GB, own H2D reduction14.45%.
+GPU2 384MiB -> saved0.815616GB, own H2D reduction13.44%.
+Roughly 1.61GB x1 H2D disappears across measured three transitions.
+384MiB chosen because baseline x1 headroom 549/565MiB leaves ~165/181MiB. 448MiB too aggressive.
+
+8. FIRST REAL RETENTION IMPLEMENTATION — MECHANICALLY CORRECT, POLICY FAILED
+We inspected ownership:
+Impl has std::vector<void*> owned; release() frees owned via cudaFree.
+Separate retention cudaMalloc can be added safely outside prefill scratch planner and owned by Impl.
+
+First experimental implementation:
+- feature gate STRATA_SMALL_RETAIN_MIB
+- only HIP devices1/2
+- 384MiB/card, fixed MAXBLOB slots (~266)
+- rolling round-robin cache
+- per-slot copied + used events
+- miss H2D directly into retention slot
+- hit compute from stable retention pointer
+- GPU0 unchanged
+- lifecycle cleanup integrated.
+
+Build SHA for first retention version:
+c7ab3bdff8bab6ccaefe204bfe14626f72d5919966d608eb0f5aab403d93fa92
+
+Diagnostic retain384_2048_v2:
+PP=53.564 TG=19.772 MTP=62/75=82.67% COMPLETE=True FAULTS=0.
+GPU:
+05 mean19.66%, min headroom450.246MiB, temp38
+0c mean52.96%, min headroom165.207MiB, temp34
+0f mean57.22%, min headroom180.602MiB, temp36
+So allocation landed exactly as intended and correctness/stability remained intact.
+
+But counters:
+device1 slots266 bytes401766400 hits=0 misses=5071 saved_bytes=0
+device2 slots266 bytes401766400 hits=0 misses=5668 saved_bytes=0
+Therefore PP +0.28% vs 53.416 baseline was noise. Mechanism neutral/correct but policy wrong.
+
+Root cause:
+A 512 chunk contains ~1100–1600 distinct streamed experts per x1 GPU. A 266-slot online round-robin cache cycles several times during the next chunk, evicting the useful tail of the prior chunk before those experts recur. Offline MRU simulation selected/froze the tail of the completed chunk; online rolling replacement did not preserve it.
+
+9. CURRENT PATCH — TWO-GENERATION DESIGN
+We then corrected architecture:
+- total retention remains 384MiB/card; cannot allocate 384+384 because headroom insufficient.
+- split arena into TWO ~192MiB banks.
+- one bank frozen as lookup generation during current invocation.
+- other bank collects current invocation tail via circular replacement.
+- on next invocation swap roles.
+- misses remain on normal STAGE=8 H2D path.
+- after normal H2D into stage_dev, copy expert stage_dev -> write-bank via D2D, so no additional PCIe H2D.
+- retention hit waits retain_copied and computes from retained stable pointer; records retain_used.
+- write-bank overwrite waits retain_used.
+- feature gated STRATA_SMALL_RETAIN_MIB; devices1/2 only; GPU0 unchanged.
+- source was restored from /home/ubuntu/strata-gorast-ready-combined/src/prefill/prefill.cpp.pre_retain384 before applying clean two-generation patch.
+- patch script: /home/ubuntu/strata-tuning-20261007/patch_retain2.py
+- build SUCCEEDED and linked. Only existing HIP nodiscard warnings.
+
+IMPORTANT: two-generation binary has NOT YET BEEN BENCHMARKED.
+We attempted to auto-pin runner SHA with a regex script; regex failed before changing anything:
+FAIL: EXE_SHA not found.
+Runner still showed:
+EXE_SHA = 'c7ab3bdff8bab6ccaefe204bfe14626f72d5919966d608eb0f5aab403d93fa92'
+A literal replacement script was prepared next, but Gorast interrupted and asked for this report before it was run.
+Therefore current binary SHA after two-generation build still needs to be measured and runner pin updated. Do NOT assume it equals c7ab...; that is the prior rolling-cache binary SHA.
+
+10. NEXT EXACT ACTION
+1) sha256sum current strata binary.
+2) Update /home/ubuntu/strata-tuning-20261007/tune_small_stream_audit_run.py EXE_SHA from c7ab3b... to exact new SHA using literal safe replacement.
+3) Run diagnostic:
+STRATA_SMALL_RETAIN_MIB=384 .../python .../tune_small_stream_audit_run.py --id retain2_384_2048_v1 --split 21,35 --prompt-n 2048 --max-new 128 --prefill 512
+4) Extract:
+grep -R 'STRATA_RETAIN2' .../retain2_384_2048_v1
+5) First criterion: hits > 0 and faults0/correct completion.
+6) Compare PP to ~53.416 baseline and 53.564 zero-hit control.
+7) If hits nonzero, run HIP copy tracer to verify REAL x1 H2D bytes fell. Do not trust counters alone.
+8) If architecture works, then improve capacity/policy. Current two-bank split means only ~133 slots per frozen bank, so expected savings are lower than the 384MiB/266-slot offline practical simulation. It is a safe proof-of-concept under same total VRAM. Do not interpret a smaller hit rate as disproving the 384MiB frozen-tail concept.
+9) Serious/final comparisons must return to TG512 minimum and eventually 7501/TG512 / real corpus. Current 2048/TG128 is diagnostic only.
+
+11. SOURCE / SAFETY NOTES
+- Existing old STREAM_AUDIT and small-stream audit instrumentation may remain in source backups/history; env-gated.
+- Backup before first retention patch: /home/ubuntu/strata-gorast-ready-combined/src/prefill/prefill.cpp.pre_retain384
+- Two-generation patch deliberately restores from that backup then reapplies retention cleanly.
+- Do not add 384MiB through Alloc::take/o planner: big scratch region is deliberately shared and this could collide with reserve.
+- Existing ExpertCache resident_stage_swaps performs D2H victim copies and stream synchronize; wrong hot-path mechanism. Do not use per 512 boundary.
+- No global sync should be introduced into retention path.
+- 0f:00.0 has prior amdgpu VM_L2_PROTECTION_FAULT history under other workloads; current Strata diagnostics have faults0. Continue monitoring.
+- Do not restart Ornith.
+- rocm-smi absent.
+- Final benchmark discipline TG512 minimum. Current diagnostics TG128 intentionally only for fast architecture validation.
+
+12. INTERPRETATION / DIRECTION
+The strongest proven fact is not merely that PCIe is slow; it is that Strata repeatedly retransfers the same experts across 512 microbatches while the x1 links are already saturated at their physical throughput. Adjacent reuse is ~70–76% on the constrained GPUs. This is structurally analogous to the opportunity exploited by llama TurboPrefill: preserve a larger logical horizon while executing in smaller bounded microbatches. The current retention work is a minimal experiment toward that behavior without rewriting Strata's scheduler.
+
+Please continue from the current two-generation build, not from the failed rolling-cache policy, and preserve all measurements/artifacts.
