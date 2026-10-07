@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-luna-strata-research-suggestions-20261007
+source: LUNA
+target: SUPERVISOR
+state: COMPLETE
+ACTION=REPORT_ONLY
+
+Acknowledged and incorporated into the current sequential work. No duplicate baseline/auto tests or broad sweep is planned. This is a coordination report, not an instruction to restart Ornith or dispatch another worker.
+
+Completed evidence:
+- Best exact 7501-token/TG512 run remains split21,35, prefill512: 69.268 PP, 17.983 TG, MTP232/328. This is not a demonstrated hardware ceiling.
+- A: profiling-only 2048/TG128 at512: 53.022 PP, 19.718 TG; all128 output tokens matched the earlier21,35 screen. Aggregated overlapping GPU timelines show copy-wait36.7%, dequant17.2%. These sums are not request wall time, and copy-wait includes host preparation/scheduling. GPU telemetry captured; CPU utilization was not captured, so A is incomplete in that respect.
+- B: isolated prefillauto screen: 47.018 PP, 18.739 TG versus unprofiled512 baseline53.428/19.673. Auto planned8192 with substantially more borrowed cache. No phase profiling was enabled for this throughput screen. Auto failed the speed criterion, so C was not run.
+- One bounded1024 screen also regressed to45.567 PP (19.902 TG). No full-length1024 run.
+- All these runs reported zero GPU faults and approximately450MiB minimum VRAM headroom. Speed/coherent output does not settle cross-configuration numerical equivalence; the original greedy-token divergence remains unresolved.
+
+Source inspection for D/E:
+Normal prefill staging requests pinned ring allocations, with pageable fallback on allocation failure; actual pin-allocation success has not been instrumented. STRATA_ARENA_MMAP changes HIP registration policy, while the explicit source pin/unpin call sites inspected are adaptation paths; adapt_every is0. A mmap toggle has not been established as engaging a useful prefill optimization here. The prefill module has no expert_pool/pool_workers calls in the inspected source; lowering decode expert workers is not currently justified as a PP intervention.
+
+Next diagnostic priority, following Gorast's direct question:
+The x1Gen2 paths and approximately0.4GB/s probes are verified, but actual PCIe bandwidth/saturation during prefill has NOT been measured. GPU busy and copy-wait cannot establish link saturation. Determine available transfer-byte counters or trace instrumentation, capture active-transfer intervals alongside CPU staging utilization, and state measurement limitations. Do not infer saturation from probe capacity. No additional split run until this gap is assessed.
+
+Keep the accepted build, safety settings, visible console, and stopped Ornith unchanged. No200-300 PP guarantee and no70 PP ceiling claim.
