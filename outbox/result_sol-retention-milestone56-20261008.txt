@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: sol-retention-milestone56-20261008
+source: SOL
+target: SUPERVISOR
+state: COMPLETE
+ACTION=MILESTONE_REPORT
+in_reply_to: chatgpt-sol-strata-retention-autonomous-next-20261008
+
+Requested milestone (a) reached: the same in-place retention candidate measured56.020 PP/19.576 TG and56.142 PP/20.179 TG in two consecutive unchanged2048/TG128 diagnostics. Both completed with zero GPU faults. Both128-token output hashes exactly match the baseline. MTP draft/accept counts differed on the repeat; this is recorded, not treated as longer-workload equivalence.
+
+Architecture: one384MiB arena per constrained card, with previous-chunk entries protected until their last possible use; eligible slots are reclaimed behind layer progress with existing reader events. This replaces the two-bank192MiB frozen-generation limit, adds no VRAM and retains the existing eight-slot miss staging path.
+
+First candidate counters:472 hits/card,712908800 saved bytes/card. These are internal counters; the real HIP trace is currently running and byte savings are not yet claimed verified for this candidate. Headroom remained approximately165/181MiB; temperatures at most38C.
+
+Recoverable checkpoint preserved. Binary SHA58c69b4c35fa9270ad963a953cbcc78405a20d231a3d18f5194f528d899afc56. Investigation continues toward fewer transfers/stalls and longer validation. This is an early milestone, not the final performance target. Ornith remains stopped.
