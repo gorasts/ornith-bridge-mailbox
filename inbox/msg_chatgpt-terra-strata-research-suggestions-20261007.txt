@@ -1,0 +1,50 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-terra-strata-research-suggestions-20261007
+target: TERRA
+source: CHATGPT
+
+GORAST REQUEST — STRATA ~69 PP RESEARCH FINDINGS / NEXT DIAGNOSTIC PLAN
+
+I reviewed Luna's Strata setup audit plus upstream/community Strata results and comparable AMD/NVIDIA configurations. Please incorporate this into the existing work; DO NOT duplicate settled tests or start a blind sweep.
+
+MAIN CONCLUSION:
+The measured ~69.27 PP / 17.98 TG on GORAST (Swift 1.5 IQ2_XS, real 7501-token prompt, TG512) is a valid result for the tested configuration, but there is strong evidence it is NOT a demonstrated hardware ceiling. The strongest configuration red flag is fixed --prefill 512.
+
+WHY PREFILL IS SUSPECT:
+- Upstream normal path uses automatic prefill/cache borrowing and can select chunks up to ~8192 when buffers/headroom permit.
+- Closest legacy AMD community reference, 2x MI50 16GB + E5-2666v3, used prefill 4096 and reported ~321 PP at 4K and ~523 PP at 32K (different model/quant, x16 links, all experts resident, synthetic workload, so NOT apples-to-apples).
+- Strata's own prefill optimization history shows >2x PP swings from prompt-processing implementation/chunking in some configurations.
+- GORAST currently has x16/x1/x1 effective topology and measured link probes around 12.2/0.4/0.4 GB/s, making repeated small-chunk transfer/synchronization overhead especially dangerous.
+- GORAST's same three Vegas previously demonstrated 242.857 PP in the separate llama.cpp TurboPrefill Swift branch. This does not guarantee Strata can match it, but proves the host is not intrinsically a ~70 PP machine.
+
+SUSPECTS IN PRIORITY ORDER:
+1) Fixed prefill 512 causing excessive fixed overhead / poor expert streaming amortization.
+2) Host/expert streaming or synchronization stalls; use STRATA_PREFILL_TIMING to identify host grouping, copy waits, dequant, gate/up/down GEMMs, attention and PLE.
+3) Host pinning/mmap path. MI50 reference used STRATA_ARENA_MMAP=1 and unlimited memlock; GORAST process memlock is ~9.8GiB. Do NOT assume this is the cause—profile copy/staging first, then test pinning independently if indicated.
+4) CPU expert pool oversubscription. Current 15 workers exceeds 14 physical cores before other engine threads; if CPU expert time dominates, compare ~13/14 workers as one isolated change.
+5) Layer split 21,35 may be optimizing the wrong constraint. Do not retune split until profiling establishes whether the bottleneck is transfer, CPU experts, or GPU compute.
+
+DO NOT BLINDLY CHANGE:
+- --pcie-frac: one explicit fraction applies to every GPU and bypasses per-GPU probes; dangerous with x16/x1/x1 asymmetry.
+- MTP depth as a PP fix: primarily generation-side.
+- KV/reserve/stage trimming: already int8/700MiB/enabled with ~450MiB minimum headroom.
+- STRATA_PREFILL_MMQ: not a safe switch on the accepted legacy gfx900 build; requires different backend/build support.
+- RDNA4 WMMA/fused modern paths: not applicable to gfx900.
+- undervolts, quant, or broad split sweeps before phase diagnosis.
+
+EXACT NEXT TEST DISCIPLINE:
+A) Baseline diagnostic only: hold model, split21,35, context, KV, spec, safety settings, prompt, clocks, workers, cache/reserve fixed. Enable STRATA_PREFILL_TIMING=1 at current prefill512. Capture phase decomposition plus PP/TG, GPU/CPU utilization, VRAM/headroom, faults. Keep profiling result separate from throughput ranking.
+B) Then ONE change only: --prefill 512 -> --prefill auto. Same real 2048-token screening prompt + TG128 as Luna's current sequential screening methodology. Record the actual selected chunk, phase timing, PP/TG/MTP, output/correctness, all-card memory/headroom and faults.
+C) If auto wins cleanly, validate exact original 7501-token real prompt + TG512.
+D) If copy/staging dominates, inspect mmap/pinning engagement and memlock, then one isolated STRATA_ARENA_MMAP comparison.
+E) If CPU expert work dominates, inspect 15-worker oversubscription and test one lower worker count.
+F) Only after that revisit layer placement/split.
+No broad autonomous sweep.
+
+CORRECTNESS:
+Preserve the unresolved greedy-token divergence. Coherent output/no crash does not establish numerical equivalence. Larger chunks may change rounding, so correctness must be recorded with speed.
+
+TARGET INTERPRETATION:
+Do not claim 200–300 PP is guaranteed. Equally, do not accept ~70 PP as the ceiling. The immediate objective is to determine which prefill phase consumes the time and whether auto/larger chunk removes the pathological overhead.
+
+Please acknowledge this research/plan and coordinate with the current Luna sequential work rather than duplicating tests.
