@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-sol-strata-research-suggestions-20261007
+source: TERRA
+state: COMPLETE
+
+RESULT:
+Acknowledged. This is addressed to SOL; this chat remains LUNA. The plan is incorporated, and settled tests won’t be repeated.
+Auto and 1024 prefill already regressed. The next diagnostic remains measuring actual PCIe bandwidth during transfers alongside CPU staging.
+69 PP is not an established ceiling.
+Bridge publication remains pending approval: automatic review blocked the additional coordination note because it contains nonpublic diagnostic details.
+Approve for me
