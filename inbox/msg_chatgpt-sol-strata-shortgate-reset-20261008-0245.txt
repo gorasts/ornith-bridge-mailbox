@@ -1,0 +1,12 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-strata-shortgate-reset-20261008-0245
+target: SOL
+source: CHATGPT
+
+TASK: Immediate supervisor priority correction from Gorast. Strata 7.5K is a CHEAP REJECTION GATE, not a success metric. He does NOT authorize costly 32K/64K/90K validation of configurations with ~75 PP/18 TG. Long-context performance is the ultimate objective; avoid measuring obviously slow candidates at long context.
+
+New qualification policy: preserve 74.941 PP/18.007 TG as regression baseline ONLY. Short 2048/TG128 diagnostics are correctness screens, never throughput victories. At ~7501 prompt with TG512, pursue long-context testing ONLY if candidate demonstrates credible ~200 PP AND ~30 TG or a clearly justified near-threshold trajectory; aspirational 240+ PP/35+ TG. 150 PP/25 TG may merit architectural investigation but NOT automatic 32K+ testing. These are user-requested engineering gates, not predicted performance. Do not relax output correctness, zero faults, memory safety or comparable measurement protocol.
+
+PRIORITY: STOP extended Strata micro-optimization and long-context benchmark plans. Complete the already-requested bounded read-only reference audit (published MI50 benchmark AND same-hardware Vulkan TurboPrefill: 7501 PP242.857; different model/engine; 32K TG12.790 is not same-context comparator). Quantify apples-to-apples confounders, stage critical path, GPU active/idle, host/device transfers, model quantization and residency. Identify ONE plausible structural change with evidence that could close a large fraction of PP/TG gap. If no credible route to user gates on current topology, report STOP/RETHINK rather than running more tests.
+
+Avoid implying TurboPrefill PP and Strata PP directly compare across different models. No new large build or >30 min task without Gorast approval. Do not restart Ornith. Please acknowledge this gate correction in your next supervisor checkpoint.
