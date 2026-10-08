@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: sol-ornith-q4-fullcontext-tp-recovery-20261008
+source: SOL
+target: CHATGPT
+status: BOUNDED_INVESTIGATION_COMPLETE_NO_PROMOTION
+
+Gorast rejected reducing context and authorized up to60 minutes of isolated integration/testing. Kept Q4 file, all model layers, four CPU expert layers, Q8 KV, 131072 capacity and clocks. The approved investigation is finished. No source or production binary changes outside isolated checkout; no production restart.
+
+Found real upstream implementation: https://github.com/drrros/llama.cpp/tree/pp-host-weights and https://github.com/ggml-org/llama.cpp/discussions/29964 . Ported relevant user-input/host-weight changes into /home/ubuntu/ornith-q4-tp-host-20261008; experimental libraries built separately. CUDA topology workaround later removed as a controlled isolation. Original TP and b10919 preserved.
+
+ACTIVATION ACHIEVED: actual log pipeline_parallel enabled, TurboPrefill requested=1 active=1, devices3, full131072 capacity. This refutes blanket model impossibility, but activation alone is NOT correct support.
+
+All completed runs same8215/TG512, cache_n0, detected GPU fault signatures0:
+v1 upstream layer-owner host weights:40.712PP/21.707TG, slash-only output, REJECTED.
+v2 x16 host ownership + interleaved PREPARE/COMPUTE/STORE:237.268/23.567, same invalid output, REJECTED.
+v3 remove CUDA topology workaround:237.788/23.601, same invalid output, REJECTED.
+Ordinary pipeline UB128:172.898/27.015, coherent but original output hash differs; not numerical equivalence or performance win.
+Ordinary pipeline UB2048:500.961/26.974; below accepted b10919 baseline556.783/29.057.
+Unmodified same TP-source revision, TP off, UB2048:507.108/28.159. Thus pipeline patch shows no gain against matched source control either.
+
+PROVEN BLOCKER: allocation trace logs graph reallocation while saved TP graphs pending, including saved53/55/57/59/61, nodes3943,leafs924,backend_changed0. Saved tensor addresses cannot be trusted through graph reservation/reallocation. Final guarded candidate pins copy slot during pending TP capture and refuses reallocation with pending graphs. It still hit saved1,nodes3943,leafs924,backend_changed0 -> ORNITH_TP_UNSAFE_REALLOC -> controlled request failure, no valid throughput, stopped. No GPU faults. This is a real allocation-lifetime blocker; not proved the sole invalid-output cause.
+
+NEXT FOCUSED WORK: instrument first allocator layout mismatch at the exact tensor/dependency rather than more performance tests; repair stable allocation/ownership of captured host-weight staging and input buffers. Preserve memory budget. Never bypass pending-graph reallocation guard or rank slash-only output. No long-context candidate runs until correctness and meaningful speed gain.
+
+SOURCE CONFOUNDER VERIFIED: b10919 executable commitd3146f2b5 dated2026-09-12; TP fork commit10bf611e5 dated2026-08-16 reportingbuild10451. Do not attribute cross-version results to scheduler alone; same-revision comparison above is explicit.
+
+Final service inactive; no llama-server/Strata processes. Full model/context retained. Production baseline stays Q4 b10919 (8K556.783/29.057;32K426.490/26.644;64K318.799/23.966;90K261.602/21.999). No improvement promoted; no hardware ceiling claim.
+
+ARTIFACTS: /home/ubuntu/strata-tuning-20261007/ornith_q4_tp_host_*20261008; ornith_q4_pipeline_host_*20261008; ornith_q4_tpbase_ub2048_control_20261008. Final patch/hash manifest host-pipeline-upstream/final-guarded-port.patch and final-guarded-sha256.json. Quarantined earlier libraries under host-pipeline-upstream/quarantine-v1 and quarantine-v2. Evidence archive ornith_tp_host_evidence.zip. Local outputs/Ornith-Q4-full-context-TurboPrefill-recovery.md and outputs/evidence/ornith_tp_host_evidence.zip.
