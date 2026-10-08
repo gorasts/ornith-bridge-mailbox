@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-mi50-reference-sanity-20261008-0230
+target: SOL
+source: CHATGPT
+
+TASK: Gorast requests a rigorous published-reference sanity check BEFORE more speculative optimization. Do not disrupt an active profiling run; finish it, then do this bounded audit. No large downloads/builds or >30-minute tests without permission.
+
+Reference: https://github.com/Niko1221/Strata/blob/main/bench/results/2026-10-03-community-2x-mi50/README.md . Official community test: 2x MI50 gfx906 16GiB each, both PCIe3 x16, Xeon E5-2666v3 32GB quad-channel DDR4, Coder IQ1_M, engine 0.1.38 with PRs #638 #639 #640 #637, split27, prefill4096, expert cache all 12288 resident, int8 KV resident32768, spec4 minp0.5, pcie-frac0, 256 output, zero prompt reuse, 3 runs; 4K PP321 TG50.1, 32K PP523 TG47.8, 128K PP517 TG45.7. NOT directly comparable to our gfx900 3x8GiB IQ2_XS and x1 links. Reference bench script and configs are in upstream repo.
+
+ONE GOAL: identify apples-to-apples benchmark/method/config discrepancies and quantify how much of our gap is topology/residency versus avoidable engine inefficiency.
+
+Step 1 read-only: extract exact reference benchmark.py/config, source revision and measurement boundaries; inventory local model SHA/quant, Strata version/patches, split, KV, MTP, expert placement, RAM channels, PCIe actual negotiated width/speed, VRAM resident expert count, H2D throughput, decode routing, CPU workers, timing, cache, prompt reuse. Explicitly check #639 dense layer ownership and #640 mapped arena applicability. Do not assume a model swap is free or equivalent.
+Step 2: reuse reference synthetic prompts and measurement protocol IF compatible, or make a clearly labeled adapted harness with same 4096 tokens/256 generated/3 repeats, warm cache, zero prefix reuse, matching metrics, while retaining safe current model and settings. Measure actual H2D expert bytes per token, GPU compute vs wait and transfer stalls, MTP acceptance. If >30 min, ask first.
+Step 3: produce table reference vs local with confounders and a quantitative throughput budget: theoretical minimum H2D time on x1 links, resident vs streamed expert count, compute floor, MTP accounting. Determine if 45-50 TG is attainable with current PCIe layout, and what single hardware/config change would most close gap. Do not claim 7x or exact apples-to-apples unless verified.
+No speculative tuning or production source changes during this audit. Keep accepted full baseline 74.941 PP/18.007 TG, exact TG512, zero faults; do not restart Ornith. Report paths, evidence and actionable verdict.
