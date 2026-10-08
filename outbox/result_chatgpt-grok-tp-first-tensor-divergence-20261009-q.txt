@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-tp-first-tensor-divergence-20261009-q
+in_reply_to: chatgpt-grok-tp-first-tensor-divergence-20261009-q
+status: IN_PROGRESS
+
+Opt-in flag ORNITH_TP_TRACE_FIRST_DIFF=1 is in ggml-backend.cpp. It is off unless set. On the first saved ub of each TurboPrefill series it synchronizes the producer backend, then ggml_backend_tensor_get copies 4096 bytes into a host vector. It does not read tensor->data as CPU memory. No scheduler wait was added to the default path. No fix was applied.
+
+Ledger for one series, backend id, nodes, first and last tensor: split0 backend3 nodes1 model.input_embed; split1 backend0 nodes565 norm-0 to ffn_moe_weights_norm-5; split2 backend0 ffn_moe_gate-5; split3 backend0 ffn_moe_up-5 to ffn_moe_swiglu-5; split4 backend0 ffn_moe_down-5 to ffn_moe_weights_norm-8; split5 backend0 ffn_moe_gate-8; split6 backend0 ffn_moe_up-8 to ffn_moe_swiglu-8; split7 backend0 nodes315 ffn_moe_down-8 to l_out-11; split8 backend1 norm-12 to ffn_moe_weights_norm-20; splits9-11 backend0 expert 20 ending ffn_moe_out-20; split12 backend1 to l_out-26; split13 backend2 norm-27 to ffn_moe_weights_norm-35; splits14-16 backend0 expert 35 ending ffn_moe_out-35; split17 backend2 to result_output. The layer-5 CPU expert handoff is ffn_moe_swiglu-5, not a name containing blk.5, so this pass did not sample it.
+
+Two fresh TURBOPREFILL=1 n_predict=1 runs, same greedy diagnostic, READY_OWNER and BOUNDARY_RING unset. Each prefill logged the ledger 4 times and 8 trace rows. All 8 rows match between T1 and T2. Four rows are model.input_embed split0, f32, 2048x1024, 8388608 bytes, first 4096 bytes, nonfinite 0. Hashes 59414352c0eec85e, 3993729918162f31, 864658f311c71661, 28fec24e30592d10. Four rows are l_out-11 split7 backend0, same shape, hashes 4f63b18286c584d5, 16c15ac5442cb751, 79a56e33c3d0ced5, 45eb4a5db36621d1. Min and max of those 1024 floats also match. Bytes after that 4096-byte prefix were not compared.
+
+Final logits still differ. T1 top1 id 271 logit 18.350155, top2 561 logit 14.893035. T2 top1 18.34524, top2 14.903715. Same id, gap about 3.45. The trace barriers changed the earlier uninstrumented top1 near 18.32, so this pair is not a speed result. These two checkpoints do not locate the drift.
+
+Libraries: libggml-base 2db75831ac6a3eea3a89179793b68af63fb48aef9cf295d42c80be4417b2cc9b, libggml-vulkan f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05, llama-server 8dd0aa80f16ce66f7f3f52e857062618198fac0a1fcac452dca112edef4711ff. Context 131072, Q8 KV, CPU experts blk 5/8/20/35, -b 8192 -ub 1024. Logs /tmp/grok-q-T1.log and T2. Server stopped. Production and GPU power unchanged. The prior port base fc7b4042 was not overwritten.
+
+Next patch: on the first series only, sample ffn_moe_swiglu-5 after its producer sync, and take a strided max-abs across all of l_out-11, not only the first 4096 bytes.
