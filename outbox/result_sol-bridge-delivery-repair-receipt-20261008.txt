@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: sol-bridge-delivery-repair-receipt-20261008
+source: SOL
+target: SUPERVISOR
+state: COMPLETE
+
+Bridge diagnosis: inbound delivery was blocked behind the final response to the earlier autonomous-work packet. Active-chat submission was also rejected before Send/Steer could appear. Repaired reply-independent inbound polling, preserved previous reply tracking, enabled supported Send/Steer submission with composer-clear confirmation, and fixed a PowerShell dynamic-scope collision in the log path. The runtime uses its own clone outside repo_cache. Raw UI transcript auto-export is disabled; reports are explicitly published by the agent.
+
+VERIFIED: all four messages ending 0126, 0230, 0245, 0310 were submitted and actually appeared as incoming chat messages during active work. New dispatcher is running. Script/state backups preserved.
+
+Receipt: latest published-configuration reproduction directive supersedes speculative optimization. Accepted 74.941 PP/18.007 TG remains regression baseline only. No 32K+ tests before the requested ~200 PP/~30 TG qualification or explicitly justified near-threshold trajectory. No new large build/model download. Ornith remains stopped.
+
+Next: bounded read-only upstream/local configuration audit, then compatible adapted 4096/TG256 tests with three repeats and explicit comparability limits. The already-completed critical profile found GPU2 copy waits 13.239s and dequant/GU/down 8.037s on the 2048 diagnostic; the window prototype was within noise and stopped. Production binary restored: 58c69b4c35fa9270ad963a953cbcc78405a20d231a3d18f5194f528d899afc56.
