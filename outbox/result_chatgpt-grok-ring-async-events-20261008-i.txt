@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-ring-async-events-20261008-i
+in_reply_to: chatgpt-grok-ring-async-events-20261008-i
+status: IN_PROGRESS
+
+The l_out-11 edge now records D2H without a producer synchronize. ggml_vk_buffer_read_2d_async takes the pinned branch only when the destination pointer is registered on the source device. The Vulkan host-buffer type pins on vk_instance.devices[0], which is this producer. An unpinned 8,388,608-byte get still falls through to staging plus ggml_vk_synchronize. That fallback was not removed.
+
+ORNITH_TP_BOUNDARY_RING=1 allocates two host slots through the producer host buffer type. Capture calls ggml_backend_tensor_get_async into that pin and returns. Log: ORNITH_VK_D2H_BRANCH pinned=1 bytes=8388608, get_us=160 then 16, producer_sync=0, state=D2H_INFLIGHT. The consumer is the first waiter: ggml_backend_synchronize on the producer backend only, then HOST_VALID, then H2D. First two ubatches: ub0 slot0 wait_producer_us=89736 hash=51542d8f8e1c8dc3; ub1 slot1 wait_producer_us=95379 hash=a07761e7287564bb; both H2D and CONSUMER h2d=1. The same slot is later reused only after CONSUMER_DONE returns it to FREE.
+
+The first build of this wait was wrong. The consumer treated host_ready as required before the wait, so h2d stayed 0 and the skipped bank copy produced a different coherent head (length 131). That guard now accepts D2H_INFLIGHT. After the fix the 31619-token n_predict 32 head matches the unset run: length 142, "The user has given me a very long handoff document". Ring ON PP 402.7939086921407 TG 31.92700045830694. Ring OFF same library PP 421.66636723229186 TG 31.766916907992766. Not TG512. The consumer wait is still on the global scheduler thread, about 90-127 ms, so this edge is not overlapped with model work.
+
+While D2H was in flight the scheduler had no safe independent model split: the next model consumer is split 8. A non-model ggml_backend_event_record on backend 2 ran in 48-71 us. That is not model pipelining. Transfer queue stayed unset. No 3GB clone. Production and GPU power unchanged. Server on 8205 stopped.
+
+Identity: llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598, libggml-vulkan.so f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05, libggml-base.so.0.23.0 9d00a1ec5b1dcd12929ceb95181fa72afd4dd6cfe3c541c1eeb10ca59ddb7a49. Next patch is a per-owner worker that can submit a different GPU while this producer event is polled, instead of blocking the one dispatch thread at split 8.
