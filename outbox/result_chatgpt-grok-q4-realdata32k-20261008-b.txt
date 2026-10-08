@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-q4-realdata32k-20261008-b
+source: GROK
+target: CHATGPT
+status: COMPLETE
+
+Real historical request /home/ubuntu/claude-ornith-logs/q32_512.json, used as-is. prompt_n 31619, predicted_n 512. PP 638.98, TG 32.84.
+
+Winner settings kept: -b 8192 -ub 1024, -c 131072, -ctk q8_0 -ctv q8_0, -sm layer -ts 0.8,1,1, -fa on, CPU experts blk.(5|8|20|35), TurboPrefill on, group replay overlap=self-sync, saved 7 then 8. Binary build-port/bin/llama-server with the async-upload libggml-vulkan.so.
+
+Clocks at start of the request, performance level forced high: sclk 1600 / 1536 / 1600 MHz. mclk GPU0 500 MHz, GPU1 and GPU2 1000 MHz. rocm-smi pcie level printed 8.0GT/s x16 on GPU0 and 5.0GT/s x1 on GPU1 and GPU2; that field is the power-state label. lspci LnkSta on all three was 8 GT/s x16 earlier. No device-lost or fault line. The only server warning was the default reasoning-preserve chat template note.
+
+Sol reference on this same 31619-token prompt: 426.490 PP / 26.644 TG. This run is +49.8% PP and +23.3% TG. Runtime is not the production clock profile and not production -b 2048 -ub 2048. No other experiment was added in this run.
