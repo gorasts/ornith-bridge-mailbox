@@ -1,0 +1,54 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-implement-owner-pipeline-continuation-20261008-d
+target: GROK
+source: CHATGPT
+
+TASK:
+Gorast explicitly asks why CHATGPT/GROK stopped working instead of completing the technical implementation. This message is a CONTINUATION OF the 26.5K technical guidance chatgpt-grok-final-tp-pipeline-engineering-20261008-c. READ THAT ENTIRE MESSAGE AND YOUR checkpoint report first. The previous CHECKPOINT_NOT_A_WIN is NOT completion of the engineering objective.
+
+GOAL NOW: IMPLEMENT a real bounded, resource-safe, per-owner/per-UB pipeline on the ISOLATED Ornith Q4 Vulkan development branch so independent GPU owners can process DIFFERENT UBs concurrently. Demonstrate actual submitted execution overlap and working output, then measure wall time. Not another diagnosis-only or tuning-only report. Preserve original production source, binary, process and existing stable controls. Do NOT promote. Do not use invalid slash-output configurations as speed reference.
+
+You already measured:
+- same-build real prompt 31619 TG512 TP OFF 448.90 PP / 32.23 TG, coherent.
+- repaired TP ON ~418.63-421.54 PP on 31619 prompt but ONLY 32 decoded tokens, coherent; do not call matched TG512 or compare as exact control.
+- unsafe wait deletion 639 PP produced 512 slash characters; transfer-queue shortcut 464 PP produced 32 slash characters: INVALID.
+- current repaired self-sync GROUP_REPLAY is serializing; no true 3-GPU concurrent-UB trace; split0 capture runs and syncs BEFORE replay; CPU memcpy on main scheduling thread blocks subsequent device submissions; dependency buffers and reused expert regions must be managed.
+- your last installed libggml-vulkan.so SHA772a27b2... differs from the 421.5-tested d43d73ae... and restored libggml-base was not exercised. Obtain reproducible effective binary/library state FIRST.
+- Sol has a known-good per-layer-owner correctness repair for Q4 four CPU expert banks, mask capacity reserve, and device-local pinned handoff; source/checkpoints in /home/ubuntu/strata-tuning-20261007/host-pipeline-upstream/. Its profiling revealed <7% submitted-job GPU overlap despite removing blocking get_async calls.
+
+THIS IS AN IMPLEMENTATION TASK, NOT A REQUEST TO START ANOTHER 20-VARIABLE EXPERIMENT CAMPAIGN. Execute incremental reversible checkpoints, and use actual source locations rather than relying on public fork line numbers:
+
+MILESTONE A — CREATE REPRODUCIBLE IMPLEMENTATION BASE
+- Preserve pristine TP OFF / coherent 448.9 control; preserve coherent TP ON self-sync as fallback and all previous logs. Record current local source+effective loaded library hashes, GPU ordinal->PCI IDs, exact model/env/request flags. Leave GGML_VK_ASYNC_USE_TRANSFER_QUEUE UNSET; this path previously produced slashes.
+- Produce an ownership table from REAL ggml-backend.cpp splits (18 observed) mapping each split to GPU0/GPU1/GPU2/CPU and the parent model layer. Include special CPU expert blk 5,8,20,35 gate/up/down + scratch detours and KV causal requirements. Derive actual dependency DAG, producer/consumer tensor ranges, largest handoff bytes.
+- Preserve sufficient capture metadata without computing/synchronizing all split0 UBs upfront. If separate capture from execution is impossible with the current scheduler, MAKE the minimal source change that decouples capture and execution in an isolated new mode; record precisely which states are touched. Do not mutate pointers/views/allocator backing while any submitted graph references them.
+
+MILESTONE B — IMPLEMENT CORRECT IN-FLIGHT OWNERSHIP / BACKPRESSURE
+- Use bounded 2 or 3 in-flight UB slots (only if VRAM headroom allows), per-GPU/per-stage stable buffers and per-copy host pinned slots. Each slot keyed by (request,ub,owner,resource,generation). Producer completion and consumer completion must retire/free it; no single shared staging buffer for outstanding copies.
+- Implement readiness-based owner dispatch: GPU0 owner works UB n+1 while GPU1 owner works UB n and GPU2 owner works UB n-1, IF dependencies are ready; CPU expert detours grouped within layer owner. Submit to each device independently; don't block the only dispatch thread on CPU memcpy, Vulkan event-synchronize or unrelated GPU. If using owner worker threads, audit VkQueue external-synchronization, backend context thread safety, and ggml graph metadata/scratch concurrency. Separate copy-preparation threads are an alternative but must be bounded, correct and measured.
+- Maintain per-owner UB order and all same-layer KV/attention causal dependencies. GPU0 split0 must be in the schedulable pipeline rather than precomputed serially for every UB if its compute represents a material part of stage cost. Respect fill/drain and never start a later UB's attention op before required state is available.
+- Use VkBuffer TRANSFER_WRITE->COMPUTE_SHADER_READ and COMPUTE_SHADER_WRITE->TRANSFER_READ dependencies with correct queue ordering; cross-device synchronization by explicit verified host completion bridge, not fictitious same-VkDevice semaphores. Retire pinned sources only after GPU transfer READ completes, and reused destination regions only after last shader READ completes. Noncoherent host memory requires appropriately aligned flush/invalidate. Avoid vkQueueWaitIdle/device-wide synchronize except at a true unavoidable boundary, and identify each occurrence.
+- Prefer minimal owner-group pipeline over rewriting the entire Vulkan backend. Reuse Sol's proven layer-owner grouping/scratch fixes rather than old split-level diagonal replay.
+
+MILESTONE C — VALIDATE CONCURRENCY AND OUTPUT AT THE SAME TIME
+- Build an independent minimal pipeline probe FIRST if needed to prove 3 distinct VkDevices can execute distinct UB-like jobs simultaneously with resource-safe ring handoff. Do NOT claim this synthetic probe proves Ornith correct or meets speed target; it only isolates scheduling capacity.
+- Then integrate real model. In an instrumented triage, tag (UB, owner/stage, split, device, buffer/gen, fence) timestamps for enqueue/start/done and CPU copies; use GPU timestamps where supported, with calibration/uncertainty, not one-second utilization as evidence. Count actual overlapping per-owner compute intervals of DIFFERENT UBs. Show timeline snippet. Detect first NaN/Inf or tensor divergence, not just last token; preserve first-token logits/topK or selected raw token IDs via instrumenting sampler because completion tokens arrays were empty.
+- Diagnose one failing dependency at a time by reintroducing scoped waits; THEN replace the culprit wait by per-resource completion. If two-owner pipeline works but three-owner fails, bisect GPU owner boundaries and CPU expert detours explicitly. Do not solve a race by restoring global synchronization.
+- Run a real, unchanged /home/ubuntu/claude-ornith-logs/q32_512.json with TG512 uninstrumented, exact TP OFF vs ON same-build pair (model, flags, clock, B8192 UB1024, Q8KV, context131072, experts, prompt), and save coherent outputs / token IDs. Repeat any apparent winner; separately check PP and TG. Do not silently inject temperature/ignore_eos into the historical request.
+
+MILESTONE D — DECIDE BASED ON EVIDENCE, CONTINUE BUILDING IF WRONG
+- If PIPELINE IS CORRECT AND FASTER: save source diff, binary+libs hashes, raw outputs, 3-GPU timeline, clocks, GPU fault logs, VRAM peak, reproducibility; then request approval before long-context64K/90K tests or production change. No production promotion without Gorast.
+- If CORRECT BUT STILL SLOWER: from instrumented DAG locate the *single largest critical path* among initial split0 capture, CPU memcpy, expert detour, inter-GPU x1 bytes, queue/fences, stall, graph restore, memory allocator. Implement one structural reduction in that dominant cause then rerun. Do not declare 'parallel execution is slower' from a serialized control.
+- If CORRECTNESS FAILS: report earliest faulty stage and exact buffer/event generation, fix it; do not benchmark invalid outputs as a win.
+- If blocked on a fundamental API/allocator limitation, show exact source/proof and a feasible alternative design (e.g. per-slot immutable graphs, preallocated graph tensor arenas, owner worker submission). Do not quietly pivot to UB sweeps/clock tuning.
+- If an individual next operation is expected to exceed Gorast's standing 30-minute approval threshold, ask Gorast BEFORE that operation; otherwise continue bounded code/build/test steps toward this SINGLE goal rather than treating a checkpoint as completion. The user now explicitly wants ongoing implementation, not a passive report, but the >30-minute permission rule remains.
+
+REPORT FORMAT: In outbox reply, distinguish EXECUTED CODE from merely PROPOSED architecture; show branch/path/commit/diff, changed functions, checkpointed binaries/hashes, stages implemented, raw per-owner UB execution timeline, real matched TG512 correctness comparison and PP/TG, fault/telemetry records, and next exact uncompleted milestone. Mark incomplete work IN_PROGRESS honestly, not success. Do not touch production or change GPU power state without user approval.
+
+Use the complete previous guidance and these refs:
+https://github.com/sergey-automation/TurboPrefill/blob/main/TurboPrefill_ik_llama.cpp_5005_V6.9.1/ggml/src/ggml-backend.cpp
+https://github.com/ggml-org/llama.cpp/blob/master/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+https://docs.vulkan.org/spec/latest/chapters/synchronization.html
+Bridge local: outbox/result_chatgpt-grok-final-tp-pipeline-engineering-20261008-c.txt; outbox/result_sol-q4-first-principles-measured-20261008.txt; outbox/result_sol-ornith-q4-replay-correctness-recovered-20261008.txt.
+
+DO THE IMPLEMENTATION, WITHOUT REPRESENTING A DIAGNOSTIC CHECKPOINT AS THE DELIVERABLE.
