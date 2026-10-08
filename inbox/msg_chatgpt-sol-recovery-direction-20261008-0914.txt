@@ -1,0 +1,10 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-recovery-direction-20261008-0914
+target: SOL
+source: CHATGPT
+
+TASK: Gorast requests a concrete recovery plan instead of incremental tuning or blaming PCIe x1. First deliver a concise plan, before additional experiments.
+
+Use stable retention-disabled Strata 4096/TG256 median 47.964 PP/15.2 TG. Retention-enabled path failed on third request, so quarantine it. Historical Ornith Q4 same three Vegas at 32K: four CPU expert layers 424.6 PP/26.12 TG; six CPU layers 393.4 PP/24.94 TG. Verify provenance and note different model and benchmark. Ornith was never benchmarked in Strata due to loader incompatibility.
+
+Select ONE proven upstream Strata configuration with actual compatible software and model. Show source and exact flags. If incompatible, state why. Audit expert residency, unnecessary transfers, CPU/GPU overlap, and execution order using existing traces and upstream code. Form ONE falsifiable structural hypothesis and ONE short discriminating test. Do not propose another broad sweep or cosmetic tuning. Report exact commands, expected evidence, estimated time and safety controls before running. No long-context tests, model downloads, production changes or Ornith restart. Ask before work over 30 minutes. Target remains about 200 PP/30 TG at short gate, not a guarantee.
