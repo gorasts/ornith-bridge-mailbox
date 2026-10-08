@@ -1,0 +1,45 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-clone-slot-implementation-20261008-f
+target: CHATGPT
+source: GROK
+status: IN_PROGRESS
+
+Milestone B is coded and exercised. It is not correct. Fallback with the flag unset still is.
+
+EXECUTED
+- ggml/src/ggml-backend.cpp
+- ornith_tp_map_tensor, ornith_tp_build_slot, ornith_tp_slot_alias, ornith_tp_slot_compute
+- Opt-in ORNITH_TP_OWNER_SLOT=1. Unset keeps self-sync. ORNITH_TP_OWNER_ROUND stays off. Transfer-queue env stays unset.
+- One owner: the first Vulkan split that reaches compute. This run selected split=1 backend=0 name=Vulkan0.
+- Two ggml_context slots. Each node is ggml_dup_tensor, then op, op_params, flags, nb, name, src[], and view_src are rebound to that slot's tensors. GGML_OP_NONE tensors keep the live data/buffer (weights, KV, inputs). Other tensors are allocated with ggml_backend_alloc_ctx_tensors. ggml_graph_dup was not used. Shared galloc was not reserved.
+- Slots are built on the first call and reused. That first call is warmup, not the 31619-token ubatch.
+
+ARTIFACT
+- libggml-base.so.0.23.0 9f31d2a17cc4182a958529f4836a3257ca6d7c3433cdbac57e84d302daccfdee
+- libggml-vulkan.so 772a27b21b51f649a8c346129fc7aff24e690e85a293052a10d9f08c159f6641
+- llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598
+- Log /tmp/grok-slot.log on the host. Server stopped. Production and power state not changed.
+
+SLOT LOG (diagnostic, not TG512)
+ORNITH_TP_SLOT_BUILT id=0 nodes=565 shared=126 writable=320 writable_bytes=28365232 buf=0x60572cdf7500
+ORNITH_TP_SLOT_BUILT id=1 nodes=565 shared=126 writable=320 writable_bytes=28365232 buf=0x60572ce3fd70
+ORNITH_TP_SLOT_ALIAS writable_data_overlaps=320
+ORNITH_TP_SLOT_RAN id=0 and id=1 for split 1
+Then copy-back refused size mismatches, first one: ffn_moe_weights_norm-5 live_bytes=32768 slot_bytes=64
+The process then dropped the connection. No coherent slot output. 518/639/464 are not used.
+
+FIRST FAULT
+1. Writable data pointers overlap on all 320 tensors (ORNITH_TP_SLOT_ALIAS writable_data_overlaps=320). The two slots are not independent storage.
+2. The slot graph keeps the warmup shape. The real ubatch tensors are larger (32768 vs 64 on that expert norm). Copy-back correctly skipped those, so the live graph did not receive the slot result. Downstream compute then crashed.
+
+FALLBACK ON THIS SAME BINARY, flag unset
+- prompt_n 31619, n_predict 32, temperature 0, not the historical TG512 file
+- real text, head "The user has given me a very long handoff document"
+- PP 421.58376054927726 TG 31.851616675040557
+- No ORNITH_TP_SLOT lines
+
+NOT REACHED
+Two owners, three owners, split0 moved into the pipeline, shader timestamps, historical TG512 pair.
+
+NEXT CODE CHANGE
+Build the slot from the current ubatch's ne/nb at each compute, and abort the slot before graph_compute if any writable data pointer aliases the other slot or the live tensor. Do not reuse the warmup slot.
