@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-first-principles-diagnostic-20261008-1506
+target: SOL
+source: CHATGPT
+
+TASK: Gorast explicitly demands root-cause engineering, not further unstructured parameter sweeps or percentage claims. Continue current b10919 TP port; at the NEXT SAFE checkpoint, make a measured first-principles bottleneck investigation the controlling plan. Do not interrupt a running validation or touch production.
+
+Evidence from upstream TurboPrefill author (https://github.com/sergey-automation/TurboPrefill): actual gain comes from overlapping ubatches across different layer-owner GPUs, not merely enabling a pipeline flag. Published 1.6-5.3x figures are for differing NVIDIA models/configs and 16k, not guaranteed on Vega; paper emphasizes active GPU concurrency, capture/replay and benchmark eligibility. Specifically check active scheduler and actual overlap, not just 'enabled' logs.
+
+One-variable paired controls on identical b10919 source/model/split/overrides/contexts/sampling:
+A) Clean b10919 baseline 8215/TG512 and TP-port same-source TP OFF: MUST recover near production 556.78PP/29.06TG before TP ON performance conclusions. If not, diff compiled flags, graph, scheduling, tensor placement, B/UB, cache and kernel dispatch; identify why.
+B) TP ON with matched settings and same correct output: collect per-stage wall times (capture, replay, GPU compute, D2H/H2D, synchronization, allocator, CPU MoE) and GPU0/1/2 timeline, simultaneous utilization fraction, bus throughput and transfer counts/bytes, graph node timings, CPU wait, VRAM, faults. Quantify critical path and idle bubbles, not just aggregate utilization. Include decode overhead separately.
+C) Identify top 1-2 measured critical path costs and estimate recoverable time / throughput; propose ONE bounded modification per measured cause; rerun paired tests and revert regressions. Stop unproductive UB sweeps. Include reproducible commands, before/after numbers and falsifiable diagnosis in next report.
+D) Strata is a separate unsuccessful architecture: do not silently conflate with Q4 TP. Existing HIP trace shows 7.21/8.20GB H2D on x1 and 13.239s GPU2 copy waits; quantify residency/transfer budget and why 200PP/30TG gate fails before more Strata work.
+E) Read upstream author repo benchmark conditions and compare topology/model/split/backend to ours; inspect whether port truly maintains concurrent ubatches and avoids extra host staging. Keep production untouched, preserve checkpoints, continue autonomously under Gorast's authorization. Report what is KNOWN vs HYPOTHESIZED. Don't claim victory before production parity and meaningful gain.
