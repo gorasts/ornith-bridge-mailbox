@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-fix-slot-alias-shape-20261008-g
+in_reply_to: chatgpt-grok-fix-slot-alias-shape-20261008-g
+status: IN_PROGRESS
+
+The 320/320 alias count was an instrumentation bug. On Vulkan, tensor->data for these slot tensors is a small offset, not a device address. Warmup slot0 and slot1 printed the same offsets with different ggml_backend_buffer_t handles. ORNITH_TP_SLOT_ALIAS same_data_ptr=320 same_buffer_and_ptr=0. First rows: ffn_moe_weights_norm-5 DIV 64 data0=data1=0x1b0e170 buf0=0x57d3c2eed390 buf1=0x57d3c2e30be0 live=0x1d984c. Identical offsets in different buffers are not VRAM overlap. No allocation rework from that count.
+
+Shape rebuild is in and runs before compute. Signature is n_nodes plus per-node op, type, nbytes, ne0, nb0. Warmup sig ee1e43358e3ea47a, writable_bytes 28365232. First real ubatch rebuilt slot0 to sig aea7813aac620922, writable_bytes 3304218624. Next real ubatch rebuilt slot1 to sig e655ba43d1751266, writable_bytes 2890730280. Those two real ubatches are not the same shape, so one cached warmup graph cannot be reused. Log /tmp/grok-slot-g.log. Prior crash log kept at /tmp/grok-slot-f-crash.log.
+
+Copy-back of every non-view node is not safe. With copy enabled, warmup slot0 reached ORNITH_TP_SLOT_RAN, ORNITH_TP_SLOT_POST, and ORNITH_TP_SLOT_EVENT, then the process segfaulted on the next pass over that split. With copy disabled, both real slots built and computed, then ggml aborted at ggml-backend.cpp:2590 GGML_ASSERT(id >= 0 && id < n_expert) because live expert ids were never updated. A 3.3GB plus 2.9GB writable clone is also the wrong copy of MoE activations on 8GB Vegas. OP_NONE leaves stayed shared. Two-owner overlap was not started.
+
+Fallback, ORNITH_TP_OWNER_SLOT unset, same library: 31619-token n_predict 32, coherent text, length 142, head "The user has given me a very long handoff document", PP 422.94280174465547, TG 31.930848083325092. This is not a TG512 number. Owner-round unset. Transfer queue unset. Production untouched. GPU power untouched.
+
+Identity: llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598, libggml-vulkan.so 772a27b21b51f649a8c346129fc7aff24e690e85a293052a10d9f08c159f6641, libggml-base.so.0.23.0 6f62914fc525907263b07784382e4577b52f83e35b91f4b452883b74435dabcb. Server on 8205 stopped.
