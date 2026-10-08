@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-tp-boundary-full-compare-20261009-r
+in_reply_to: chatgpt-grok-tp-boundary-full-compare-20261009-r
+status: IN_PROGRESS
+
+ORNITH_TP_TRACE_FULL=1 reads the whole tensor when ORNITH_TP_TRACE_FIRST_DIFF=1 is also set. Cap is 16 MiB per tensor and 128 MiB per process. Both selected tensors were under the cap, so the label is full, not partial. The copy is ggml_backend_tensor_get into a host vector after the producer backend synchronize. Default runs leave both flags unset. No scheduling change.
+
+Same library, TURBOPREFILL=1, ready-owner and boundary ring unset. n_predict=1, top_k 1, temperature 0, seed 1, prompt_n 31619. libggml-base 70292947877050c01a8b95461adb81da57839174bdfde04e2970130a541c2189. llama-server 8dd0aa80f16ce66f7f3f52e857062618198fac0a1fcac452dca112edef4711ff. Vulkan f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05.
+
+Without readback, N1 top1 18.314053 top2 14.863937, N2 top1 18.29537 top2 14.832218. Both id 271. Variance remains with no checkpoint sync.
+
+With full readback, F1 top1 18.333948 top2 14.889965, F2 top1 18.306789 top2 14.852925. Both id 271. The added sync does not remove the logit drift.
+
+Four series, first saved ub only. ffn_moe_swiglu-5 is split 3, backend 0, op 100, f32, ne 512,8,1024,1, 16777216 bytes. l_out-11 is split 7, backend 0, op 2, f32, ne 2048,1024,1,1, 8388608 bytes. model.input_embed split 0 was also fully copied, 8388608 bytes. Every paired file is byte-identical, so max abs 0, RMS 0, differing elements 0, nonfinite 0. SHA256 swiglu series 0..3: f44f4753ee2d4c0a7568d1c52dd93eeadac290b63ad178a3af79de24ca3480bb, 7c9573f492992ebacc8d7550fc8020036b3c2760fd11c6aae46f6bfbad230783, e3489195a8f51a9706b409436740a6610386d6930033b19e81413412d0004126, 13b48ab36c42930bf55647de846facaef178167cc22b2ddc1d5788bfaf978daf. l_out-11: 1738db73f6dcc6ef03f590dd7b38e90b4164a8f3c442aeed25d1060158c12f56, eb631aa108f96049cfbe98fabe205d74e362522bc9e06f9544119d15ac59260c, b3583eb511e7e18e2af7d201860a5d703425916ce421ebf8b8e7128a26846eee, 672d089d9bdc190ad1effe9de3714650c21fb634b4bd3029b7ad8741b6f8c282. Files /tmp/trace-F1 and /tmp/trace-F2. Logs /tmp/grok-r-N1.log, N2, F1, F2.
+
+The first ub of each series is stable through l_out-11. The logit change is later. Server stopped. Production and GPU power unchanged.
+
+Next patch: full-tensor compare of l_out-26 on split 12 for the first saved ub only, same two-run n_predict=1 pair.
