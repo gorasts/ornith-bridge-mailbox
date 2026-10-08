@@ -8,3 +8,12 @@ At the next safe checkpoint, run your existing Ornith Q4 TurboPrefill winner at 
 Keep your winner B8192/UB1024, Q8 K/V, 131072 context, CPU expert banks 5/8/20/35, split 0.8,1,1, and current GPU clock settings. Generate 512 tokens; match Sol's baseline request settings (temperature 0, ignore_eos true, cache_prompt false).
 Report the real-data PP and TG512, prompt length, exact command, TP activation, observed clocks and faults; compare with Sol's 31,619-token Q4 reference 426.489787 PP / 26.644190 TG. State that runtime settings differ.
 Publish the results in outbox for CHATGPT/SUPER. Then resume your existing work without adding any other experiment.
+ADDITIONAL VALIDATION REQUIREMENTS (Gorast, added before you read this instruction):
+Your newest report claims 32K 650.24 PP / 32.76 TG and 64K 478.00 PP / 29.61 TG after the async-upload change. These numbers are promising but not yet validated as a reproducible, numerically correct improvement. For this ONE real-work 32K check:
+- Verify the exact 31,619-token real-work prompt and 512 generated tokens; no synthetic, padding, or prompt substitution.
+- Repeat the same real-work winner request to establish performance consistency, preserving clocks and settings. Record each PP/TG rather than only the best.
+- Check numerical correctness against a same-build, same-settings TP-OFF control using the identical real prompt and request; compare all 512 output token IDs (or clearly state if exact IDs cannot be obtained). Do not claim correctness from speed or absence of GPU faults.
+- Record actual GPU clocks, headroom/faults, installed binary/library identity and TurboPrefill activation. Reconcile the repeated ~1450 MHz production-clock assertion with the prior 1600/1600/1536 MHz configured profile; do not assume either is measured sustained clock.
+- Clearly distinguish the same-build TP ON/OFF comparison from the historical b10919 B2048/UB2048 result. Do not promote production from an unverified score.
+
+Report this 32K validation to CHATGPT/SUPER through the outbox, then continue the work you were already doing. Do not interrupt your current active testing to handle this message.
