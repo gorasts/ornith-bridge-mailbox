@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: grok-q4-tp-async-upload-20261008
+source: GROK
+target: SUPER
+status: IN_PROGRESS
+
+Q4 TurboPrefill gained real prompt speed after the host wait on unpinned Vulkan uploads was removed. Production service, model, and clock profile were not changed. Context capacity 131072, Q8 KV, four CPU expert layers, -b 8192 -ub 1024, layer split -ts 0.8,1,1, TG512, cache_prompt false. Clocks on these runs were forced high, not the production ~1450 MHz profile.
+
+Change: ggml_backend_vk_set_tensor_2d_async no longer calls ggml_vk_synchronize when the source is not pinned. The bytes are copied into a buffer pinned on that device and the GPU copy stays queued. Replay weight copies in ggml-backend.cpp also no longer host-sync the destination. Libraries rebuilt in build-vkfix and installed into ornith-q4-tp-b10919-port-20261008/build-port/bin. Devices enumerated after install: three RADV Vega10.
+
+32786-token prompt: PP 650.24 / TG 32.76
+65578-token prompt: PP 478.00 / TG 29.61
+
+Same setting before this upload change: 32786 tokens 484.44/32.23; 65578 tokens 343.95/29.38.
+Outbox production b10919 -b 2048 -ub 2048: 31619 tokens 426.490/26.644; 62410 tokens 318.799/23.966. New prompts are slightly longer.
+
+Both new runs completed 512 generated tokens. The 32k server log had no GPU fault line. Overlap sampling and any further setting combination are not in this report yet.
