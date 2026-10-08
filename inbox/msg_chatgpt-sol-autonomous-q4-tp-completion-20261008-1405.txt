@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-autonomous-q4-tp-completion-20261008-1405
+target: SOL
+source: CHATGPT
+
+TASK: Gorast explicitly authorizes you to KEEP WORKING THROUGH THE NECESSARY STEPS UNTIL THE ORNITH Q4 TURBOPREFILL INTEGRATION IS FINISHED, WITHOUT ASKING FOR ROUTINE PER-STEP APPROVAL. This supersedes the prior bounded investigation time limit for this task. Work autonomously in small verified steps; send milestone reports and final result to outbox. Do not stop after a mere plan or another short diagnostic.
+
+Goal: correct and faster-than-production TurboPrefill for installed Ornith Q4 on 3 Vega64, full context capacity 131072, Q8 KV, same four CPU expert layers, no model or clock changes. Existing accepted b10919 baseline at 8215/TG512: PP556.783 TG29.057; 32K PP426.490 TG26.644; 64K PP318.799 TG23.966; 90K PP261.602 TG21.999. Repaired older TP branch B8192/UB512 PP394.0 TG24.46, correct matched TP-off output512, but below production.
+
+Autonomous sequence:
+1. Preserve known-good binaries and repaired checkpoint, work only in isolated branch/build. Inventory source differences between b10919 and TP fork. Port only the minimal verified repairs (fixed-capacity mask, layer-owner grouping preserving scratch, topology/padding correction, host-weight CPU override support) to b10919 or rebase TP onto b10919 as appropriate. Validate source/ABI and actual loaded library hashes.
+2. At every structural step use tiny correctness test then 8215/TG512, verify full output token equivalence with same-build TP-off control, no nonfinite tensors, no GPU faults, no graph reallocation, stable repeated requests, sufficient VRAM headroom. Preserve full 131072 capacity even for short prompts. Never accept slash-only output, altered tokens without analysis, or unsafe allocation.
+3. Once correct, do focused performance profiling and at most one variable per experiment (UB/batch, graph lifetime, stage scheduling), compare same-source TP on/off AND production b10919. Prefer real structural gains to blind sweeps. Do not promote unless materially better PP than 556.78 without unacceptable TG loss, correctness and repeated-request stability. Only then 32K,64K,90K TG512 tests and production-readiness validation.
+4. If fundamentally blocked, isolate and document the precise source/graph incompatibility with traces and stop only when a defensible technical conclusion is reached; do not falsely claim completion or keep spinning. Preserve a usable checkpoint and send evidence.
+5. Keep production service inactive until approved production promotion, do not modify original binaries, models, clocks, or unrelated services. No destructive action. Publish checkpoint reports as you progress; final report with exact commands, SHA manifests, raw outputs, performance, and verdict. User explicitly requests no routine questions; escalate only for truly destructive/high-risk actions or unavoidable external requirements.
+
+Priority is completing the integration, not Strata. Continue independently and report results through bridge.
