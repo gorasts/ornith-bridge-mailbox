@@ -1,0 +1,43 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: chatgpt-sol-proven-upstream-config-reproduction-20261008-0310
+source: SOL
+target: SUPERVISOR
+state: PARTIAL_RESULTS
+action: REQUESTED_CURRENT_REPORT
+
+GORAST explicitly requested this report now.
+
+BRIDGE FIX VERIFIED
+The dispatcher had blocked newer inbound messages behind a final reply to the long autonomous-work packet, and rejected submission during active work. Reply-independent polling and supported Send/Steer delivery are installed. Prior reply tracking is preserved; raw UI transcript auto-export is disabled. Runtime uses its own clone outside repo_cache. All four blocked messages (0126,0230,0245,0310) actually appeared in this chat while it was working. Repair receipt commit e1dcc40; watchdog milestone 8f97e4c.
+
+PUBLISHED PROTOCOL / THREE-RUN CONTROL
+Official MI50 benchmark requests and timing method: short warm-up, 4096 synthetic prompt, TG256, three sequential repeats, nonce before filler, zero prompt reuse. Adapted model/config: installed Swift IQ2_XS, split21,35, prefill512, spec2, int8 KV, workers15, reserve700, own-stage dense weights, gfx900/ROCm6.3.4. Observation-only failure capture was added without changing requests or assertions.
+
+Custom retention DISABLED control completed all three repeats:
+  run1 PP47.406 / TG15.2
+  run2 PP47.976 / TG14.2
+  run3 PP47.964 / TG15.2
+  median PP47.964 / TG15.2; all 4096/256, reused0, zero faults.
+Command: run_published_reference.py --id published_upstream_control_4096_v1 --no-retain
+Benchmark: mi50_benchmark_capture.py --targets 4096 --runs 3
+
+RETENTION STABILITY BLOCKER ISOLATED
+With custom retention enabled, auto per-device PCIe gave 51.054/15.4 and 52.197/14.3; changing only --pcie-frac 0 gave 51.325/15.1 and 52.008/14.0. BOTH aborted on repeat3: watchdog no progress for60s during batched prefill near layer34, engine exit -6. Captured response is server_error, not a legitimate empty completion. No amdgpu fault captured. No complete three-run median for either retained variant. Retention-off passing the same protocol isolates the failure to the custom retention path. Do not promote retention as multi-request production-safe.
+
+Single-request retained 7501/TG512 measurement remains preserved: 74.941 PP/18.007 TG, all512 tokens matched original accepted baseline, zero faults in that run. This establishes only that single request. Binary SHA256 58c69b4c35fa9270ad963a953cbcc78405a20d231a3d18f5194f528d899afc56; source 129b31535fd2df12c66f281662f45d7250a778f3824190486f8003bb3fa2df6f. The window prototype's 56.657 vs56.142 diagnostic was within noise and stopped.
+
+MODEL COMPARABILITY
+Current native model is qwen4exp, 48 layers/width2560, 512 experts/top10. 24,576 expert pairs; 12,392 resident before prefill borrowing (~50.4%). MI50 reference: 256 experts/layer, 12,288 all resident, IQ1_M, 32GiB total VRAM, two x16 links, prefill4096/spec4. Expert counts alone do not imply equal bytes or parameter counts. Our separate llama Swift dense27B Q4 reference is qwen35, 65layers/width5120. These are different architectures/models, not an apples-to-apples quant comparison.
+
+ORNITH Q4 SANITY ATTEMPT — USER REQUESTED
+Installed /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf: 20.126GB, qwen35moe, 40 layers/width2048, 256 experts/top8.
+Index-only native pack succeeded using --skip-experts --compat-bf16 and already-installed gguf-py: 613 index tensors, ~0.05GiB dense arena; 60 small projections rounded to BF16, expert bytes unchanged.
+Guarded loader (context1024, prefill128, spec2, int8 KV, workers14, expert-cache0, pcie-frac0, reserve700) rejected in0.114s, exit2:
+  --native requires --ple-gguf (the PLE key is native too), and no shard of the model holds per_layer_token_embd.weight
+Ornith lacks the Qwen4Exp PLE architecture expected by this runtime; geometry/gated-residual contracts also differ. Attaching another model's PLE would be invalid. No Q4 PP/TG result exists. Faithful support needs model/backend work, not a split/prefill setting.
+
+MEASURED PREFILL BOTTLENECK
+Accepted 2048 diagnostic critical profile: GPU2 copy waits13.239s; dequant+gate/up/down8.037s. Actual x1 H2D GPU1 7.210GB/19.242s, GPU2 8.197GB/21.853s (~375MB/s active). Critical chain: GPU0chunk0 -> GPU1chunk0 -> GPU2chunks0-3. Conditional unchanged-wire overlap model only about1.15x; not a hardware ceiling. Diagnostic profile and new synthetic runs are separate from full7501 ranking.
+
+NEXT / LIMITS
+Stop broad configuration runs; targeted retention event-lifetime audit is needed for the repeat3 deadlock. CPU-offload and helper ownership without custom retention are not yet fully validated configurations. No 32K+ qualification; requested ~200PP/~30TG gate remains. No model download, major build, production source patch, or Ornith restart. All experimental engines are stopped after tests. Raw commands/results/CPU-GPU-HIP telemetry/kernel/server logs preserved under /home/ubuntu/strata-tuning-20261007/ with published_* and ornith_q4_* run IDs; local completed evidence and reports saved under outputs/.
