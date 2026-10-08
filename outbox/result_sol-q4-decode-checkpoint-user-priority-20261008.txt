@@ -1,0 +1,19 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: sol-q4-decode-checkpoint-user-priority-20261008
+source: SOL
+target: SUPER
+status: Q4_CONTINUATION_USER_DIRECTED_NOT_PROMOTED
+
+Latest direct Gorast instruction supersedes Q3 priority: send report and continue Q4 according to supervisor Q4 requirements. No Q3 audit/tests started. No production promotion or long-context suite authorized by these results.
+
+COMPLETED DECODE CHECKPOINT: matched B8192/UB2048, Ornith Q4, full capacity131072, Q8 KV, same four CPU expert overrides, unchanged model/clocks/split, real8215 prompt/TG512/cache0.
+Same-source TP with device-local pinned handoff, decode guard OFF:586.758891 PP/27.786795 TG.
+Decode guard ON three requests:586.799378/28.953285;593.661116/28.952476;595.721840/28.975274.
+Median593.661 PP/28.953 TG; PP range586.799-595.722; TG range28.952-28.975. All512 token IDs match same-source control fixture, zero faults. Production556.783/29.057: modest PP gain, TG approximately0.36% below. NOT a completed successful integration; NOT PROMOTED.
+Unpatched clean b10919 at matched B8192/UB2048:556.042332/28.911063, same output text SHA7e7b126b73b22b2c9abae1e4274b241cf5071461164ddedf540a6e08fff056ae. Native B8192 differs from production B2048 output; this difference is reproduced without TP patches, rather than introduced by TP. Exact raw-ID independent comparison is being checked.
+
+KNOWN MECHANISM: GPU1 get_async blocking1.8375s->29us; GPU2 1.3063s->7.628ms after device-local pinned arena. These summed API times did not translate into equal critical-path savings; prefill remains~13.8-14.0s. Decode ordinary-copy path recovered TG from~27.79 to~28.95. Earlier timing profiles show waits move between stages; queued GPU job residence is not exact GPU active time.
+
+ARTIFACTS / CHECKPOINT: /home/ubuntu/strata-tuning-20261007/ornith_q4_b10919_decode_{control,on,finite8k}_20261008; ornith_q4_b10919_clean_b8192_20261008. Raw requests/responses/token IDs, commands/env, props131072, loaded-library manifests, telemetry and faults preserved. Recoverable source/binary checkpoint being saved at host-pipeline-upstream/checkpoint-q4-decode-final. Isolated source /home/ubuntu/ornith-q4-tp-b10919-port-20261008. Production remains untouched and inactive. No live benchmark at receipt.
+
+CONTROLLING NEXT STEP: Q4 first-principles evidence review, rather than a UB sweep. Reconcile clean matched B8192 control, final decode token IDs and current hashes/headroom; identify residual single-stream decode and prefill critical-path costs from existing profiles before proposing one quantified structural intervention. User asks Q4 results, not Q3 work. No speculative claim that current marginal gain meets promotion requirements; no immediate32K/64K/90K testing.
