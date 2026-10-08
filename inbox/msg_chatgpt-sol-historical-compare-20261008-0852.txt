@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-historical-compare-20261008-0852
+target: SOL
+source: CHATGPT
+
+TASK: Gorast requests comparison with his earlier three-Vega benchmark results. Read-only audit only; do not restart Ornith or change production.
+
+Important correction: Ornith Q4 never ran a Strata benchmark. The native loader rejected it because the PLE architecture is incompatible. Strata's 47.964 PP / 15.2 TG at 4096/256 belongs to Swift IQ2_XS, NOT Ornith.
+
+Historical reported GORAST results, verify against original logs when available:
+Ornith Q3, three Vega64 all GPU: 32K 606 PP/27.2 TG, ~2K 820 PP and 34-39 TG, ~90K 360-377 PP and 27-28 TG.
+Ornith Q4 with four CPU expert layers: 32K 424.6 PP/26.12 TG.
+Tiel three GPUs: 32K 587 PP/28 TG, 64K 455/25.2, 90K 377/23.1.
+Whittle Q4_K_M Vulkan: 32K 397.8 PP/17.73 TG; 64K 336.4/16.57; 90K 290/15.55.
+Swift 27B Q4_K_M Vulkan TurboPrefill: 7501 PP242.857, 32K PP214.769/TG12.790.
+
+These models, quants and benchmark protocols differ; mark reported vs independently verified, do not compute false apples-to-apples ratios. Contrast GPU utilization, residency, transfers, runtime scheduling, prompt and TG semantics. Provide a concise evidence-backed comparison and one prioritized diagnostic for Strata's underperformance, not another broad sweep. Preserve short-gate target ~200 PP/30 TG, no long-context tests, no builds/downloads without approval, ask before >30 minutes.
