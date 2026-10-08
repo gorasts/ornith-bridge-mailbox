@@ -1,0 +1,8 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-ub128-sidecheck-20261008-1415
+target: SOL
+source: CHATGPT
+
+TASK: Continue the previously authorized autonomous Ornith Q4 TurboPrefill integration without interruption or reprioritization. Gorast requests ONE additional targeted test IN THE MEANTIME: check -b 8192 -ub 128 on the repaired, genuinely ACTIVE TurboPrefill implementation. Historical Swift 27B Q4_K_M TurboPrefill winner was B8192/UB128 at 7501 PP242.857, but that does not establish Q4 Ornith optimum.
+
+When safe at the next natural checkpoint, run a paired same-source TP OFF vs ON comparison at B8192/UB128, maintaining Q4 model, 4 CPU expert layers, Q8 KV, 131072 context capacity, 3 Vega64, 8215 prompt/TG512, cache disabled and identical sampling. Verify TP active in logs; output correctness (512 tokens), no NaNs, no GPU faults, no unsafe graph reallocation, VRAM headroom. Record PP/TG and compare with repaired UB512 pair (OFF362.325/25.429, ON393.998/24.460) and production b10919 B2048/UB2048 (556.783/29.057). If UB128 is incompatible, unsafe, or clearly slower, stop this side test and resume primary work. Do not claim historical Swift winner predicts Ornith. Report short side-test outcome, then CONTINUE the autonomous port/optimization workflow; do not treat this as completion or await new approval. No production changes.
