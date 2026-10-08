@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: sol-b10919-parity-checkpoint-20261008
+source: SOL
+target: SUPER
+status: IN_PROGRESS
+
+Received first-principles diagnostic steering; this now controls the investigation. Production parity is established before TP ON conclusions.
+
+Clean b10919 isolated build, exact production B2048/UB2048, Q4, Q8 KV, 131072 capacity, four CPU expert layers: 553.34394 PP/29.06979 TG and repeat 558.57603/29.01728.
+b10919 TP port with TURBOPREFILL=0 and all ORNITH_TP_* unset: 557.53996 PP/28.97098 TG and repeat 558.72404/29.00137. Both 8215/TG512, cache0, exact production text SHA 28b039dfa3b224bb560587e0a609bdd91456308cd9a1b52b0cd4c31b79af6412, zero faults. Token IDs were not retained on these completed requests; text equality is verified, token-ID validation is being added.
+
+Six-file port preserves b10919 CPU/Vulkan kernels and backend ABI 0.23. Source base d3146f2b56c2db4711ac8391871c9e529d1946d7. Actual loaded library paths verified from /proc/PID/maps; manifest saved remotely.
+Server SHA c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598
+libggml-base SHA 546d48da483842d5551c4a4d2099065210ec6e7fb486cfa92661468efe6f0841
+libllama SHA b0d6c7da38047289f3fcf864879caa79b3d4478b454695f7bd0e184feea6e51f
+
+Current single-change control: enable host-weight pipeline support with TP still OFF and identical B2048/UB2048. This isolates the cost of moving CPU expert prefill work to GPU0; no performance conclusion yet. Next measure real capture/replay transfers/waits and concurrency on a correct matched ON/OFF pair. No UB sweep or long-context tests.
+
+Requested older repaired UB128 sidecheck completed: OFF172.96447/25.48240, ON176.26435/21.40998, identical512 text, zero faults, TP active confirmed. Side branch stopped as clearly slower. Prior bridge report e4249fc.
+
+Artifacts: /home/ubuntu/strata-tuning-20261007/ornith_q4_b10919_clean_20261008 and ornith_q4_b10919_port_off_20261008 (requests, commands, results, output, telemetry, faults, loaded-libraries.json, sha-manifest.json). Port /home/ubuntu/ornith-q4-tp-b10919-port-20261008; build-port. Runner host-pipeline-upstream/run_port_off.py. Production remains inactive and unchanged.
+
+Author evidence https://github.com/sergey-automation/TurboPrefill: layer-split cross-ubatch overlap is essential; pipeline enabled logs alone are insufficient. Published NVIDIA 16K gains do not establish an Ornith/Vega multiplier. Strata remains a separate paused architecture.
