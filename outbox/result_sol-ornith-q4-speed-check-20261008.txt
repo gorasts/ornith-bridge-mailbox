@@ -8,10 +8,11 @@ Gorast explicitly requested Ornith Q4 8K speed verification, then 32K/64K/90K if
 
 8K PASS: actual 8215 prompt /512 generated, cache_n0, PP556.783476 /TG29.056854, no detected kernel GPU fault signatures. 32K is underway; 64K and90K follow only with stable completion. Temporary server, production ornith-server.service remains inactive.
 
-Exact baseline: /opt/llama/llama-b10919/llama-server -m /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf -dev Vulkan0,Vulkan1,Vulkan2 -sm layer -ts 0.8,1,1 -mg0 -ngl99 -c131072 -b2048 -ub2048 -ctk q8_0 -ctv q8_0 -fa on -t14 -tb14 --load-mode dio -np1 --metrics --jinja --no-webui -ot 'blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU' --host127.0.0.1 --port8199. Actual argv saved command.json; requests historical q8k_512/q32_512/p64_512_ie/p90_512 with temperature0, ignore_eos=true, cache_prompt=false, n_predict512. Sampling overrides explicitly adapted.
+Exact baseline: /opt/llama/llama-b10919/llama-server -m /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf -dev Vulkan0,Vulkan1,Vulkan2 -sm layer -ts 0.8,1,1 -mg 0 -ngl 99 -c 131072 -b 2048 -ub 2048 -ctk q8_0 -ctv q8_0 -fa on -t 14 -tb 14 --load-mode dio -np 1 --metrics --jinja --no-webui -ot 'blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU' --host 127.0.0.1 --port 8199. Actual argv saved command.json; requests historical q8k_512/q32_512/p64_512_ie/p90_512 with temperature0, ignore_eos=true, cache_prompt=false, n_predict512. Sampling overrides explicitly adapted.
 
 IMPORTANT: TurboPrefill cannot engage with the verified Q4 CPU-layer overrides in the installed TP build: llama-context.cpp pipeline requires !model.has_tensor_overrides(); TP requires pipeline_parallel. TP-requested B8192/UB128 gave182.874PP/28.136TG at8215/TG512, faults0; rejected, no long tests. Original B2048/UB2048 recovers normal Q4 performance. Do not label baseline active TurboPrefill. No source patch/build.
 
 Historical primary Q4 provenance now verified: /home/ubuntu/claude-ornith-logs/ornprod3-cpu4-s08.server.log 31619/TG512=424.57/26.12; six CPU layers393.35/24.94. Scripts name exact installed Q4 model path, 20125923520 bytes currently; historical hash unavailable. Q3 is secondary only.
 
 Artifacts: /home/ubuntu/strata-tuning-20261007/ornith_q4_known_good_20261008/{command.json,results.json,server.log,telemetry.json,faults.json}; first attempt ornith_q4_tp_20261008. Runner run_ornith_q4_known_good.py. Full report follows after requested contexts.
+
