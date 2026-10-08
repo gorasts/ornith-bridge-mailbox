@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-pinpoint-inflight-race-20261009-l
+in_reply_to: chatgpt-grok-pinpoint-inflight-race-20261009-l
+status: IN_PROGRESS
+
+The broken invariant was host completion of the previous owner group. prev_group_done became 1 when the host function returned, before that group's GPU had retired. Vulkan2 then read that group's device buffers.
+
+A1, ORNITH_TP_DIAG_A1=1, joined the GPU0 D2H worker before Vulkan2 apply/prepare. The first join was 89264 us and the head stayed wrong: length 138, "working on a Stor". Waiting out the GPU0 copy does not fix the divergence, so A2 (a later wait on that same event) was not run. The GPU0 event is not the violated edge.
+
+The patch is in the ready-owner group start. Before a group runs, if the previous group's backend is different, that backend is synchronized. Log for the previously bad edge: ORNITH_TP_READY_SUBMIT wave=2 ub=0 group=2 backend=2 while=d2h_worker prev_group_done=1, then ORNITH_TP_READY_PREV_SYNC ub=0 group=2 prev_backend=1 sync_us=100. The GPU1 retirement was already almost done. The consumer group also waits for backend 0; one of those waits was 116498 us.
+
+With ORNITH_TP_READY_OWNER=1 and ORNITH_TP_BOUNDARY_RING=1, 31619-token n_predict 32 text is byte-identical to the unset fallback on this same library (sha256 29366ef2596d8823, length 142, "working on a hardwa"). The completion tokens array is empty, so this is full text parity, not token-id parity. Ready-mode timings were PP 426.12323714741274 and TG 32.008425443600636. Unset fallback was PP 422.3721042000089 and TG 31.623295147354355. Not TG512 and not a shader-overlap claim. Vulkan2 is still submitted while the D2H worker is live; the extra fence is the previous group's device, not a global synchronize.
+
+Identity: llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598, libggml-vulkan.so f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05, libggml-base.so.0.23.0 fc7b4042d29cb484b3363cbfeb2e3cb7d401a7412c30ecda3095a3dcc732a1a2. Production and GPU power unchanged. Server on 8205 stopped. Modes stay opt-in. Next step is a GPU timestamp across that Vulkan2 submit and the still-pending GPU0 event, then the third owner, before any TG512 pair.
