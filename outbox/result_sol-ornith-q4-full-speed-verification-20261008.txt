@@ -1,0 +1,33 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: sol-ornith-q4-full-speed-verification-20261008
+source: SOL
+target: CHATGPT
+status: COMPLETE_BASELINE_TURBOPREFILL_INCOMPATIBLE
+
+Gorast authorized Q4 8K speed verification followed by32K/64K/90K if normal. All requested workloads completed on verified historical Q4 configuration, temporary benchmark only. Production service remains inactive; no llama-server/Strata processes remain. No source/build/production/tuning changes.
+
+RESULTS (one run each, not medians; context capacity131072; every run TG512, cache_n0, detected kernel GPU fault signatures0):
+8K label: actual8215 prompt; PP556.783476 /TG29.056854.
+32K label: actual31619 prompt; PP426.489787 /TG26.644190.
+64K label: actual62410 prompt; PP318.799007 /TG23.965566.
+90K label: actual88407 prompt; PP261.602352 /TG21.998930.
+
+Historical Q4 provenance verified from original launch scripts and server logs: four CPU expert layers31619/TG512=424.57/26.12; six CPU layers393.35/24.94. New32K closely reproduces four-layer baseline. Model exact path /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf, currently20125923520 bytes. Historical file hash unavailable, so same pathname does not prove historical byte identity.
+
+EXACT SUCCESSFUL COMMAND:
+/opt/llama/llama-b10919/llama-server -m /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf -dev Vulkan0,Vulkan1,Vulkan2 -sm layer -ts 0.8,1,1 -mg 0 -ngl 99 -c 131072 -b 2048 -ub 2048 -ctk q8_0 -ctv q8_0 -fa on -t 14 -tb 14 --load-mode dio -np 1 --metrics --jinja --no-webui -ot 'blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU' --host 127.0.0.1 --port 8199
+Executable SHA2565ef1efd4f750ff95ccfeb1ed5b2bd0bdef190b1d2aa7034f9e5a4888d4744204 (executable only, not linked libraries).
+Stored historical prompts q8k_512,q32_512,p64_512_ie,p90_512; request overrides temperature0,ignore_eos=true,n_predict512,cache_prompt=false. Adapted sampling, no claim historical token equivalence. Output and hashes saved.
+
+TURBOPREFILL INCOMPATIBILITY:
+Installed /home/ubuntu/llama-tp-vulkan source llama-context.cpp pipeline eligibility requires !model.has_tensor_overrides(); TurboPrefill requires pipeline_parallel. The verified Q4 four CPU expert-layer overrides therefore prevent active TurboPrefill. TP-requested B8192/UB128 gave182.873699PP/28.135872TG at8215/TG512, faults0, and was stopped before longer tests. It is NOT a valid active TP baseline. Recovered historical B2048/UB2048 yields normal Q4 throughput. No unsafe bypass or patch attempted. TP executable SHA2567abcc3b416dbe26825d1ee4b12d9193d7446fddc27e184db2327c8347bda95c2.
+
+Minimum sampled VRAM headroom successful sequence: GPU05 2046.8MiB/GPU0c359.0MiB/GPU0f631.5MiB. All cards reached100% busy in some samples; not average utilization. HBM1000 unchanged. Hotspot spot checks up to72C, not continuously recorded max. DirectIO fallback occurred during loading; inference timings exclude load.
+
+VERDICT: Historical normal Ornith Q4 performance is reproducible on current three Vegas. Do not relabel Strata Swift IQ2_XS47.964/15.2 as Ornith. Ornith Q4 has no Strata throughput result: qwen35moe was rejected by architecture-specific qwen4exp native/PLE loader. Q4-Vulkan vs Swift-Strata remains a model/runtime/protocol comparison, not an apples-to-apples speed ratio. Strata retention stays quarantined after third-request failure; no new Strata experiment here.
+
+ARTIFACTS:
+/home/ubuntu/strata-tuning-20261007/ornith_q4_known_good_20261008: command.json,results.json,server.log,telemetry.json,faults.json,per-workload requests/responses/outputs.
+/home/ubuntu/strata-tuning-20261007/run_ornith_q4_known_good.py
+/home/ubuntu/strata-tuning-20261007/ornith_q4_historical_verified.json
+Local deliverable outputs/Ornith-Q4-speed-verification-20261008.md plus outputs/evidence/ornith_q4_known_good_20261008 and historical JSON.
