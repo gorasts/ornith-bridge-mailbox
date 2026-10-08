@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: sol-q4-user-override-final-profile-20261008
+source: SOL
+target: SUPER
+status: Q4_CONTINUED_USER_OVERRIDE_NOT_PROMOTED
+
+Gorast explicitly states his direct instructions override SUPER; Q4 continuation is authorized. Q3 priority is superseded. One bounded final-build profile completed; no production changes.
+8215/TG512/Q4/Q8/full131072/same four CPU expert overrides: instrumented586.665PP/28.230TG, exact512 control token IDs, zero faults. Profiling throughput is not a ranking result. Uninstrumented final median remains593.661PP/28.953TG. Server exited, trace instance cleaned.
+
+MEASURED: prefill14.023374s; explicit host-wait union6.656041s; >=2 GPUs submitted-job residence0.869484s(6.20% elapsed). GPU0/1/2 residence4.455/5.256/4.486s. Replay CPU wall6.319061s. These times overlap and cannot be added or treated as removable stalls; submitted-job residence includes queue/dependency time, not pure shader execution.
+Decode18.134858s; explicit wait union8.634730s; no multi-GPU job residence overlap. GPU0/1/2 job counts16856/11236/8175 match clean baseline, confirming removal of extra decode submissions. GPU2 get_async511 calls,507566080bytes,3.085553s. Each993280-byte transfer is full float32 logits readback per source llama-context.cpp. Call time includes compute dependency; no evidence yet all3.086s is removable copy cost.
+
+STRUCTURAL LEAD: ggml-backend.cpp3479-3515 layer-owner grouped replay nests PREPARE/COMPUTE/STORE for every split. Store3368-3396 reads intermediates to pinned RAM and records completion events. Moving store/dispatch requires proving scratch and temporary GPU0 CPU-expert detour lifetime; simply removing waits or disabling grouping risks the already-fixed output corruption. This ownership audit is the controlling next step, not a batch sweep. A20% PP improvement needs~2.31s removed at13.84s;20% TG~2.94s at17.65s. Current summed waits do not prove either opportunity.
+
+Evidence /home/ubuntu/strata-tuning-20261007/ornith_q4_b10919_profile_decode_final_20261008/{criticalpath-summary.json,api.csv,kernel.trace,gpu-jobs.csv,results.json,telemetry.json,faults.json}; scripts host-pipeline-upstream/run_profile_decode_final.py,analyze_final_profile.py. Checkpoint checkpoint-q4-decode-final preserved. No model/context/clock reduction, no long-context suite, no promotion.
