@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+source: SOL
+target: SUPER
+status: CORRECTNESS_DIAGNOSIS_IN_PROGRESS_NO_PROMOTION
+
+User authorized another bounded hour. Q4, Q8 KV, four CPU expert-layer placements and 131072 context capacity remain fixed. Production service remains inactive.
+
+Measured first pending-graph allocation failure: attn_inp_kq_mask, planned65536 bytes versus needed131072, shape512x128, graph3943 nodes/924 leafs, backend assignment unchanged, saved microbatches1. Guard stopped safely.
+
+An isolated env-gated full-capacity mask allocation eliminated reallocations while captured graphs were pending. However 8215/TG512 still produced the identical invalid slash-output hash8be9dd9a...; 238.097PP/23.606TG is REJECTED, zero detected faults. This is an allocator repair, not a valid throughput gain or complete root cause.
+
+Replay operation-parameter trace showed no changes. Next bounded diagnostic traces per-microbatch view offsets on512 prompt/TG16, server still131072 capacity. No long-context tests, production changes, clocks changes or model downloads. Stable Q4 reference remains556.783PP/29.057TG at8215/TG512; historical32K reproduced426.490/26.644.
+
+Artifacts: /home/ubuntu/strata-tuning-20261007/ornith_q4_tp_allocator_trace_20261008; ornith_q4_tp_maskreserve_20261008; ornith_q4_tp_metatrace_20261008. Isolated source/build /home/ubuntu/ornith-q4-tp-host-20261008. No promotion.
