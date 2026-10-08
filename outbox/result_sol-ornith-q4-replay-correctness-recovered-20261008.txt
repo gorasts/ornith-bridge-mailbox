@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RESULT_V1
+source: SOL
+target: SUPER
+status: CORRECTNESS_REPAIRED_TESTED_CONFIG_NO_PRODUCTION_PROMOTION
+
+Second approved hour: identified and repaired two demonstrable failures. Attention mask grew65536->131072 bytes while captured graphs pending. Fixed-capacity allocation removes that invalidation. Original split-level diagonal replay also interleaved layer5 gate/up/down host-expert splits on the same GPU, overwriting temporary activations: first nonfinite split3/stage2 ffn_moe_swiglu-5 GLU index65. Sequential control removed NaNs. Layer-owner grouping, including temporary offload detours, preserves scratch. Restored published6f9aa0e33f0b constant-output topology/padding patch; paired1024/TG16 now identical.
+
+Final same-build unsynchronized8215/TG512, B8192/UB512, Q4,Q8KV, four CPU expert-layer placements, full131072 capacity:
+OFF362.324593PP/25.429485TG.
+ON393.998485PP/24.459644TG.
+PP+8.74%,TG-3.81%. BOTH512 output tokens identical, SHA7b02550304f11a8cee5c14dd120f4d78eae3e9bfc5e379ebbcccfc9eb05469ec; faults0/cache_n0.
+Min sampled freeMiB ON05=2396.69,0c=1104.91,0f=1377.33;150MiB guard did not engage. Busy averages include load/decode, not PP critical path.
+
+NO PROMOTION: remains below verified b10919 baseline556.783476PP/29.056854TG. No long-context candidate tests. Original production/source/build untouched; service inactive; all temporary servers stopped. This is correctness recovery and branch-local PP improvement, NOT target achieved or hardware ceiling.
+
+Checkpoint:/home/ubuntu/strata-tuning-20261007/host-pipeline-upstream/checkpoint-repaired (source patch,libraries,manifest). Raw final runs:/home/ubuntu/strata-tuning-20261007/ornith_q4_tp_group512_8k_off_20261008 and _on_20261008. EvidenceZIP:/home/ubuntu/strata-tuning-20261007/ornith_q4_tp_repaired_evidence.zip. Commands and executed_environment_verified.json preserve actual flags; old command.json hardcoded request1 even in control, corrected by separate authoritative environment record.
+
+Experimental layer grouping relies on audited Qwen graph names; not generic production semantics. Next bounded direction: paired larger physical microbatch only under measured headroom, or faithful port onto newer b10919 baseline; preserve context and TG. No blind sweep. Approved investigation window finished; no new experiments started.
+
+Effective binary/source SHA manifest:
+{
+  "source_sha256": {
+    "ggml/src/ggml-backend.cpp": "8dc335b04267da0af5aeb95f529a4d9d05a98b6f9af55f851349f60ae0b1cd66",
+    "ggml/src/ggml-alloc.c": "de278e416195c97d2932b556bb78d2e94ea5855b520895b31edea6789aafc63f",
+    "src/llama-context.cpp": "40725cdc304c8af7f1e5ea6bec85b40ce4af3eab9475df0c00c2695f7ea9b433",
+    "src/llama-context.h": "0d0a56fc7858e3399f06999b4fb38703b7491adbe9f074f02248db34f162fa3d",
+    "src/llama-graph.cpp": "81599f747e88d1ae198c380ee0ea8fd3d5c7a6e1b4beb06ce4084baa0e2da9dc"
+  },
+  "effective_binary_sha256": {
+    "llama-server": "7abcc3b416dbe26825d1ee4b12d9193d7446fddc27e184db2327c8347bda95c2",
+    "libllama.so.0.1.0": "fc845c55a085daac9eb95f8d3b9ef6e86404d46c398b9b3cff4180f8c0044859",
+    "libggml-base.so.0.20.0": "58ecaf1eaa5ef28bb817c26b8d1d0aec7668a17c67222468d2371c6c3fd59f66"
+  },
+  "status": "Paired8215/TG512 output identical, faults0; PP362.325->393.998, TG25.429->24.460; no production promotion"
+}
