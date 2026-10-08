@@ -1,0 +1,135 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-final-tp-pipeline-engineering-20261008-c
+target: GROK
+source: CHATGPT
+
+TASK:
+GORAST HAS AUTHORIZED THIS FINAL TECHNICAL GUIDANCE. READ AFTER YOU FINISH THE TEST ALREADY IN PROGRESS. This is a comprehensive engineering recovery plan for the existing 3x Vega 64 Ornith Q4 Vulkan TurboPrefill work. It is not a request to blindly run 20 benchmarks or to promise a breakthrough. Derive the next action from evidence, implement one reversible change at a time, and report true results. Gorast's direct instructions take precedence. For new individual operations exceeding 30 minutes, ask him first. KEEP PRODUCTION UNCHANGED. Return your diagnosis, implementation evidence, tests, and precise remaining blocker to CHATGPT/SUPER in outbox. Preserve artifacts; resume other work only after a truthful checkpoint.
+
+0. THE ACTUAL PROBLEM, WITHOUT SUCCESS THEATER
+
+Hardware: GORAST 3x AMD Vega 64, 8GB each, Vulkan/RADV. Physical GPU and upstream PCIe topology has previously been asymmetric: one good x16 path, two constrained x1 upstream paths. Do not confuse GPU endpoint LnkSta with bridge bottleneck; audit lspci -tvnn and every upstream bridge. Preserve exact Q4 model, 131072 context capacity, Q8 K/V, GPU split 0.8,1,1, four CPU-expert banks blk 5/8/20/35, CPU/GPU participation, current clocks unless a controlled variable is being tested. For the paired 31,619-real-token request in /home/ubuntu/claude-ornith-logs/q32_512.json, n_predict=512, cache_prompt=false:
+- same-build TP OFF: 448.90 PP / 32.23 TG, coherent output.
+- TP ON with unsafe async upload: ~638.98-639.52 PP / ~32.38-32.84 TG, 512 slashes, INVALID. Do not cite these speeds as functioning inference.
+- User reports subsequent repaired TP ON ~421.5 PP, real output, BELOW TP OFF 448.9. Verify logs and exact settings before formalizing the 421.5 datum.
+- Original production b10919 B2048/UB2048: 426.490 PP / 26.644 TG on same 31619 prompt, but DIFFERENT settings; it is a separate reference, not the same-build TP control.
+- Sol's independent verified Q4 8K Q8/131K four CPU banks: correctly matched TP ON/OFF 512 token IDs, no faults, median ~593.661 PP/28.953 TG at 8K B8192/UB2048; minimal long-context evidence and no production promotion. This proves correct replay is possible, not that a faster 32K solution is already achieved.
+- Sol's instrumented b10919 port at 8K B8192/UB2048: prefill 14.50s, two-or-more GPU submitted-job residence only 0.4235s (2.92% elapsed); GPU1 get_async blocked 1.8375s/71.432MB and GPU2 1.3063s/38.871MB. Later device-local pinned fix shrank these API durations to ~29 microseconds and 7.628ms but did not recover proportional wall-clock speed. Later final profile saw only 0.8695s (6.2%) overlapping GPU job residence with host waits ~6.656s. These are submitted-job intervals, NOT calibrated shader-active intervals.
+YOUR MISSION is a correct, measurably overlapping prefill pipeline with useful wall-clock improvement. An upload call returning quickly is NOT proof of GPU parallelism. Three cards showing 50% utilization in sampled intervals is NOT proof of concurrent stages. A fast wrong answer is a failed implementation.
+
+1. LOCK AN EXACT EXPERIMENTAL BASELINE AND RECOVERABILITY BEFORE EDITS
+
+Create/reuse isolated source and build checkpoint outside the production server. Save git commit/diff against upstream b10919 and original TurboPrefill patch; sha256sum of llama-server, libggml-vulkan.so, libggml-base.so, libllama.so and actual loaded libraries from /proc/PID/maps; launch env and command, GPU UUID-to-Vulkan ordinal mapping, PCI tree, kernel/mesa versions, GPU sclk/mclk during prefill, VRAM free per card, sample prompt/response, server fault logs, timings, and whether TP path GROUP_REPLAY actually executes. Maintain TWO stable controls: clean same-build TP OFF, and most recent correct TP ON even if slow; archive the 639-slashes build for DIAGNOSIS ONLY. Never overwrite them or the production service. Compare Sol's checkpoints in /home/ubuntu/strata-tuning-20261007/host-pipeline-upstream/checkpoint-repaired and checkpoint-q4-decode-final and its profiles, but do not merge blindly.
+
+Re-read your previous changes around ggml_backend_vk_set_tensor_2d_async / ggml_vk_buffer_write_2d_async, replay weight uploads in ggml-backend.cpp, and host staging. Identify EXACTLY which CPU/GPU synchronization, pending-copy lifetime, VkBuffer ownership, and queue submission semantics changed between (a) coherent 448.9, (b) invalid 639, and (c) coherent 421.5. Make a three-way source diff and call graph, not a narrative guess.
+
+2. CORRECTNESS IS PART OF EVERY MEASUREMENT, NOT A LATER OPTIONAL GATE
+
+For every paired test, use IDENTICAL GGUF SHA, binary+libs, model flags, clock settings, temperature/sampling args, exact real request, n_predict 512, cache_prompt=false, and separately record input prompt_n/predicted_n. The historical q32_512.json does not set temperature or ignore_eos; do not claim that it does. If you need deterministic comparison, make a DERIVED request copy adding temperature=0/ignore_eos=true; preserve and independently test the unchanged historical file.
+
+Do not rely on the JSON tokens array (it was empty). Instrument the sampler/decode path to emit RAW selected token IDs and at least top-k first-token logits (logit hash or finite checks; deterministic logit serialization). Keep an uninstrumented speed run separate. Compare paired TP ON/OFF token IDs at same settings; for logits, measure max absolute/relative error and first diverging token, with allowed tolerance recorded, not invented. Match text is acceptable for early gross-failure triage, but don't claim a 512-ID match without reading IDs. At each bounded diagnostic, inspect NaN/Inf count and FIRST incorrect tensor after a chosen graph stage. For real performance, retain 512 generated tokens minimum; for isolated bug location only, use much shorter synthetic instrumented captures IF clearly labeled debugging, not performance.
+
+Bisection ladder: one ubatch serial correctness -> two ubatches -> four ubatches -> 8K multi-UB -> EXACT real 31,619/TG512 -> 64K/90K ONLY AFTER a demonstrated gain and approval. A pipeline should work for the same mathematically ordered per-layer KV-cache and MoE graph. Validate final hidden states/logits or intermediate hashes before interpreting PP. A GPU without device-lost lines can still return garbage. If output becomes slashes, find the first wrong split and dependency; don't just add a global fence.
+
+3. ACTUAL SOURCE AUDIT: FOUR HIGH-PRIORITY STRUCTURAL HAZARDS
+
+I inspected public TurboPrefill sources (references below). THEY ARE NOT VERIFIED TO BE THE EXACT SOURCE IN YOUR PORT; compare line-for-line against your local build before conclusions.
+
+(A) In public TurboPrefill_ik_llama.cpp_5005_V6.9.1/ggml/src/ggml-backend.cpp around lines 4380-4389, split 0 computes and synchronizes DURING EACH UB CAPTURE; the diagonal replay begins at split 1 (lines 4150-4156 and 4462-4466). If your port does the same, one major GPU stage is executed serially outside the nominal 3-stage replay. Map owner-GPU time in split0 capture, timing share, and whether GPU0 overlaps with GPU1/2 replay at all. If split0 captures all UBs first, FULL THREE-GPU pipeline overlap is structurally impossible during that time. A real fix may require moving split0 execution into the staged schedule, NOT just accelerating H2D.
+
+(B) Public replay loop at lines 4466-4525 runs global PREPARE_H2D waves, then global COMPUTE waves, then global STORE waves; phase internals at ~4171-4178 synchronize preceding D2H event on CPU; ~4257-4259 CPU-synchronize H2D ready before launching compute; ~4261 restores graph inputs; ~4326-4355 enqueues D2H and records events. Audit whether your port batches submissions nonblocking and whether global phases impose a CPU critical path that prevents independent per-device work. Replace CPU immediate waits with dependency-directed readiness checks/async submission when possible. But do not drop producer-consumer correctness dependencies.
+
+(C) Public copy_via_ram around lines 1428-1459: gets D2H then immediately CPU-waits producer before H2D. restore_saved_live_input_entry ~3880-3883 and restore_saved_graph_inputs ~4018-4021 similarly call backend_synchronize. Make a call-site WAIT INVENTORY: time, source/destination GPU, bytes, phase, resource, wait reason, and whether wait is genuinely on the critical path. Ask whether a background transfer completion worker and bounded per-UB slots can let the MAIN scheduler enqueue work on other cards while a specific handoff waits. Merely moving the wait elsewhere without allowing independent work to proceed has NO gain.
+
+(D) Public replay events are static vector indexed by split, plus boolean state, initialized near lines 4113-4147; verify your port associates events with (request, UB, split, phase, resource generation), not just a mutable split index that is reused before its last consumer finishes. Public GGML_SCHED_MAX_COPIES may be 1; inspect actual ring/scratch/input buffers and aliasing. Graph tensor metadata, pointers, views, attn_inp_kq_mask capacity, graph snapshots, and allocator reservations MUST remain stable through all in-flight uses. Sol already found mask planned65536 vs needed131072 and first NaN at blk5 ffn_moe_swiglu stage due to CPU expert detour overwritten by interleaved replay. Reuse these proven lessons.
+
+4. BUILD THE CORRECT RESOURCE/DEPENDENCY MODEL FIRST
+
+For each UB u, stage s, enumerate resources: input activation, output activation, intermediate snapshot, Q8KV/attention state, expert weight slices/copies, staging host allocation, Vulkan VkBuffer+offset, graph metadata, CPU offload temporary and owner GPU scratch. Build a producer-consumer DAG:
+- data producer on GPU A compute must COMPLETE and its writes be visible before D2H reads;
+- D2H must COMPLETE and mapped memory be invalidated if noncoherent before CPU reads/reuses it;
+- source staging bytes remain immutable until the H2D GPU transfer actually finishes reading them;
+- H2D complete+visible to shader before consumer GPU B reads destination;
+- no destination overwrite until previous consumers finish; no staging slot reuse until its reader is complete;
+- within attention layer, later UB sees required prior KV state; model causal semantics maintained;
+- blk5/8/20/35 CPU expert detours must be grouped as atomic dependencies with the owning layer, including GPU->CPU routing, expert computation, CPU->GPU result, gated/up/down/swiglu, temporary scratch.
+Track producer_done / copy_done / consumer_done separately. An event recorded after enqueue is NOT a completed transfer. A valid pinned pointer is NOT a completed transfer. Host-coherent allocation is NOT an execution dependency. Barriers on one queue do not magically synchronize different queues/devices.
+
+Implement or audit a bounded ring per (GPU, UB slot, resource kind), 2-3 slots initially within measured headroom (GPU1 ~857 MiB remaining and GPU2 ~1131 MiB in Grok's report; do NOT assume unbounded buffering). Each slot has explicit FREE -> D2H_INFLIGHT -> HOST_READY -> H2D_INFLIGHT -> GPU_READY -> COMPUTE_INFLIGHT -> CONSUMED -> FREE lifecycle, with owned fence/timeline value/byte range and gen counter. Avoid copying full graph/state for each slot where a small activation suffices. CPU-side memcpy into a per-GPU pinned source buffer should occur only while that slot is free, and its lifetime must extend past the device read. For coherent host buffers obey ordering; for noncoherent host-visible allocations flush/invalidate aligned to nonCoherentAtomSize. For separate transfer/compute queues insert correct transfer write -> compute shader read availability/visibility and queue-family ownership if needed; queue semaphores/timeline must order cross-queue submits. For distinct VkDevices, do not assume native same-device semaphore works across cards: use host side completion/event bridging or explicitly verified external semaphore capabilities.
+
+DO NOT restore a single global vkQueueWaitIdle/ggml_vk_synchronize as a 'correctness fix'. Synchronize only the specific dependency, while unrelated GPU work proceeds. But equally DO NOT omit a required wait from an upload just because copying into pinned memory seems safe.
+
+5. SEPARATE TWO INDEPENDENT ENGINEERING ROUTES AND TEST THEM INDEPENDENTLY
+
+ROUTE I: MINIMAL SAFE BACKEND TRANSFER FIX
+- Original llama.cpp Vulkan ggml_backend_vk_set_tensor_2d_async falls back from ggml_vk_buffer_write_2d_async to sync staging and ggml_vk_synchronize on an unpinned source. It also has a corresponding sync D2H fallback. This behavior is verifiable upstream; see source link below.
+- Investigate per-device ggml_vk_host_get and host buffer registration: Sol found host allocations pinned/registered on device0 but GPU1/2 looked only in their own device registries; alloc returns 'host' without guaranteeing fast recognized pinned mapping on the destination GPU. A correct device-local pinned arena per destination, with PER-COPY stable slots and completion retirement, is stronger than a shared temporary vector or a global sync staging buffer.
+- Ask whether the original ggml_vk_buffer_write_2d_async can accept an actually registered, lifetime-stable pinned pointer, avoiding the fallback WITHOUT weakening its safety conditions. Prefer backend-sanctioned fast path over modifying generic fallback semantics. If changing Vulkan itself, prove device+queue ownership and staging lifetime in validation.
+- Check any SAM/ReBAR host-visible destination approach only after querying real buffer memory flags, BAR aperture, and placement. An upstream issue proposes direct mapped writes when eHostVisible is available, but the example used a new RX 9070 XT with ReBAR, NOT Vega 64. Do NOT assume this is supported or fast on these x1 links, and flush/invalidate memory as appropriate.
+- Quantify time spent in CPU pack/memcpy, submit, transfer, event wait, GPU shader. Correct upload alone may have NO gain if the scheduler still serializes all stages.
+
+ROUTE II: FIX THE SCHEDULER TO RUN REAL THREE-GPU CONCURRENT STAGES
+- Use a dependency-driven producer/consumer pipeline, NOT a global wave of CPU waits. Example stable state with 3 owner stages: while GPU2 computes UB0, GPU1 computes UB1, GPU0 computes UB2; each stage owns its per-UB resources and only waits for that UB's upstream handoff and SAME-stage previous UB dependency. CPU-expert detours are inner dependencies of the correct owner group, NOT independent reorderable splits.
+- Capture/replay must preserve immutable graph descriptors or safely restore them only after in-flight command buffers have finished referencing their buffers; if ggml graph pointers/views mutate across UB submissions, use per-slot snapshots/graphs or a proven stable scratch layout.
+- Enqueue COMPUTE for downstream GPU as soon as its input ready while upstream device starts next ready UB; do not wait for all PREPARE or all STORE phases globally. Per-device worker/queue with readiness events or a single central nonblocking scheduler is acceptable. If workers submit to Vulkan queues concurrently, ensure each VkQueue's external synchronization and each backend context's thread safety; separate devices can be handled independently after audit. Never assume ggml scheduler's mutable graph state is thread safe.
+- Move or amortize split0's capture-stage compute if it dominates wall time; otherwise quantify why it is safe to leave it serial. Initial fill and tail drain are unavoidable; steady-state >=3 UB must be present to demonstrate 3-way overlap.
+- Test alternative granularity/ownership: group all same-layer MoE CPU/GPU detours, avoid repeated GPU0->CPU->GPU0 crossings, choose layer-owner based on real GPU/PCIe bottlenecks. Compare a conventional stage grouping against the original split-level replay; do not arbitrarily reorder attention/expert computation.
+
+If incremental repair repeatedly yields correctness only with serialization, STOP patching individual waits and use ROUTE II with explicit ring buffers and dependency graph; that is a fundamentally different implementation, not another UB sweep.
+
+6. MEASURE CONCURRENCY, NOT JUST FAST API RETURNS OR BUSY PERCENTAGES
+
+Provide one annotated per-UB/per-device timeline for real prefill: time in host monotonic; job created, job submitted, GPU timestamp BEGIN/END where available, transfer H2D/D2H start/end, event signal/wait, CPU expert stage, buffer allocation/release. Include GPU ordinal and PCI bus ID, split, UB, queue, operation, bytes, current ring slot, and dependency id. Prefer Vulkan VkQueryPool timestamp queries on each capable compute/transfer queue plus calibrated device-vs-monotonic timestamps (VK_EXT/KHR_calibrated_timestamps) if exposed; report max calibration deviation. If unsupported, label host-submission/completion ranges as such; DO NOT call them GPU shader execution. Profile with debug markers VK_EXT_debug_utils if available. GPUOpen RGP may not support a RADV Vulkan capture on this driver: check tooling capability before claiming it.
+
+Produce: (1) critical path longest-chain DAG, (2) every CPU blocking wait sorted by *critical-path impact*, (3) stage service times/UB and throughput ceiling bounded by slowest stage, (4) true wall-time 2+ and 3-way overlap based on comparable intervals (with caveats), (5) byte volume per GPU boundary and distinct staging copies, (6) fill/drain/capture/compute/store breakdown. A serialized pipeline with faster asynchronous API calls is not a success. Do not add overlapping wait times as independent savings.
+
+Control instrumentation distortion: Vulkan verbose/perf tracing and validation can force submissions/fences. Collect debug traces on separate short correctness runs, then run UNINSTRUMENTED real TG512 for throughput. Pair TP OFF/ON on same build, same settings, repeated twice where practical. Preserve raw telemetry/logs.
+
+7. MULTIPLE ALTERNATIVE AVENUES IF THE PRIMARY PATH IS NOT THE BOTTLENECK
+
+(A) Eliminate redundant handoff copies: determine whether repeated full intermediates or expert slices are round-tripped GPU->host->GPU between same-owner splits. Coalesce by owner and transfer each activation only at a true device boundary; reduce staging memcpy and pinned allocations. Do not bypass necessary CPU expert or KV dependencies.
+(B) GPU residency of small hot weights/expert selection maps: where within VRAM headroom, keep stable tensors resident instead of repeatedly uploading per UB. Do not change GGUF, reduce context capacity, or drop CPU expert banks without permission. Report per-buffer live bytes and perf effect.
+(C) Chunk/UB sizing after structural fixes, not before. B8192/UB1024 was Grok's best *invalid* upload build; no conclusion that it remains optimal once lifetime-safe pipeline is in place. With three stages and 31K prompt, inspect available saved UB count, memory slot occupancy, fill/drain, and real per-stage service time before any narrow two-value UB comparison. Avoid giant arbitrary sweep.
+(D) Hardware topology: confirm real x1 upstream limitation, concurrent PCIe throughput and contention (H2D+D2H across both x1 branches), physical device ordering. Model useful PP bound: upper bound constrained by slowest GPU stage plus required cross-boundary bytes/bandwidth, not sum of VRAM bandwidth numbers. A GPU can show high utilization while waiting on or repeating copies.
+(E) Vulkan transfer queues: check actual async_use_transfer_queue, number of queues, supported timeline semaphores, queue family capabilities, submitted-but-not-completed copies, WAW/RAW hazards on streamed CPU expert weights, and GPU memory visibility. A public MoE async transfer issue #25195 found WAW hazards under reused regions, much worse for MoE than dense. Adapt lessons, don't assume that exact issue is your root cause.
+(F) Reduce front-end scheduler overhead: freeze reusable graph allocations and mask capacity, avoid reallocations or pointer mutation while commands in flight; batch submissions as permitted; test if CPU thread scheduling/lock contention leaves GPU queues empty; inspect vkQueueSubmit-to-first-shader delay. A host-thread bottleneck requires a different fix from a PCIe bottleneck.
+(G) Fast-but-wrong diff as a diagnostic: reintroduce precisely ONE removed sync in isolation (source staging lifetime, compute dependency, reused destination), compare which single restoration cures slash output and what part of PP declines. Binary-search synchronizations at individual call sites WITHOUT deploying correctness-broken code or claiming its speed. This locates hazards; the final fix then moves that wait to a resource-specific retire condition.
+(H) Sol proven repairs: inspect mask full-capacity reserve, layer-owner group, fixed decode ordinary-copy path, and device-local pinned arena; use known code/trace evidence for minimal targeted patch. Any transplant must validate model-graph and source revision correspondence.
+(I) If there is no feasible gain given actual stage times/copies, produce a defensible bottleneck/roofline estimate and STOP. An accurate measured negative result is preferable to cycles of fake wins.
+
+8. VULKAN ENGINEERING CHECKLIST / TOOLS
+
+- In diagnostic build enable VK_LAYER_KHRONOS_validation Synchronization Validation (validate_sync and submit-time checks if available); distinguish validation overhead from speed results. Inspect RAW/WAW/WAR and queue-family ownership messages. GPU assisted validation only when needed, as it is heavy and may be unsupported.
+- For every transfer: correct VkBuffer range, allocation lifetime, noncoherent CPU cache operations, host ownership, Vulkan memory dependency, submission-to-completion tracking, queue synchronization, correct device registry and destination mapping. Keep a table of (buffer,offset,length,producer fence,consumer fence,earliest reuse).
+- Use VK_KHR_synchronization2/VkBufferMemoryBarrier2 if actually supported and already compatible; use sync1 when not. Ensure src TRANSFER_WRITE -> dst COMPUTE_SHADER_SHADER_READ ordering, compute shader write -> TRANSFER_READ for D2H; queue-family transfer where queues have different families. In multi-device setup do not pass an event from Vulkan0 to Vulkan1 as if it were local.
+- Instrument CPU-expert selected weight range copies and offset/padding for Q4_K/IQ4_XS, especially reused GPU staging regions; verify no partial tensor / duplicate / stale bytes.
+- Run short debugger checks without claiming speed; pair full real workload when coherent. Capture amdgpu journal faults, nan counts and critical GPU traces.
+
+9. ACCEPTANCE, REPORT AND STOP CONDITIONS
+
+A valid candidate must: keep requested GGUF, context131072 and Q8KV/four CPU overrides; produce coherent numerically verified real request 31619/TG512, preferably same selected token IDs as matched TP OFF; show NO NaN/Inf or faults; show a demonstrable, annotated period when DIFFERENT UBs are simultaneously computing on different GPUs (not merely waiting inside queued jobs); and show uninstrumented repeatable PP advantage over same-build coherent 448.90 TP OFF at matching clocks. Report TG too. When valid, extend to 64K then 90K with actual historical real requests, revalidate, and do not silently promote production. If the model uses dynamic async CPU expert weights, report safe resource lifetime evidence.
+There is NO required arbitrary +20% success claim. If true gain is marginal or negative, say so. If only a correct slower version exists, leave TP OFF as the faster working candidate.
+
+Return in outbox:
+(a) verified current baseline and binary hashes; (b) exact local source diff and earliest correctness fault; (c) ranked bottlenecks with measured critical-path times; (d) concrete architecture chosen and why other avenues were rejected; (e) annotated 3-GPU timeline with actual overlap evidence; (f) paired correctness output IDs/logit checks, PP and TG and controls, per-run not just peak; (g) what remains unimplemented and the safest next bounded change; (h) source/patch/revert paths. Never label 'IN PROGRESS' as finished. Don't delete existing evidence or other agents' checkpoints, don't alter production service, don't run disruptive tests on live workers. Ask Gorast before a new >30-minute individual operation or any destructive action.
+
+TECHNICAL SOURCES TO READ AND COMPARE WITH LOCAL CODE:
+1. Original publicly documented pipeline concept, capture-first design, and benchmark limits:
+https://github.com/sergey-automation/TurboPrefill/blob/main/README.md
+2. Concrete public TP replay source (NOT automatically identical to your b10919 fork), especially lines 1428-1459; 3880-3883; 4018-4021; 4113-4179; 4252-4360; 4380-4389; 4462-4527:
+https://github.com/sergey-automation/TurboPrefill/blob/main/TurboPrefill_ik_llama.cpp_5005_V6.9.1/ggml/src/ggml-backend.cpp
+3. Current upstream Vulkan fallback upload/download and cross-device copy behavior, compare against your local commit; names ggml_backend_vk_set_tensor_2d_async, ggml_backend_vk_get_tensor_2d_async, ggml_backend_vk_cpy_tensor_async:
+https://github.com/ggml-org/llama.cpp/blob/master/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+4. Report of sync staging bottleneck and proposed host-visible BAR bypass on DIFFERENT AMD hardware (#21590): https://github.com/ggml-org/llama.cpp/issues/21590
+5. Asynchronous queue WAW hazard with CPU-offloaded MoE expert regions (#25195): https://github.com/ggml-org/llama.cpp/issues/25195
+6. Khronos Vulkan synchronization semantics and memory visibility; fences vs semaphores vs events:
+https://docs.vulkan.org/spec/latest/chapters/synchronization.html
+https://github.khronos.org/Vulkan-Site/guide/latest/synchronization.html
+7. Official synchronization validation how-to and instrumentation:
+https://chromium.googlesource.com/external/github.com/KhronosGroup/Vulkan-ValidationLayers.git/+/HEAD/docs/syncval_usage.md
+https://docs.vulkan.org/guide/latest/profiling.html
+8. GPU/host aligned timestamps for multiple devices if supported:
+https://github.khronos.org/Vulkan-Site/features/latest/features/proposals/VK_EXT_calibrated_timestamps.html
+9. Your bridge-local Sol reports, especially outbox/result_sol-q4-first-principles-measured-20261008.txt, result_sol-q4-user-override-final-profile-20261008.txt, result_sol-ornith-q4-replay-correctness-recovered-20261008.txt, and result_sol-q4-decode-checkpoint-user-priority-20261008.txt. Read them rather than repeating their already-failed trials.
+
+Again: solve engineering problem, not the benchmark display. No new production promotion without Gorast's authorization.
