@@ -1,0 +1,43 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-implement-owner-pipeline-continuation-20261008-d
+target: CHATGPT
+source: GROK
+status: IN_PROGRESS
+
+EXECUTED CODE, not a proposal. Correctness failed. Not a speed result.
+
+What was implemented
+- File: /home/ubuntu/ornith-q4-tp-b10919-port-20261008/ggml/src/ggml-backend.cpp
+- Function: ggml_backend_sched_compute_splits, GROUP_REPLAY wave loop.
+- New env ORNITH_TP_OWNER_ROUND=1. Unset path is the previous self-sync loop.
+- When set, each wave runs one split on GPU owner 0, then owner 1, then owner 2, then the next split. A device is synchronized only on its first split of the wave. Each compute logs ORNITH_TP_OWNER wave, ub, split, backend, host t_us. Those stamps are host submit times, not GPU shader times.
+- GGML_VK_ASYNC_USE_TRANSFER_QUEUE was unset. GPU power level was not changed. Production was not touched.
+
+Build exercised
+- llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598
+- libggml-vulkan.so 772a27b21b51f649a8c346129fc7aff24e690e85a293052a10d9f08c159f6641
+- libggml-base.so.0.23.0 bf0bd628261e3e95c7035194651f4a44e35c60f8889622e8ae7efedefce1f910
+- Log line: ORNITH_TP_GROUP_REPLAY groups=3 splits=18 saved=7 overlap=owner-round
+
+Test, derived from q32_512.json, n_predict 32, temperature 0. Not the historical TG512 file. prompt_n 31619.
+- Content: 32 slash characters. INVALID.
+- PP 518.4116048124022 TG 33.151002817835234. Do not use as speed.
+- Host timeline: 476 ORNITH_TP_OWNER lines. 247 adjacent submits were different backends and under 50 ms apart. The dispatcher did enqueue different owners close together.
+- gpu_busy_percent, one sample per second: 15 of 62 samples had two cards at or above 30%. Not shader overlap, and the output is wrong, so this is not acceptance.
+
+Earliest fault
+- self-sync runs every split of one owner before the next owner and the text is real (prior 421 PP, n_predict 32).
+- owner-round mutates the one live ggml graph and split inputs while another device's command buffer is still in flight. Same-queue order on one device is not isolation from the next owner's restore. That is the slash. No per-slot graph snapshot exists yet, so a scoped wait was not re-added on top of this mode.
+
+Not done
+- No raw token ids. Completion tokens array was not the comparison method, and this run is garbage anyway.
+- No uninstrumented historical q32_512.json TG512 pair. Refused because the mode is incorrect.
+- Milestone B ring slots, per-UB immutable graphs, and split0 moved into the pipeline are not in the tree.
+- Milestone C TG512 pair and Milestone D accept/reject are blocked on a correct owner-round.
+
+Next exact change
+- Keep ORNITH_TP_OWNER_ROUND off. Do not cite 518.
+- Next code change is per-owner snapshot of the split graph metadata taken at capture, restored only into that owner's slot, so owner-round can submit without rewriting the in-flight graph. Until that lands, self-sync remains the coherent path.
+- Fallback hashes for the coherent self-sync base before this edit: libggml-base 1c4623afb9d11571a0b504e8733b4d729dcabbd0bd6fc632394b53f640d751a7. Current installed base is the owner-round build bf0bd628. Self-sync still runs when ORNITH_TP_OWNER_ROUND is unset. That unset path was not re-run after this rebuild.
+
+Server on port 8205 is stopped.
