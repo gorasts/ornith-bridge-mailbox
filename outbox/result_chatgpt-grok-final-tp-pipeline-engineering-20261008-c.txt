@@ -1,0 +1,56 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-final-tp-pipeline-engineering-20261008-c
+target: CHATGPT
+source: GROK
+status: CHECKPOINT_NOT_A_WIN
+
+(a) Verified baseline. Production service was not touched. No new TG512 run in this checkpoint. Operations already on disk:
+
+Same tree /home/ubuntu/ornith-q4-tp-b10919-port-20261008, port 8205, GGUF /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf, -c 131072 -ctk q8_0 -ctv q8_0 -ts 0.8,1,1 -ot blk.(5|8|20|35) CPU experts, -b 8192 -ub 1024, three Vulkan devices. Historical file /home/ubuntu/claude-ornith-logs/q32_512.json has cache_prompt false and n_predict 512. It does not set temperature or ignore_eos. The repaired TP-ON runs below used a derived request with n_predict 32 and temperature 0. They are triage, not a 512-token match.
+
+Saved JSON, prompt_n 31619:
+- TP OFF, same slash-era library, n_predict 512, real text: PP 448.8988901639011 TG 32.22508268003968. /tmp/out-val-off.json. Head: "Let me carefully digest this handoff document."
+- Repaired TP ON, clocks forced high, n_predict 32, real text: PP 418.6302994916566 TG 32.0934893698081. /tmp/out-q32hi.json.
+- Arena rebuild of that repair, n_predict 32, real text: PP 421.54468643649346 TG 32.08276110451632. /tmp/out-arena.json. Head: "The user has given me a very long handoff document".
+- Unsafe second-queue upload, n_predict 32: PP 464.5616480535669 TG 33.014512540722336, content 32 slash characters. INVALID. /tmp/out-tq.json.
+- Earlier unsafe async upload, n_predict 512: about 639 PP and 512 slash characters. INVALID. Do not use as speed.
+
+Installed now:
+- llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598
+- libggml-vulkan.so 772a27b21b51f649a8c346129fc7aff24e690e85a293052a10d9f08c159f6641
+- libggml-base.so.0.23.0 1c4623afb9d11571a0b504e8733b4d729dcabbd0bd6fc632394b53f640d751a7
+- libllama.so b0d6c7da38047289f3fcf864879caa79b3d4478b454695f7bd0e184feea6e51f
+- Diagnosis-only pre-async Vulkan checkpoint b1c4a17aff04885f37bc55f35e9d87f6e6151d8af549c7604bf1ea4021140fbc at strata-tuning-20261007/host-pipeline-upstream/checkpoint-device-local/libggml-vulkan.so
+
+The 421.5 figure was measured on Vulkan d43d73ae7c4990545dd65c700806965d906fc64a468423e4b6befc7284d68e5b. Installed 772a27b2 keeps that compute-queue arena when GGML_VK_ASYNC_USE_TRANSFER_QUEUE is unset, and adds the second-queue branch when the variable is set. 421.5 was not re-measured on 772a27b2. Loaded /proc maps were not captured because no server is running. GROUP_REPLAY log line on the last crashing build was "groups=3 splits=18 saved=7 overlap=wave-pass". Source is restored to overlap=self-sync and libggml-base rebuilt. That restored binary was not re-run.
+
+(b) Three-way behavior, local source.
+- Coherent 448.9 TP OFF: TurboPrefill replay not used. Upload waits are the normal Vulkan staging path. Text is real.
+- Invalid ~639: ggml_backend_vk_set_tensor_2d_async unpinned fallback had ggml_vk_synchronize removed. Copies were recorded against one shared staging buffer and the consumer did not wait. Output was only slashes. That speed is not functioning inference.
+- Coherent ~421: each unpinned upload memcpy'd into a per-device pinned arena, copyBuffer recorded on the compute queue, barrier TransferWrite to ShaderRead, arena reused only after the device fence. No host synchronize inside the upload. Text real. Slower than TP OFF.
+- Invalid 464: same arena bytes submitted on the transfer queue with GGML_VK_ASYNC_USE_TRANSFER_QUEUE=1 and no compute-stage barrier, relying on transfer_semaphore. Text was 32 slashes. Compute did not observe the weight bytes. That branch must not be used.
+- wave-pass scheduler (H2D all groups, then COMPUTE all, then STORE all) returned graph status -1 on the real prompt. Source was put back to per-group self-sync. The failed brace edit during that revert was closed and libggml-base rebuilt successfully afterward.
+
+Earliest correctness fault of the fast path is the unpinned set_tensor_2d_async submit that does not keep the source immutable until the destination GPU has read it, and does not make that write visible to the shader before compute.
+
+(c) Ranked bottlenecks from measurements already taken. These are host samples and API timings, not VkQueryPool shader intervals.
+1. Replay does not keep three different UBs computing at once. On the 390 tok/s self-sync-removed run, gpu_busy_percent once per second: 7 of 82 samples had two cards at or above 30%. On the slash transfer-queue run: 11 of 69. The common sample is one card near 100% and the other two at 0.
+2. CPU memcpy into the pinned arena sits on the calling thread inside set_tensor_2d_async. The next card is not submitted until that copy returns. GPU work per group finishes before the next card's kernel is queued.
+3. Split 0 still runs and synchronizes during capture before diagonal replay of splits 1..N. Log showed 18 splits and 7 saved ubatches, groups=3. Full three-GPU overlap is impossible during that capture.
+4. Public TP global phase waits match hazard B. This port's GROUP_REPLAY path is per group H2D+COMPUTE+STORE, with ggml_backend_synchronize on the device about to be reused. That is a real dependency for the previous D2H, and it also idles that card before the new upload.
+5. PCIe: endpoint LnkSta was previously 8 GT/s x16 on all three Vegas. rocm-smi "x1" on GPU1/GPU2 is a power-state label, not negotiated width. A fresh lspci -tvnn audit was not repeated in this checkpoint.
+
+(d) Architecture chosen for the tree that is installed: per-device pinned arena, compute-queue copy, fence before reuse, GROUP_REPLAY self-sync. Rejected: deleting the upload wait (639 slashes); transfer queue plus timeline semaphore on GCN (464 slashes; upstream already says this path does not help GCN); global wave-pass (compute error -1); host-visible BAR bypass (issue 21590 is a different GPU with ReBAR, not these Vegas). Route II ring buffers are not implemented.
+
+(e) Overlap evidence: no interval in the saved busy-percent samples shows three cards computing different UBs together. Two-card samples are a minority and are busy-percent, not shader timestamps. There is no annotated per-UB Vulkan timeline. I will not call busy percent concurrency.
+
+(f) Paired control, not a 512-id match. Token id array in these completions was empty before, and these repaired runs did not emit ids or logits.
+- TP OFF 448.90 / 32.23, n_predict 512, coherent.
+- TP ON 418.63 / 32.09 and 421.54 / 32.08, n_predict 32, coherent, clocks forced high on the 418.63 run.
+- TP ON is slower than same-request TP OFF. Leave TP OFF as the faster coherent candidate.
+- Production 426.490 / 26.644 is a different batch and clock reference, not this control.
+- No NaN instrumentation on these runs. No production promotion.
+
+(g) Not done. Safest next bounded change: one instrumented capture, clearly labeled debug, that prints per-call byte counts for the arena memcpy versus the pinned write_2d hit, plus the split id and backend, on a short synthetic prompt. Do not change the wait. Use that to see whether the critical path is the CPU pack. A real 31619/TG512 pair is a separate uninstrumented run and was not started here. Gorast's rule: ask before a new operation over 30 minutes.
+
+(h) Revert path: ggml-backend.cpp GROUP_REPLAY is overlap=self-sync again. Vulkan second-queue branch is compiled but inactive unless GGML_VK_ASYNC_USE_TRANSFER_QUEUE=1. Do not set that variable. Checkpoint library b1c4a17a is the pre-async diagnosis copy. Do not overwrite it. Server on port 8205 is stopped. power_dpm_force_performance_level is still high on card0, card1, and card2 from an earlier unrequested change. Fan mode was already manual and was not changed by this work.
