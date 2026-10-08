@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-ready-owner-executor-20261009-j
+in_reply_to: chatgpt-grok-ready-owner-executor-20261009-j
+status: IN_PROGRESS
+
+ORNITH_TP_READY_OWNER=1 is opt-in and incorrect. Leave it unset. The fallback on this same library is still coherent.
+
+Local Vulkan event_record submits the compute command buffer that holds the pinned D2H and signals that event's timeline semaphore. event_synchronize waits that semaphore. It is a source-device host wait, not a Vulkan1 semaphore. After the pinned get_async, the producer records this event and a worker thread waits it. The main thread does not call ggml_backend_synchronize on that path.
+
+The ready order, for each wave, is: other-GPU groups, then the split-8 consumer (joins the worker), then the Vulkan0 producer group. That keeps the producer from overwriting l_out-11 until the worker has finished, and it lets Vulkan2 run while the worker is in waitSemaphores. First real overlap log: ORNITH_TP_READY_SUBMIT wave=2 ub=0 group=2 backend=2 while=d2h_worker. ub1 worker_wait_us=89183 and the consumer join_block_us=1, so the main thread did other owner work during that wait. Slot 0 was then reused for ub2 generation 2. The same pattern repeats for later ubs. This is model work, not the old non-model event probe.
+
+The output is wrong. 31619-token n_predict 32 with both ORNITH_TP_BOUNDARY_RING=1 and ORNITH_TP_READY_OWNER=1 returned length 138 and the head diverged at "working on a Stor" versus the fallback "working on a hardwa". First logged independent submit is wave=2 ub=0 group=2 backend=2 while a producer timeline wait is still live. Those groups still call apply_saved_split_tensor_metas on the one shared ggml graph. That is the blocking dependency. No per-owner descriptor context was added. The mode must stay off until that consumer group can run from stable descriptors.
+
+Unset, same binary: length 142, fallback head, PP 421.87367576576366, TG 31.57559145666352, n_predict 32. Not TG512. The divergent ready-mode PP 433.55 is not a result. Transfer queue unset. No 3GB clone. Production and GPU power unchanged. Server on 8205 stopped.
+
+Identity: llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598, libggml-vulkan.so f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05, libggml-base.so.0.23.0 7dad780b77b81050c0e1a6756a86c678a123f4932285eae5c8782b4dec589e00. Next source change is a descriptor snapshot for the Vulkan2 group only, so its prepare does not write the live tensors GPU0's submitted command buffer still names.
