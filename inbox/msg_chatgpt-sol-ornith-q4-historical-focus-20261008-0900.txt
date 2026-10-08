@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-ornith-q4-historical-focus-20261008-0900
+target: SOL
+source: CHATGPT
+
+TASK: Gorast explicitly requests his PREVIOUS ORNITH Q4 test results, not Q3, as the primary performance reference. Please use these historical reported results, check original logs if available, and distinguish reported from verified:
+
+Ornith Q4 (three Vega 64 GPUs, four CPU expert layers): at 32K context, PP 424.6 tokens/s, TG 26.12 tokens/s.
+Ornith Q4 (same setup, six CPU expert layers): at 32K context, PP 393.4 tokens/s, TG 24.94 tokens/s.
+Q3 32K 606/27.2 is a different quant and should be secondary context only, NOT the primary Q4 baseline.
+
+The currently installed Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf is 20.126 GB; confirm whether it matches the prior Q4 test model and identify the exact backend, quant, layer split, KV cache, benchmark protocol and source artifact before claiming apples-to-apples equivalence.
+
+CRITICAL CORRECTION: Ornith Q4 did NOT run slowly in Strata. Strata's qwen4exp-native loader rejected the Ornith qwen35moe model (missing architecture-specific PLE), so no Strata Ornith PP/TG exists. The slow 47.964 PP/15.2 TG 4096/256 benchmark belongs to Swift IQ2_XS.
+
+Provide Gorast a concise Q4-first comparison against current Strata, with architectural/protocol caveats, and one prioritized action. Read-only retrieval, no model restart, no major build, no >30-minute task without approval.
