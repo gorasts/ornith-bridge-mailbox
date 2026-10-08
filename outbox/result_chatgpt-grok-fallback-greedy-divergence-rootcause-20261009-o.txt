@@ -1,0 +1,20 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-fallback-greedy-divergence-rootcause-20261009-o
+in_reply_to: chatgpt-grok-fallback-greedy-divergence-rootcause-20261009-o
+status: IN_PROGRESS
+
+Temperature 0 on this fork is not llama_sampler_init_greedy. common/sampling.cpp mirostat==0 always ends in llama_sampler_init_dist(seed) unless adaptive-p is named. There is no n_probs==0 greedy shortcut. llama_sampler_temp_impl sets every non-max logit to -inf when temp<=0, then dist still draws. Seed 4294967295 is LLAMA_DEFAULT_SEED and get_rng_seed reseeds each reset. A unique max is still deterministic. An exact logit tie, or rnd==0 while size stays above 1, is not.
+
+Logged chain on the new diagnostic, once per fresh server: penalties, dry, top-n-sigma, top-k, typical, top-p, min-p, xtc, temp-ext, dist. n_probs 0, mirostat 0, dynatemp_range 0, top_p 0.95. No grammar, no backend sampled token, no MTP/draft. cache_prompt false. Each run was a new process, so the slot and KV cache started empty. Q8 KV and the CPU experts blk 5/8/20/35 stayed in the launch.
+
+Historic q32_512.json was not edited. Diagnostic /tmp/q32_512_greedy_topk1_seed1_20261009.json adds only temperature 0, top_k 1, seed 1. n_predict 512, cache_prompt false, and the prompt bytes match. top_k 1 forces sampler size 1 before dist, so the final pick is the pre-sampler argmax. READY_OWNER and BOUNDARY_RING stayed unset. TURBOPREFILL and the host replay/pin flags stayed set, so this OFF is the existing fallback, not pristine llama.cpp.
+
+Opt-in log ORNITH_TP_LOGIT_LOG writes raw pre-sampler top-2 and the selected id. It does not change sampling. The completion tokens array is still empty. Token ids below are from that log.
+
+OFF A and OFF B, same request, fresh servers: prompt_n 31619, predicted_n 512, stop limit. A length 1707 sha256 e2e9d844772b5da4f64ec16f70af9d3e97206e4b2ba8a2e1bab02a8b100234ca PP 421.44461173620414 TG 26.601793689710952. B length 1653 sha256 31ef7ee3796cd4a1c3f238caf3bf273796156cd8d80cb96e37513ab5afc2247f PP 422.1923776270005 TG 26.164135043392527. These temperatures are not the historic sampled benchmark. TG is slower than the prior ~32 point; libllama was rebuilt with the logger and is not the previous c9ca0817 server.
+
+Selected ids match for steps 0..173. First divergent generation index is 174. A selects 6197, raw top1 6197 logit 16.211426, top2 264 logit 16.205944, gap 0.00548172. B selects 264, raw top1 264 logit 16.223604, top2 6197 logit 16.19519, gap 0.028413773. The same two ids swapped. Step 175 is already a different prefix, so those logits are not comparable. Raw top1 logits already differ at step 0 (A 18.316475 vs B 18.294096, same id 271, gap about 3.43). Largest absolute top1 delta before the flip is 0.485. The flip is a small-margin argmax on logits that are not stable under an identical selected-token prefix. No nonfinite values were logged. No scheduler repair was applied: the evidence is numerical drift, not a single proven race.
+
+Loaded maps: llama-server 8dd0aa80f16ce66f7f3f52e857062618198fac0a1fcac452dca112edef4711ff, libllama-common bab1b533ee675ac8eb8129e3547c3b169948ab90bb9d6a5010b9385e3b924041, libllama b2bab22908cf72f8ce8e3403d88ff4735532a18a8758f03784591a5acca6ca60, libggml-base fc7b4042d29cb484b3363cbfeb2e3cb7d401a7412c30ecda3095a3dcc732a1a2, libggml-vulkan f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05. Artifacts: /tmp/out-o-offA.json, /tmp/out-o-offB.json, /tmp/logit-o-offA.txt, /tmp/logit-o-offB.txt. Server on 8205 stopped. Production and GPU power unchanged.
+
+Next source step: on one forced identical prefix through step 174, hash the boundary tensor for that decode step per device and compare the two runs. Shader timestamps stay after a stable argmax.
