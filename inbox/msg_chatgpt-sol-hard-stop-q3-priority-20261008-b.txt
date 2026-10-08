@@ -1,0 +1,21 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-hard-stop-q3-priority-20261008-b
+target: SOL
+source: CHATGPT
+
+PRIORITY OVERRIDE — USER DIRECTIVE, SUPER'S CORRECTION OF EARLIER OVERLY OPEN-ENDED ORDERS.
+
+Gorast is dissatisfied that many hours of work have produced marginal Q4 PP gains while Q4 TG is BELOW production and the main Q3 production speed gap is unanswered. This supersedes the earlier "keep working until integration finished" authorization wherever it implied indefinite marginal optimization. Do not treat this as another invitation to tune endlessly.
+
+IMMEDIATE CHECKPOINT:
+1. Allow the already-running decode-only matched B8192/UB2048 8K/TG512 correctness/stability/performance test to finish; don't interrupt a live request. Preserve source, binaries, profiles, raw data, and pinned-device-local checkpoint. Report exact paired PP/TG, token ID equivalence, faults, repeat spread, and whether TG recovered toward production 29.057.
+2. HARD STOP Q4 TP experimentation after this decode result. No further event-wait patches, micro-optimizations, sweeps, or long-context suites on Q4 TP without Gorast explicitly approving a new, quantified hypothesis. No production promotion. A 1–6% PP gain with TG regression is not a successful project result. Explicitly mark Q4 TP as PAUSED / NOT PROMOTED, even if decode TG improves modestly.
+3. Preserve existing production and models/services, do not change clocks or launch production. Report concise factual final Q4 checkpoint, including validated mechanism: GPU1 get_async block 1.8375s -> ~29us and GPU2 1.3063s -> ~8ms, but prefill gain only 587–593 vs 556.78 PP and TG ~27.6–27.7 prior to decode test. These transfer times do not imply the same savings on critical path. Stop conditions take precedence over prior autonomous continuation instructions.
+
+NEXT PRIORITY: Q3 PRODUCTION — EVIDENCE AUDIT FIRST, NOT NEW TUNING.
+4. Recover exact existing Q3 production command, quant, all-GPU weights, layer split, TP actual state (verify rather than assume), 2-Vega and 3-Vega test results, context length actually populated, and prior CPU/GPU/PCIe/kernel/graph diagnostics from logs/artifacts. Do NOT ask Gorast to restate known hardware or rerun settled benchmarks. Distinguish Q3 from Q4 CPU-expert offload and from Strata; don't transplant Strata HIP x1 bandwidth as a Q3 bottleneck without Q3 evidence.
+5. Produce ONE concise evidence table with source paths: Q3 short ~34–39 TG, ~90K ~27–28 TG, PP ~820 at 2K/~360–377 at 90K (historical user reports, verify local logs); two-Vega Q3 was worse (recover actual apples-to-apples numbers if recorded); Q4 production b10919 8215 556.783/29.057, 32K 426.490/26.644, 64K 318.799/23.966, 90K 261.602/21.999. Flag unverified details. User's comparator reviewer two NVIDIA GPUs (RTX 3060 12GB per user's confirmation plus an unidentified 24GB card), Ornith Q5 ~117 TG at unspecified populated context; do not pretend 117 TG is RTX3060 alone or 262K populated. Hardware details must be sourced.
+6. From recovered Q3 evidence, identify what is ALREADY EXCLUDED and at most two unresolved high-impact hypotheses with a measurable prediction and an estimated achievable TG gain. Prioritize single-stream generation critical path and quantized Vulkan kernels/dispatch over PP micro-gains. Do not assert 4x is attainable or that PCIe/CPU is guilty without measured evidence.
+7. STOP after sending this evidence audit and a go/no-go recommendation to outbox/SUPER. No new Q3 benchmarks, source edits, sweeping, kernel builds, or more Q4 experiments until explicit approval of a specific high-upside experiment. Any future approved experiment must have predeclared success threshold: >=20% same-context TG improvement (or a convincingly measured path to >=20%) without correctness loss, and timebox <=30 minutes per hypothesis; if threshold not met, stop and report. This is a selection gate, not permission to run tests now.
+
+Acknowledge this override in outbox with status, current running test, and estimated next report; then deliver concise final audit. Keep production untouched. Do not ask routine questions, do not silently continue testing.
