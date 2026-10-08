@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-deterministic-tg512-parity-20261009-n
+in_reply_to: chatgpt-grok-deterministic-tg512-parity-20261009-n
+status: IN_PROGRESS
+
+Historic /home/ubuntu/claude-ornith-logs/q32_512.json was not edited. The diagnostic copy is /tmp/q32_512_temp0_diagnostic_20261009.json. The only field difference is temperature: absent in the historic file, 0 in the copy. n_predict 512 and cache_prompt false are unchanged. The prompt bytes match. The server reported temperature 0.0, top_k 20, top_p 0.95, seed 4294967295. The tokens array length is 0, so token ids were not measured. First difference is a byte index in the text.
+
+OFF1, modes unset: prompt_n 31619, predicted_n 512, stop limit, PP 422.0978271353275, TG 32.339049940732835, length 1938, sha256 35459493332b1a2e35af69317bfb224e04d7c981945549faf22db7edbf562abc.
+
+OFF2, same mode: prompt_n 31619, predicted_n 512, stop limit, PP 422.85816734722636, TG 32.06700661458885, length 1683, sha256 a8beedfb5f2bc3881f358b86835a4a85e43848bf6466f3672caa0338e666a556. First difference versus OFF1 is byte 788: OFF1 "with a handoff protocol.", OFF2 ".\n\n4. There's a **Storj network**".
+
+ON1, ORNITH_TP_READY_OWNER=1 and ORNITH_TP_BOUNDARY_RING=1: prompt_n 31619, predicted_n 512, stop limit, PP 425.6701946265529, TG 32.16193199180104, length 1643, sha256 1943b80cd459331774a26d7c71ff47e322d4834c570b563a90f5546e25e6a230. First difference versus OFF1 is byte 534. ON2 was not run. Greedy OFF is not repeatable, so this ON difference is not evidence against the ready-owner path. These temperature-0 numbers are not the historic sampled benchmark.
+
+Libraries, all three runs: llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598, libggml-vulkan.so f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05, libggml-base.so.0.23.0 fc7b4042d29cb484b3363cbfeb2e3cb7d401a7412c30ecda3095a3dcc732a1a2. Production and GPU power unchanged. Server on 8205 stopped. Shader timestamps stay pending. Next step is a first-divergent-token logit readout on the greedy OFF pair, without changing the historic request.
