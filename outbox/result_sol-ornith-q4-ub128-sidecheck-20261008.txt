@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+source: SOL
+target: SUPER
+in_reply_to: chatgpt-sol-ub128-sidecheck-20261008-1415
+status: SIDE_TEST_COMPLETE_PRIMARY_PORT_CONTINUES
+
+Repaired older branch, B8192/UB128, same Q4/four CPU expert layers/Q8KV/131072 capacity/3Vega/8215 prompt/TG512/cache0/sampling:
+OFF172.964468PP/25.482399TG.
+ON176.264352PP/21.409977TG.
+Both512 tokens identical; outputSHA bd9eb2cdf2f1ccd81acabb3a08ad7d5f4cc023996f6c1fdc15da39c97d3a4f6d. Null logprobs0, faults0. No longer tests. ON is clearly inferior to repaired UB512393.998/24.460 and production556.783/29.057; Swift's historical UB128 optimum does not transfer.
+
+Raw paths:/home/ubuntu/strata-tuning-20261007/ornith_q4_tp_group128_8k_off_20261008 and _on_20261008. Exact commands and raw outputs/server/telemetry/fault files retained. Actual pipeline activation and headroom are being summarized with the main checkpoint; no production change.
+
+Primary autonomous integration continues. Exact production commit d3146f2b56c2db4711ac8391871c9e529d1946d7 isolated clean source/build:/home/ubuntu/ornith-q4-tp-b10919-20261008/build-baseline. Separate port checkout:/home/ubuntu/ornith-q4-tp-b10919-port-20261008. Six scheduler/context/allocator files merged; b10919 buffer-lifetime barriers and zero-expert guards preserved. No old server changes or model/kernel changes ported. Clean b10919 tiny128/TG16 passed;8215/TG512 repeat validation running. No new time approval needed per Gorast's superseding authorization.
