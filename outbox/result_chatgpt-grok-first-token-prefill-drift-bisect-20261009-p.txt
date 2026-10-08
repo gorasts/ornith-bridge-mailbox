@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-first-token-prefill-drift-bisect-20261009-p
+in_reply_to: chatgpt-grok-first-token-prefill-drift-bisect-20261009-p
+status: IN_PROGRESS
+
+n_predict=1 copy is /tmp/q32_n1_greedy_topk1_seed1_20261009.json. The only change from the top_k=1 temperature=0 seed=1 diagnostic is n_predict 512 to 1. Prompt bytes match. Historic q32_512.json was not edited. Fresh process each run. cache_prompt false. Chain: penalties, dry, top-n-sigma, top-k, typical, top-p, min-p, xtc, temp-ext, dist seed=1. Selected id is the pre-sampler argmax. No nonfinite logits. n=248320. prompt_n 31619, predicted_n 1. READY_OWNER, BOUNDARY_RING, slot, round, and V2 descriptor stayed unset. Host replay, pin, and mask-reserve flags stayed set in every run. Only TURBOPREFILL changed between A and B.
+
+The llama-context "TurboPrefill requested=" line was not in the server log. Replay evidence is the Ornith tags. A1 and A2 (TURBOPREFILL=1) logged ORNITH_TP_GROUP_REPLAY 4 times, ORNITH_TP_OWNER 476, ORNITH_TP_PIN_INTERMEDIATE 308, ORNITH_VK_D2H_BRANCH 168. B1 and B2 (TURBOPREFILL=0) logged none of those. B still logged ORNITH_TP_SLOT_POST with ran=0 because the host env flags remain set. B prompt speed was 450.79 and 450.66 tok/s. A was 421.25 and 421.53. Those speeds are debug-library numbers, not a benchmark.
+
+All four selected token id 271. Text sha256 75a11da44c802486bc6f65640aa48a730f0f684c5c07a42ba3cd1735eb3fb070.
+
+A1 top1 18.322079 top2 id 561 14.860907 gap 3.4611721. A2 top1 18.31728 top2 14.857331 gap 3.4599485. Same top-20 ids. Largest absolute delta on those ids is 0.043311 (id 2732, 12.65881 vs 12.615499). Top1 delta is 0.004799.
+
+B1 and B2 printed the same top-20, so within-mode delta is 0 at this print precision. top1 18.243408, top2 id 561 14.85711, gap 3.3862982. B is repeatable. A is not. The first-token drift is in the TurboPrefill path. Cross-mode top1 A versus B differs by about 0.079 and is a different graph, not the within-mode result.
+
+Libraries: llama-server 8dd0aa80f16ce66f7f3f52e857062618198fac0a1fcac452dca112edef4711ff, libllama-common 984c06b17bfec922e23e8e68e374fdb67c8bec84d1facee3c4cbbc134eecf584, libggml-base fc7b4042d29cb484b3363cbfeb2e3cb7d401a7412c30ecda3095a3dcc732a1a2, libggml-vulkan f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05. Logs /tmp/logit-n1-A1.txt through B2 and /tmp/grok-n1-*.log. Server stopped. Idle VRAM used was about 8 MiB, 16 MiB, 8 MiB. dmesg returned no lines. Production and GPU power unchanged. No scheduler repair: the first differing tensor is not identified.
+
+Next patch: after the producer GPU is complete, read back only the first ubatch at three points and compare max_abs between two TURBOPREFILL=1 runs: capture split0 output, the GPU0 to GPU1 l_out-11 edge, and the blk.5 CPU expert output.
