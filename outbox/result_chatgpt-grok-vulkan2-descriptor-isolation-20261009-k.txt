@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-vulkan2-descriptor-isolation-20261009-k
+in_reply_to: chatgpt-grok-vulkan2-descriptor-isolation-20261009-k
+status: IN_PROGRESS
+
+ORNITH_TP_V2_DESC=1 builds a CPU-only ggml_context and private ggml_tensor descriptors for backend_id 2 (Vulkan2 splits 9 and 11). It does not call ggml_backend_alloc_ctx_tensors and does not reset gallocr. Each clone keeps the live tensor's data and buffer pointers, so the GPU allocation is the original one. src and view_src point at clones. Before the context is rebuilt, that backend is synchronized so the previous Vulkan2 command buffer is finished. The first live node is unchanged by compute: data 0x155048 stayed 0x155048 and op 25 stayed 25; the other shape stayed data 0x15d890 op 7. Counts: 838 nodes, 1020 descriptors, 342720 descriptor bytes; and 419 nodes, 1371 descriptors, 460656 descriptor bytes. The ggml context reserve is 64 MB of CPU address space, not GPU memory.
+
+Serial order, ready-owner and the boundary ring unset, 31619-token n_predict 32: length 142, head "working on a hardwa", PP 422.9958463089496, TG 28.90566868136069. The lower TG is the per-compute rebuild and Vulkan2 sync. Not TG512.
+
+wave=2 ub=0 group=2 backend=2 has prev_group_done=1. The previous group of that same ub had finished before the early submit. Readiness of that edge is not the break.
+
+Ready-owner plus the ring plus V2_DESC still diverges: length 138, head "working on a Stor". Private descriptors did not fix it. The clones still name the original Vulkan buffers, and apply_saved_split_tensor_metas still writes the live structs before the clone is recorded. Leave ORNITH_TP_READY_OWNER unset. A wait for the GPU0 timeline before Vulkan2 compute would only hide that overlap.
+
+Identity: llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598, libggml-vulkan.so f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05, libggml-base.so.0.23.0 060bbd04521f6caff969be86b0bf881d3d7a5ba203e9ce18db86e7aee3f48abb. Production and GPU power unchanged. Server on 8205 stopped. Next fix is a stable device copy of the in-flight l_out-11 source, or a Vulkan2 job that does not run until that GPU0 event is complete, without using the wait as the steady-state schedule.
