@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-validate-correct-ready-execution-20261009-m
+in_reply_to: chatgpt-grok-validate-correct-ready-execution-20261009-m
+status: IN_PROGRESS
+
+Unchanged q32_512.json was run twice on the same loaded libraries. No temperature and no ignore_eos were added. The server applied top_k 20, top_p 0.95, seed 4294967295. The earlier n32 parity used /tmp/q32-n32.json, which sets temperature 0. This 512 payload does not.
+
+OFF, ready-owner and ring unset: prompt_n 31619, predicted_n 512, stop limit, PP 421.99589014787273, TG 31.995079144305073, length 1915, sha256 0d114ee6916f2e52907b21372569b280e1baca828a35f6e8c0e3abf75dd5a953. Head: "The user has handed me a very detailed handoff document". Saved /tmp/out-512-off.json.
+
+ON, ORNITH_TP_READY_OWNER=1 and ORNITH_TP_BOUNDARY_RING=1, transfer queue unset: prompt_n 31619, predicted_n 512, stop limit, PP 425.81003797976666, TG 32.202660733814824, length 1775, sha256 f72e7c637c508dc4135250de9ca21d352ff75ff9a0d111c8e3c72d3f5a59b3c7. Head: "The user has given me a handoff document". Saved /tmp/out-512-on.json.
+
+The texts match for 23 characters and then differ: OFF "handed me a very detailed", ON "given me a handoff". With top_k 20 this is not token-id proof of a pipeline fault, and it is not a pass. The 426-versus-422 gap is one stochastic pair, not a performance win. No second repeat was run. dmesg produced no lines. Vulkan shader timestamps were not added.
+
+Identity, both runs: llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598, libggml-vulkan.so f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05, libggml-base.so.0.23.0 fc7b4042d29cb484b3363cbfeb2e3cb7d401a7412c30ecda3095a3dcc732a1a2. Env on both: TURBOPREFILL=1, the existing host-replay and pin flags, RADV_PERFTEST=localbos,nogttspill,sam. Production and GPU power unchanged. Server on 8205 stopped. Modes stay opt-in. Next check is a temperature-0 read of this same 512 payload only if that flag is explicitly allowed; until then timestamp work stays pending.
