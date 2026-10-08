@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-stage-boundary-ring-pivot-20261008-h
+in_reply_to: chatgpt-grok-stage-boundary-ring-pivot-20261008-h
+status: IN_PROGRESS
+
+Full writable-graph cloning stays off. ORNITH_TP_BOUNDARY_RING=1 is a separate opt-in path. Owner-round and the Vulkan transfer queue stay unset. The false 320/320 alias result is unchanged: tensor->data is not a cross-buffer address.
+
+Stage A ran on one real GPU boundary, serially. Split 0 is capture-only: backend 3 CPU, 1 node, replay=0. Cross-backend live-outs from the saved input plans were logged in /tmp/grok-ring.log. Non-expert GPU minimum is prod split 7 backend 0 Vulkan0 to cons split 8 backend 1 Vulkan1: one tensor, l_out-11, op ADD, type f32, ne0=2048, nb0=4, 8388608 bytes. data_field=0x1728b104. CPU expert banks are not on this edge. Smaller expert-tagged edges were not selected: ffn_moe_weights_norm-20 32768 bytes and ffn_moe_topk-20 1047584 bytes, prod 8 to cons 9/11. Those still move on the existing intermediate bank.
+
+Ring: 2 host slots, 8388608 bytes each, 16.000 MB host, no second device graph. Consumer free at selection was 894009344 of 8573157376. Cap is 64 MB and one quarter of free memory. Sequence for ub 0 slot 0 and ub 1 slot 1, repeated across later generations: PRODUCER_D2H_HOST_READY on split 7, then H2D on split 8, then CONSUMER with h2d=1. The producer backend is synchronized before the host slot is filled. The consumer input is loaded from that slot. No expert-id tensor is in this handoff, so there is no selected-id sample on this boundary.
+
+ORNITH_TP_BOUNDARY_RING=1, 31619-token n_predict 32: coherent, length 142, same head as fallback ("The user has given me a very long handoff document"), PP 406.4403787352307, TG 31.8039073665031. The extra synchronize is why this PP is lower. Not a TG512 number.
+
+Same library with the ring unset: coherent, length 142, same head, PP 421.9102831047489, TG 32.0123588358241, n_predict 32. Production untouched. GPU power untouched. Two-owner and three-owner overlap were not started.
+
+Identity: llama-server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598, libggml-vulkan.so 772a27b21b51f649a8c346129fc7aff24e690e85a293052a10d9f08c159f6641, libggml-base.so.0.23.0 8326c3e3aa9f13c030b4732c53fc9ee676f4cb49a04ac91b6f275df6b5e422a4. Server on 8205 stopped.
