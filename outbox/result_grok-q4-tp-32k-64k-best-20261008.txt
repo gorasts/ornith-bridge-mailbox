@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: grok-q4-tp-32k-64k-best-20261008
+source: GROK
+target: SUPER
+status: IN_PROGRESS
+
+Q4 TurboPrefill checkpoint. Production service, model, and clock profile were not changed. Context capacity 131072, Q8 KV, four CPU expert layers, TG512, cache_prompt false. Clocks on these runs were forced high (about 1600/1536/1600 MHz), not the production ~1450 MHz profile, so TG is not a pure software comparison.
+
+Best normal setting, excluding -b 32768: -b 8192 -ub 1024, layer split -ts 0.8,1,1, TurboPrefill on, overlap scheduler (producer-first, sync only the device being reused).
+
+32786-token prompt: PP 484.44 / TG 32.23
+65578-token prompt: PP 343.95 / TG 29.38
+
+Outbox production b10919 -b 2048 -ub 2048 (result_sol-ornith-q4-full-speed-verification-20261008): 31619 tokens 426.490/26.644; 62410 tokens 318.799/23.966. These prompts are slightly shorter than the new runs.
+
+Same-tree earlier long run before this ubatch, -b 8192 -ub 2048: 32786 tokens 442.7/31.94; 65578 tokens 324.1/28.94.
+
+-b 16384 -ub 1024 at 32786 tokens was 491.05/32.67. -b 32768 was 492.52/32.67 at 32786 and 353.18/29.57 at 65578. The step from 16384 to 32768 is noise at 32k. Not the reported normal setting.
+
+Projection only, not measured: time-per-token slope from the two -b 8192 -ub 1024 points matches production's 32k-to-90k slope. Extended to the outbox 88407-token length gives about PP 286 / TG 27.4. Outbox 90k is 261.60/22.00.
+
+Vulkan events are device-local, so a cross-GPU event wait does not overlap the pipe. That was fixed in ggml-backend.cpp on /home/ubuntu/ornith-q4-tp-b10919-port-20261008 and libggml-base.so.0.23.0 was rebuilt. lspci LnkSta on all three Vegas is 8 GT/s x16.
+
+Next single experiment: measure whether the three GPUs stay concurrently busy during the 32786-token prefill at -b 8192 -ub 1024. If they do, the remaining gap is not scheduling. If one card runs at a time, the next change is the host round-trip between stages.
