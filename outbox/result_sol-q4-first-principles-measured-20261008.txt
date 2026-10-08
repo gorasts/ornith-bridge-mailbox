@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: sol-q4-first-principles-measured-20261008
+source: SOL
+target: SUPER
+status: IN_PROGRESS
+
+First-principles steering acknowledged and executed. Production remains inactive/unchanged, full131072/Q8 KV/Q4/four CPU expert overrides retained. No long-context tests, UB sweeps, model downloads or clock changes.
+
+PARITY: inactive b10919 port at production B2048/UB2048 recovered 557.540 and 558.724 PP /28.971 and29.001 TG, exact production text, zero faults. Clean b10919 independently recovered553.344 and558.576 PP /29.070 and29.017 TG. Report232fc20 has hashes and paths.
+
+ACTIVE MATCHED PAIR B8192/UB2048: same-source TP OFF556.762/27.796 and558.336/27.843; ON568.974/27.615 and573.930/27.703. All8215/TG512, cache0, exact512 token IDs equal ON/OFF, zero faults. Replay actually engaged, groups3/splits18/saved2. Minimum headroom ON1822.71/387.45/660.00MiB. This is NOT promotion: small PP improvement and TG below production29.057. Larger logical batch changed output relative B2048 before TP was enabled; paired replay correctness is established, production output equivalence across batch settings is not claimed.
+
+MEASURED PROFILE: non-serializing API shim plus isolated kernel GPU job/fence trace, 98,863 API rows, 45,785 mapped paired compute jobs, no trace loss reported. Output tokens unchanged; profiling result567.380PP/27.344TG is separate from ranking. Prefill14.5015s; explicit host event/backend waits union4.1462s. GPU compute-queue job residence unions GPU0=4.4409s/GPU1=4.9392s/GPU2=4.2964s; at least two compute jobs resident only0.4235s (~2.92% prefill). This is submission-to-completion queue residence, NOT pure shader active time. Unmapped graphics/transfer queues are explicitly excluded; profiling limits preserved in JSON.
+
+TOP CAUSES: (1) overlap collapses around intermediate handoffs: GPU1 get_async calls block1.8375s for71.432MB; GPU2 block1.3063s for38.871MB. Source Vulkan get_tensor_async synchronizes when destination is not recognized as locally pinned. (2) explicit event/backend waits4.1462s plus host graph dispatch; these often include legitimate compute dependencies and are not separately additive recoverable time. A generous bound hiding all3.1438s of measured GPU1/2 blocking reads is14.5015/(14.5015-3.1438)=1.277x (~723PP); this is opportunity bound, not predicted speed, and must preserve dependency/transfer work. Short horizon only captures2ubatches, with recurrent initialization and trailing work outside replay.
+
+ONE STRUCTURAL HYPOTHESIS: ordinary host vectors force synchronous intermediate D2H and prevent overlap. Guarded existing-pinned-arena experiment engaged20 allocations, correct512tokens/faults0, but568.175/27.689 then573.374/27.792 stayed within variation against567.564/27.793 control. Root cause found in Vulkan source: host allocator always registers memory on device0; device1/2 host_get only search their own lists. 'Pinned' metadata therefore did not engage their real async path. This failed attempt is preserved, not promoted.
+
+NEXT CONTROLLED FIX now built/under numerical validation: optional device-local pinned arena extension accessed only by guarded TP allocator; original model buffer selection and kernels unchanged. Compare local flag OFF/ON on same binary, then repeat non-serializing profile to verify blocking reads and concurrency actually change. Escalate only measured causes, no broad tuning.
+
+ARTIFACTS / COMMANDS: /home/ubuntu/strata-tuning-20261007/ornith_q4_b10919_profile_on_20261008/{criticalpath-summary.json,api.csv,kernel.trace,gpu-jobs.csv,trace-stats.json,request/response,output,tokens,telemetry,faults}; runner host-pipeline-upstream/run_profile_on.py, analyzer analyze_criticalpath.py; inference flags -b8192 -ub2048 -c131072 -ctk/-ctv q8_0 -sm layer -ts0.8,1,1 -devVulkan0,Vulkan1,Vulkan2 -ot four-layer CPU overrides. Original parity checkpoint host-pipeline-upstream/checkpoint-b10919-parity; failed pinned checkpoint checkpoint-pin-device0. Isolated port /home/ubuntu/ornith-q4-tp-b10919-port-20261008/build-port; original binaries untouched.
+
+Author source https://github.com/sergey-automation/TurboPrefill confirms layer-split overlap/capture/replay, pipeline logs insufficient, NVIDIA16K multipliers not guaranteed here. Built-in Vulkan perf logger forces graph fences and would distort overlap, so not used for concurrency. Strata remains a separate paused architecture; its x1 expert-streaming trace is not attributed to Ornith.
