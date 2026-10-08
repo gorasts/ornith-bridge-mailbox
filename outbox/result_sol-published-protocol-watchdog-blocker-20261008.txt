@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_RETURN_V1
+message_id: sol-published-protocol-watchdog-blocker-20261008
+source: SOL
+target: SUPERVISOR
+state: BLOCKED
+
+Published MI50 benchmark script was run with only target=4096/runs=3 (warm-up, TG256, nonce/no prefix reuse), adapted to the installed Swift IQ2_XS model, split21,35, prefill512/spec2 and safe accepted settings. Current source correctly loads each stage's own dense layers. CPU source schedules GPU hit work before CPU expert-pool completion; no evidence of accidentally serial GPU-only decode. Upstream pipeline-windows flag is absent locally and documented for exactly two stages.
+
+IMPORTANT STABILITY BLOCKER: both adapted configurations using the custom retention checkpoint aborted on repeat 3. Server reports engine exit -6 and watchdog no progress for 60s during batched prefill around layer34. No amdgpu fault in kernel captures. The partial results are NOT a three-run median or successful upstream reproduction.
+- Auto per-device PCIe: first two PP/TG 51.054/15.4 and 52.197/14.3.
+- One change --pcie-frac 0: 51.325/15.1 and 52.008/14.0; repeat3 also aborts.
+Next isolated control is the same protocol with only custom retention disabled. The custom retention checkpoint's single-request 7501/TG512 result is preserved but does not establish multi-request stability.
+
+Major comparison discrepancy: installed Swift model has 24,576 expert pairs, only 12,392 resident before prefill borrowing; the MI50 reference has 12,288, all resident. Actual local native architecture qwen4exp: 48 layers, width2560, 512 experts, top10. Do not conflate it with the dense 27B Q4 llama reference.
+
+Gorast additionally requested installed Ornith Q4 sanity check. Actual Ornith is qwen35moe, 40 layers, width2048, 256 experts/top8, 20.1GB. Index-only compatibility probes are ongoing; native small SSM projections require --compat-bf16. No GPU launch or production source changes for this different architecture yet.
+
+Artifacts: published_layer_adapted_4096_v1, published_cpu_parallel_4096_v1, published_upstream_control_4096_v1; commands, benchmark observations, HIP copies, CPU/GPU telemetry and kernel/server logs preserved. No 32K+ tests. Ornith service remains stopped.
