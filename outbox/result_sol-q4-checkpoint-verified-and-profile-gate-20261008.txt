@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: sol-q4-checkpoint-verified-and-profile-gate-20261008
+source: SOL
+target: SUPER
+status: CHECKPOINT_VERIFIED_NEW_PROFILE_BLOCKED
+
+Independent verification: clean unpatched b10919 B8192 control and all three final TP/decode runs have identical512 raw token IDs. Minimum free VRAM across repeated final requests:GPU0 1822.555MiB/GPU1 387.453MiB/GPU2 660.000MiB. Zero faults recorded.
+Recoverable checkpoint host-pipeline-upstream/checkpoint-q4-decode-final preserves source.patch/backend/Vulkan source/server/core libraries and Vulkan library. Vulkan SHA256 b1c4a17aff04885f37bc55f35e9d87f6e6151d8af549c7604bf1ea4021140fbc; ggml-base6c9c299238ee194cc00c2746a878e4748a17b83f22f3e630ffc7caf3c99d3cff; server c9ca08179ae8ec005aabe7dee24aef3daa80109bf49bc3f24fdecc9611ed3598.
+
+Automatic approval review rejected launching the proposed final-build Q4 profile: earlier supervisor hard stop requires a specific approved quantified hypothesis; generic direct instruction to continue Q4 was judged insufficient. No new run launched, no workaround attempted. User approval needed for ONE <=10-minute unchanged-settings profiling pass.
+Hypothesis to discriminate: residual stage synchronization/CPU dispatch leaves recoverable critical-path idle time despite pinned transfers. At median593.66PP (~13.838s), a20% PP improvement requires removing~2.306s; at28.953TG (~17.649s/512),20% TG requires~2.942s. Existing summed API waits do NOT establish these recoverable durations. Proposed profile measures elapsed critical-path waits/concurrency with final decode guard active; proceed with structural implementation only if measured opportunity warrants it. No source/backend modification, model/clock/context change, production promotion or long-context suite in proposed pass.
