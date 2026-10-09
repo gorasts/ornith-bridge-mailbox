@@ -1,0 +1,41 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-q4-expert-byte-sizing-gated-ab-20261009-bd
+status: COMPLETE_WITH_CAVEAT
+
+Preflight and placement calculation
+
+The read-only GGUF header/index parse completed without reading tensor payloads. The model metadata reports `qwen35moe.block_count=40`, GGUF v3, alignment 32. For each checked CPU-resident block (5, 8, 20, 35), the expert regex matches exactly three tensors:
+
+| Tensor in block 20 | Type | Shape | GGUF tensor bytes |
+|---|---|---|---:|
+| `ffn_down_exps.weight` | Q4_K | [512, 2048, 256] | 150,994,944 (144 MiB) |
+| `ffn_gate_exps.weight` | IQ4_XS | [2048, 512, 256] | 142,606,336 (136 MiB) |
+| `ffn_up_exps.weight` | IQ4_XS | [2048, 512, 256] | 142,606,336 (136 MiB) |
+| Total |  |  | 436,207,616 (416 MiB) |
+
+Blocks 5, 8, and 35 have the same tensor types, shapes, and byte totals. These are quantized GGUF payload sizes computed from the GGML quant block-size table; the 32-byte file alignment and runtime allocation/fragmentation overhead are additional. The file-index parser and printed results are in the run evidence directory described below.
+
+The active CPU override was `blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU`: these are named block numbers, not `-ncmoe`’s first-N semantics. In `source/common/arg.cpp:252-272`, `-ot` resolves buffer types exposed by backend devices. `source/src/llama-model-loader.cpp:1230-1254` tests patterns in order and stops at the first match; removing block 20 from that CPU regex therefore leaves its expert tensors to the normal layer-device assignment. `source/src/llama-model.cpp:1484-1505` normalizes split weights and assigns each layer using `upper_bound` over cumulative splits. With 40 blocks plus the output layer, `-ngl99`, and split `1,0.8,1`, block 20’s index fraction is 20/41=0.488, inside the Vulkan1 interval (0.357–0.643). The previously verified device order maps Vulkan1 to BDF 0c:00.0. This did not require an explicit or guessed Vulkan buffer-type override.
+
+The 8K new-split baseline had 1,748.4 MiB free on BDF0c. Subtracting the 416 MiB indexed tensor payload leaves a nominal 1,332.4 MiB, about 1,032 MiB above the existing 300 MiB guard before allocator overhead. This passed the safety gate; no guard was weakened.
+
+Experiment
+
+Exactly two sequential arms used the preserved build and same 8,306-token AK request. The only effective argv change was the CPU override regex for block 20; split stayed `1,0.8,1`, `-t14 -tb14`, and all model/KV/TP/hook settings stayed fixed. Both processes mapped the expected local Haswell/Vulkan libraries. The fixture SHA-256 was `ab2f68a9e46edc086f826524d4d5facf5bedd9c38b9a36ac07662c2d512465f2`, prompt-token SHA-256 `3efaeafa85d98e762c56cc0f027d99cd825d31a41932d446451ff05552e21e96`, and request SHA-256 `689f30c7b249e1fb65dc08558a2895eebe8fa0a39804091f6dd89880caf204a0` in both arms. The sealed oracle was run before arm one and recomputed after the pair; it returned `A=710,B=775,C=615|COMMIT=6|ABORT=2`. Both arms used the same verified prompt and body; the oracle was never sent to the model.
+
+| Arm | Expert placement | Replay | PP / prompt eval | TG | Output / wall | Minimum free VRAM (05 / 0c / 0f) |
+|---|---|---|---:|---:|---:|---:|
+| Baseline, first | CPU blocks 5/8/20/35 | 3 groups, 18 splits, saved 2 | 612.584 tok/s / 13.559 s | 30.735 tok/s | 2,329 tokens, natural EOS / 89.322 s | 461.7 / 1,748.4 / 642.6 MiB |
+| Candidate, second | CPU blocks 5/8/35; block 20 expert tensors default to Vulkan1 | 3 groups, 14 splits, saved 2 | 634.386 tok/s / 13.093 s | 31.806 tok/s | 2,531 tokens, natural EOS / 92.655 s | 683.9 / 1,385.9 / 642.6 MiB |
+
+Candidate PP was +3.56% and TG +3.49% in this one pair. The answer token streams first differed at token 8 and had different lengths; both independently returned the correct final balances and commit/abort counts. Therefore PP on the same prompt is the clearest comparison; the longer candidate answer makes total wall time non-comparable. Token-array SHA-256: baseline `d8574c8482450ef1e684c8fbfa4ea07f490f65790db292b029721ca158c84065`; candidate `b82f1af413c1c28d676e46d6f68f72f2d1fc96888a63ea5d101b87d6d99e8fae`.
+
+Important deviation: candidate replay remained active, but its summary was `groups=3 splits=14 saved=2`, not the expected 18 splits. The changed expert ownership altered the derived scheduler partition. Thus this is a single-variable end-to-end placement comparison, but not a fixed-split-count scheduler comparison. The request itself had only the specified `-ot` difference. Treat the speed result as promising but not yet repeatable or separable from the resulting scheduler regrouping.
+
+Placement and safety evidence
+
+The ordinary logs do not print a named tensor-to-device line at this verbosity. Placement is supported by the unchanged split algorithm and block-count calculation, the sole regex change, the known Vulkan1/BDF mapping, and allocator deltas: Vulkan1 total device allocation rose from about 6.26 to 6.60 GiB; BDF0c minimum free fell by 362.5 MiB. Vulkan0 total allocation fell about 0.20 GiB and BDF05 free increased 222.2 MiB; Vulkan2 stayed about 7.33 GiB and BDF0f free was unchanged. This indicates replay/scratch allocation also changed with 18→14 splits, so the full 416 MiB tensor payload cannot be isolated from net allocator totals. Candidate minimum headroom stayed 1,385.9 MiB on BDF0c and above 300 MiB on every card. Both arms had no faultwatch matches, no abort, and server exit code 0. Peak passive junction temperatures (BDF05/0c/0f) were 57/67/75 C baseline and 58/67/77 C candidate; no software temperature cutoff was used.
+
+Evidence: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/q4_expert_block20_gpu1_ab_20261009_bd/` contains both arms’ commands, mapping gates, full responses/tokens, prompts/request, server and allocator logs, telemetry, faults, and diagnostics. Preserved server/Vulkan/Haswell hashes were `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`, `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`, and `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`. Runner SHA-256: `2df8713260b03b59861eaee204078df8f0c1df95cb16071f7793c36be5ae7b02`.
+
+Verdict: promising one-pair PP/TG improvement with correct answers and ample measured BDF0c headroom, but replay split count changed and outputs diverged early. Recommend one reverse-order 8K confirmation after supervisor review before any 32K validation. No further run was started. Temporary servers exited, all GPUs were idle, and `ornith-server.service` remained inactive.
