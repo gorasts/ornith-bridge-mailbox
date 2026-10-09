@@ -1,0 +1,27 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-decode-tg128-passive-backends-20261009-l
+in_reply_to: chatgpt-sol-decode-tg128-passive-backends-20261009-l
+status: COMPLETE
+
+Read `docs/SUPERVISOR_RULES.md` and the requested prior report. No exact TG128 matched pair existed, so I ran exactly two sequential TP-OFF requests, historic first and modified second. No retries, sweeps, code edits, builds, or setting changes. The service was inactive before and after; temporary servers exited.
+
+Both runs used the same model (`/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf`), round-trip-verified 8196-token original corpus prefix, n_predict128, cache_prompt=false, temperature0/top_k1/seed1/ignore_eos, Q8_0 K/V, c131072, B2048/UB2048, Vulkan0/1/2 split0.8,1,1, CPU expert overrides layers5/8/20/35, t/tb14, FA on, np1. Neither run had draft/MTP args. Both set TURBOPREFILL=0 and omitted RADV_PERFTEST and all ORNITH_TP_* variables. The corresponding executable/library directory was the only intended binary-side difference.
+
+| Run order | PP | TG | prompt ms | decode ms | request wall | Faults |
+|---|---:|---:|---:|---:|---:|---:|
+| Historic `/opt/llama/llama-b10919` | 564.578 | 28.928 | 14517.032 | 4390.199 | 18.922 s | 0 |
+| Modified build-vkfix | 565.173 | 24.730 | 14501.743 | 5135.509 | 19.653 s | 0 |
+
+PP differs by +0.11%; modified TG is 14.51% lower. Thus the TG gap persists at 128 generated tokens while prefill is effectively tied. Each result is n=1. The output IDs match for the first 28 tokens and diverge at token 29. The modified B2048/TG32 output already matched the earlier active-TP output, so this does not isolate TurboPrefill decode overhead or prove a quality failure.
+
+**Runtime backend selection is now observed.** Passive `/proc/<pid>/maps` sampling during both inferences showed the historic process mapped `/opt/llama/llama-b10919/libggml-cpu-haswell.so`; the modified process mapped only `/home/ubuntu/ornith-q4-tp-b10919-port-20261008/build-vkfix/bin/libggml-cpu.so`. The Icelake module present in the historic directory was NOT the module observed in its process. This confirms different CPU backend modules in the two running processes; it does not by itself prove their performance caused the TG gap. The host is Xeon E5-2680 v4, 14 cores/28 threads.
+
+**Clock/state limitation:** telemetry was sampled every 250 ms through both requests, and decode-window samples were aligned retrospectively to the server-reported predicted_ms. It captured DPM `pp_dpm_sclk`/`pp_dpm_mclk` starred levels, busy, power and temperatures, plus per-core CPU utilization/frequency and VRAM. The actual `hwmon freq1_input` instantaneous SCLK sensor was discovered after the runs and was not captured during them; therefore actual SCLK overlap is UNKNOWN. The DPM starred level was 852 MHz on GPU05 and GPU0c in both windows, and memory DPM level was 1000 MHz across all cards. GPU0f showed 852/991 MHz selected DPM states during historic decode but only 852 MHz during modified decode, so the recorded DPM states were not fully matched. Do not attribute the difference to software under a matched-clock claim.
+
+Temperatures were similar and low: hottest observed junction was 48 C on GPU0f in both runs. Readable power1_input ranges during estimated decode windows were GPU05 historic 17–22 W / modified 16–20 W; GPU0c 17–20 / 14–18 W; GPU0f 24–30 / 19–26 W. No thermal-throttling status file was exposed and logs reported no GPU faults. Average per-logical-CPU utilization in the sampled decode windows was 14.0% historic and 18.4% modified; maximum single-core sample was 61.5% and 67.9%. Mean CPU frequencies were 2.990 and 3.042 GHz. These coarse samples show no obviously saturated CPU core but do not provide per-operation attribution. Minimum free VRAM was GPU05 2204.4 MiB, GPU0c 516.4 MiB, GPU0f 789.0 MiB historic and 2204.4/516.4/788.9 MiB modified; all exceeded the 256 MiB floor.
+
+The sample records lack actual SCLK values, so clocks cannot be certified as matched. DPM state and GPU0f power also differed. Result: the modified build remains 14.51% slower in TG in this pair, but this pair does not establish a software-only cause.
+
+**One next decision:** do not start a CPU-specialized build test yet. If Gorast assigns another test, first capture `hwmon/freq1_input` alongside the existing passive metrics and require overlapping actual clock ranges on all three GPUs; only then consider a separate optional CPU-backend-specialization build test. Any build likely to exceed 30 minutes needs separate approval. No such test was run.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_decode_tg128_passive_20261009/{historic,modified}/` (command/library hashes, exact request, response with all 128 token IDs, server log, 250 ms telemetry, fault list, summary, host lscpu). Runner: `/home/ubuntu/strata-tuning-20261007/run_decode_tg128_passive.py`. Modified executable SHA `8dd0aa80f16ce66f7f3f52e857062618198fac0a1fcac452dca112edef4711ff`; historic executable SHA `5ef1efd4f750ff95ccfeb1ed5b2bd0bdef190b1d2aa7034f9e5a4888d4744204`. Production remains inactive; no model, source, binary, clock, voltage or power setting was changed.
