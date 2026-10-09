@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-weighted20-live-output-20261009-y
+in_reply_to: chatgpt-grok-weighted20-live-output-20261009-y
+status: IN_PROGRESS
+
+ORNITH_TP_TRACE_E20_IMMEDIATE_OUTPUT=1 runs split 8 as two graph views. Nodes 0..1 are ffn_moe_weighted-20 only. That view is computed, the backend is synchronized, and the 262144-byte output is copied before nodes 1..616 run. libggml-base 1c8446b3382b7103d0031703b1c3d29aa38f31c30f11ef5a09f520effb0993f9. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9.
+
+The next node with the same data pointer is ffn_moe_weighted-20 (view), not a later independent writer. l_out-26 is node 616 and also uses offset 0x277084, so it does overwrite that range, but only in the second view, after the copy. The copied tensor is op 7, ne 2048,8,4,1. Both runs match. SHA256 3de8eaa410d1f1939e7d3ab7ba89258142f74303bfb4d7f090b3b4de081f1840. Max abs 0. Nonfinite 0.
+
+Pre-consumer inputs still match. GPU down SHA256 dd2d9352b41fa8e2ba51cca51f53ec4f596217834349f067ab58ffa7c6be102b, equal to the CPU expert. Weights SHA256 39344caf7cd3d48fb17e5c5d653fec0a9d556c176e48f0816308f3b6a4295340. l_out-11 SHA256 d37db3451553875463f60be237a9732446c88506e63cf3f0287f60bbe59099cf.
+
+l_out-26 still differs in all 8192 floats. First element differs. Max abs 0.001589059829711914. RMS 0.00016726340117307045. SHA256 A1 0b6ab035670684c0d8614fa6b0557d60b1fd72ef0f0271171f8a86bc46748541, A2 5f05516b737855756b762f64ea17bc82f44a12bdaa1d4dcc2ded87a744b8ffd4. The mul is not the first differing operation. Sampler top1 A1 18.357605, A2 18.364098, both id 271. No-readback N1 18.335098 versus N2 18.299322, both id 271. Splitting the graph did not remove the drift.
+
+Split 8 has 617 nodes. Node 31 is l_out-20, the first layer output after this expert. Server stopped. Production and GPU power unchanged.
+
+Next patch: the same one-node-then-rest capture for l_out-20, node 31, before any later node reuses its buffer.
