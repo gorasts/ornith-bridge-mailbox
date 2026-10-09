@@ -1,0 +1,28 @@
+# AY: device-local host-hook reverse-order confirmation
+
+**Status: COMPLETE.** The reverse-order pair reproduced the prefill gain with the same preserved AL executable and libraries. Both answers independently passed the transaction checks and completed below the 8,192-token generation limit. This is a second paired observation, not a statistically robust benchmark or approval to promote the build.
+
+## Matched run
+
+The preflight matched the requested hashes: server `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`, Vulkan `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`, and Haswell CPU plugin `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`. Each live process mapped its core libraries from the expected cachematched directory and loaded `libggml-cpu-haswell.so` and the expected Vulkan module.
+
+Both requests used the exact AL fixture and tokenized prompt: 31,802 input tokens, fixture SHA-256 `7b0d96b433598625d4ba22578f2be778f87cbf0f9742267b9380b9388466ac25`, prompt-token SHA-256 `132fbe9e72bded2723ac26ec16be4af7bfa429edee179691c4bcdabae23ccc75`, request-body SHA-256 `0862829d2b02d4850b9d5fc89e5a928bb04a960a4a00e77996e7de4a357316e4`. The sealed oracle script was rerun before inference (SHA-256 `0705b849ff3b3fa9ac4b8989d9966c02f8d22802f36e8a693c2fa8927d312830`) and recomputed `A=710,B=775,C=615|COMMIT=6|ABORT=2`; the key was not in the model request.
+
+TurboPrefill stayed ON in both arms with self-sync owner-round absent, B8192/UB2048, Q4/Q8_0 KV, context 131072, split 0.8/1/1, CPU experts 5/8/20/35, greedy settings and natural EOS enabled. The only intended environment change was `ORNITH_TP_PIN_DEVICE_LOCAL`: absent in OFF, `=1` in ON. Both logs show active replay `groups=3 splits=18 saved=3 overlap=self-sync` and owner-wave markers.
+
+| Order / hook | PP (tok/s) | TG (tok/s) | Output / HTTP wall | Independent grade |
+|---|---:|---:|---:|---|
+| OFF, first | 441.568 | 27.752 | 2,200 tokens / 151.320 s | PASS |
+| ON, second | 564.422 | 27.490 | 2,823 tokens / 159.063 s | PASS |
+
+The reversed pair’s PP ratio is **+27.82%** ON over OFF; TG is **−0.94%**. The earlier AL order (ON first) was 562.63 vs 440.97 PP, **+27.59%**, with TG effectively tied. Seeing a similar PP ratio when the order is reversed argues against a simple first-run advantage, but two single trials do not establish repeatability. The ON response generated 623 more tokens, so its longer total HTTP wall is not an equal-output speed comparison; PP and per-token TG are the relevant reported rates.
+
+Both outputs end with the exact expected final answer. Each includes the four expected intermediate snapshots, the correct transaction dispositions (six commits, two aborts), and final balances. Both preserve the initial total of 2,100 in their transaction calculations; no substantive task error was found. The streams diverge at generated token 246 (1-based), so token identity is not preserved, while semantic correctness is. OFF/ON token-array SHA-256: `1110110ff19960bd04ef8d630d54fd473e87fbba77b9e7ca804b7b67f0531d52` / `325c300ee023504151e2a0cf66f06a5fe28acee9f481bc1a14f4ce2b4b9d5116`. Text SHA-256: `5b1dca891022f6f4777a80aede35f011cfd8f6e8cab9d9ae4d619113562db709` / `1b76c8e21bb7090178b671346c704af8055bfbbc08dc6a993f8c01f7e288e050`.
+
+## Safety and interpretation
+
+Both arms recorded zero GPU faults and no VRAM abort. Minimum free VRAM was 1,787.4 MiB on 05:00.0, **324.5 MiB on constrained 0c:00.0**, and 596.5 MiB on 0f:00.0. Passive maximum junction temperatures by 05/0c/0f were OFF 62/72/86 C and ON 64/78/89 C. No software temperature cutoff was used; hardware protection remained unchanged. The 0c margin was only 24.5 MiB above the existing 300 MiB guard, so memory headroom remains tight. Production service was inactive before and after, temporary servers exited, and GPUs returned to idle.
+
+This reverse-order result supports the device-local hook as a real prefill-speed candidate while keeping TG and this task’s semantic answer effectively intact. It is evidence for owner review of an isolated integration path, **not** for automatic production promotion: it does not prove general accuracy, repeatability at other workloads, or simultaneous GPU shader execution.
+
+Artifacts: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/hosthook_reverse_ab_20261009_ay/`. The copied runner SHA-256 is `62d6cc326ea533f85d9f642e3f1d08f22e1f2baed47f54aae14d717b5de29521`. Each arm directory contains command/env, request, token IDs, full response and tokens, server log, replay/mapping summary, telemetry, faults, and cleanup diagnostics. Both request files have the same expected SHA-256 above.
