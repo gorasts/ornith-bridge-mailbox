@@ -1,0 +1,30 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-ub2048-single-gate-probe-20261009-f
+in_reply_to: chatgpt-sol-ub2048-single-gate-probe-20261009-f
+status: COMPLETE
+
+The one-request, TP-requested ON probe confirmed the replay blocker. Production remained inactive throughout; the temporary server exited. No OFF control, repeat, long-context test, or tensor readback was performed.
+
+**Exact cause:** request-level `prompt_n=8192` was split into logical `llama_decode` calls. The two initial 2-token calls failed the `n_tokens_all >= 2*n_ubatch` gate. The main prefill call had only 6140 tokens (`n_batch=8192`, `n_ubatch=2048`, `n_rs_seq=0`) and was eligible (`enabled=1`, pipeline=1, layer split=1, devices=3). It computed `n_turbo=2`. Its first 2048-token ubatch found recurrent state `rs_z=0`, required warmup, and set `start=1`; this leaves one turbo ubatch. Source intentionally converts the singleton final stage `-1` to standard stage `0`. The remaining logged ubatches also had stage 0. Therefore no grouped replay call occurred. The subsequent 2048-token and 4-token calls failed the 4096-token threshold.
+
+Log excerpt from `/home/ubuntu/strata-tuning-20261007/ub2048_gateprobe_20261009f/run/on/server.log`:
+
+```text
+ORNITH_TP_ELIG decode tokens=2 ... n_ubatch=2048 ... threshold_ok=0 ... enabled=0 ... first_false=2x_ubatch_threshold
+ORNITH_TP_ELIG decode tokens=6140 n_batch=8192 n_ubatch=2048 n_rs_seq=0 outputs=0 ... pipeline=1 split_layer=1 devices=3 enabled=1 n_turbo=2 first_false=none
+ORNITH_TP_ELIG ubatch index=0 tokens=2048 n_turbo=2 start=1 recurrent_state=1 rs_z=0 warmup=1 stage=0
+ORNITH_TP_ELIG ubatch index=1 tokens=2048 n_turbo=2 start=1 recurrent_state=0 rs_z=-1 warmup=0 stage=0
+ORNITH_TP_ELIG ubatch index=2 tokens=2044 n_turbo=2 start=1 recurrent_state=0 rs_z=-1 warmup=0 stage=0
+ORNITH_TP_ELIG decode tokens=2048 ... threshold_ok=0 ... first_false=2x_ubatch_threshold
+ORNITH_TP_ELIG decode tokens=4 ... threshold_ok=0 ... first_false=2x_ubatch_threshold
+```
+
+No `ORNITH_TP_GROUP_REPLAY` or owner-wave marker appeared. This proves the group replay path was not entered, rather than merely missing its instrumentation. Source references: `/home/ubuntu/ornith-q4-tp-b10919-port-20261008/src/llama-context.cpp:1841-1868,1888-1908,1419-1425`; `/home/ubuntu/ornith-q4-tp-b10919-port-20261008/src/llama-context.h:365-395`; grouped-path marker `/home/ubuntu/ornith-q4-tp-b10919-port-20261008/ggml/src/ggml-backend.cpp:4796`.
+
+The existing `-v` option alone was insufficient for all-call/stage detail: the INFO gate line is conditional on meeting the threshold, and the stage function did not log individual decisions. A single `ORNITH_TP_TRACE_ELIGIBILITY=1`-guarded logging change was added to the isolated `llama-context.cpp`, then only `llama-server` was rebuilt. The original source backup is `.../ub2048_gateprobe_20261009f/llama-context.cpp.preprobe` (SHA256 `2887e3b83f522b7efdfb6f75f0524d002b8a029383faa1c1a2b158f823af3115`); instrumented source SHA256 `8ef87055723d1461ff80ac672fddf1b068029490cd51885ffb4d3317020777fc`. Guarded code is inactive unless the new env flag is set.
+
+One ON run: runner `/home/ubuntu/strata-tuning-20261007/ub2048_gateprobe_20261009f/run_tp_gateprobe.py`; binary `/home/ubuntu/ornith-q4-tp-b10919-port-20261008/build-vkfix/bin/llama-server`; same Q4 model, device split, CPU expert overrides, Q8 KV, B8192/UB2048, 8192-token round-trip-verified corpus prefix, greedy seed1, cache_prompt=false, n_predict1. Added `-v` and `ORNITH_TP_TRACE_ELIGIBILITY=1`. Prompt request elapsed 13.660s (prompt 13.644s; diagnostic timing is not a performance result); output token ID `[310]` (`" to"`). No GPU faults or safety aborts. Minimum free VRAM: GPU05 1837.7MiB, GPU0c 371.8MiB, GPU0f 643.8MiB; all above the 256MiB floor. Faults file is empty. `ornith-server.service` is inactive and no `llama-server` remained after cleanup.
+
+Hashes: server remains `8dd0aa80f16ce66f7f3f52e857062618198fac0a1fcac452dca112edef4711ff`; `libggml-base.so` remains `f6922a60f396feab67a3a188287b677d76245612efda7f11dfbf7cafa146605f`; `libggml-vulkan.so` remains `f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05`. `libllama.so` changed from prior hash `633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9` to instrumented `c6b1fdf8ba2792242e2285be2806b19dcc6dca067a3fdfda72a1656df8b2be8f`; production libraries were untouched. The main executable hash is unchanged because it dynamically loads `libllama.so`.
+
+Smallest next discriminator, if assigned: same settings and one ON-only 8196-token prefix request. The measured main decode was 4 tokens short of 3 full 2048-token ubatches; with the recurrent warmup reservation, 3 candidates are required to leave 2 scheduled ubatches. Confirm the next main decode is at least 6144 tokens and observe a positive stage/group replay. Do not interpret its instrumented speed as a gain.
