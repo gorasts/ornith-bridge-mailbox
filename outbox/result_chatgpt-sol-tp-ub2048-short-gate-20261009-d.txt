@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-tp-ub2048-short-gate-20261009-d
+in_reply_to: chatgpt-sol-tp-ub2048-short-gate-20261009-d
+status: COMPLETE
+
+Read docs/SUPERVISOR_RULES.md and the exact prior parity audit. Preflight found ornith-server.service inactive, port 8205 free, no llama-server/Strata process, and all cards idle. Experimental server and libraries matched prior hashes: server 8dd0aa80f16ce66f7f3f52e857062618198fac0a1fcac452dca112edef4711ff; libggml-base f6922a60f396feab67a3a188287b677d76245612efda7f11dfbf7cafa146605f; libggml-vulkan f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05; libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9. Source hashes also matched the prior audit. No compile or model/source changes.
+
+Exactly two fresh requests were run on that executable, sequentially, against the same round-trip-verified original-corpus prefix of 8192 tokens, n_predict32, cache_prompt=false, temperature0, top_k1, seed1, Q4 model path /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf, Q8_0 KV, context131072, Vulkan0/1/2 split0.8,1,1, CPU expert override layers5/8/20/35, B8192/UB2048, 14 threads. TP ON used the validated host weights/owner/group/pinning flags; TP OFF cleared those environment flags. No trace instrumentation was enabled.
+
+TP ON: PP600.398, TG26.176, request14.845s. TP OFF: PP564.451, TG25.329, request15.753s. Both outputs returned 32 tokens and the token ID arrays were identical. Fault logs were empty. Minimum free VRAM (MiB) during ON was GPU05 1837.0, GPU0c 371.0, GPU0f 643.1; during OFF GPU05 2204.4, GPU0c 499.1, GPU0f 771.2. The 256MiB safety floor was not crossed.
+
+CRITICAL GATE: TP replay was not demonstrated. The ON log contains no positive saved-UB count, no ORNITH_TP_GROUP_REPLAY line, and no ORNITH_TP_OWNER wave/split line. The runner therefore stopped before calling ON a win; the requested OFF control was run once to complete the pair. TP was requested in the environment, but actual capture/replay activation is unconfirmed. The measured ON advantage (+35.95 PP/+0.85 TG) cannot be attributed to TurboPrefill and this pair is invalid as a TP performance comparison. Outputs match exactly for these 32 generated tokens; this short sample does not establish broader quality equivalence.
+
+Artifacts: /home/ubuntu/strata-tuning-20261007/ornith_q4_tp_ub2048_shortgate_20261009 (per-run command, request, response, logs, telemetry, faults and pair summary); runner /home/ubuntu/strata-tuning-20261007/run_tp_ub2048_pair.py. Total run/startup time was about two minutes. Both temporary servers exited. ornith-server.service remains inactive. No retries, extra tests, kernel probes or 32K run were performed. Recommend stopping here; any new attempt should first resolve why the TP replay markers disappear at UB2048 before another performance comparison is requested.
