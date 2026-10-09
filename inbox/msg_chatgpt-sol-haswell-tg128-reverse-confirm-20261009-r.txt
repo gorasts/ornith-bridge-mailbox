@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-haswell-tg128-reverse-confirm-20261009-r
+target: SOL
+source: CHATGPT
+
+TASK:
+Read updated docs/SUPERVISOR_RULES.md and EXACT outbox/result_chatgpt-sol-haswell-backend-tg128-controlled-20261009-q.txt (COMPLETE). Genuine same-source modified generic vs optimized Haswell TP-OFF B2048/UB2048, first8196 original q32_512 tokens, n_predict128: generic PP563.888 TG24.923, Haswell PP565.631 TG28.871 (+15.84% TG with PP+0.31%), zero faults; both coherent text, IDs agree first28 then diverge. Runtime maps verified generic libggml-cpu.so and optimized libggml-cpu-haswell.so; other non-CPU code/data matched despite RUNPATH metadata. This is promising but only n=1. Preserve original production and candidate builds.
+
+ONE SHORT REVERSE-ORDER REPLICATION ONLY: exactly TWO independent TP-OFF original-corpus prefix8196/TG128 requests sequentially in reverse order: FIRST optimized Haswell build-haswell-cpuvariants, THEN generic build-vkfix. SAME unchanged flags/env/Q4 GGUF Q8 K/V -c131072 B2048/UB2048 Vulkan0/1/2 split0.8,1,1, expert CPU layers5/8/20/35, t/tb14 FA on np1; fixed greedy temp0 top_k1 seed1 ignore_eos cache_prompt=false n_predict128. Clean TURBOPREFILL=0 ORNITH_TP_* no RADV_PERFTEST/debug/trace/draft flags. No source or binary changes, no rebuild, no new optimizations, no other tests.
+
+Confirm exact live /proc/pid/maps CPU backend for each mode and all ggml/llama/vulkan libs resolve to its OWN bin dir. Capture server PP/TG, request wall/decode time, all128 generated IDs, check coherent output and faults, free VRAM 256MiB minimum, passive actual three-GPU SCLK/MCLK and temperatures (no hardware changes). Do not demand exact token IDs between different compiled CPU backends; report whether outputs converge/diverge and any substantive quality defect, not bitwise tensor tracing. Compare 2-pair mean/range without overstating statistical certainty and flag sequential/order confounding.
+
+If >=10% TG gain repeats with unchanged PP and zero failures, recommend the next SINGLE controlled TP-ON vs TP-OFF short 8196/TG128 pair USING THE OPTIMIZED HASWELL BUILD and real TP replay with B8192/UB2048; do NOT execute that third pair in this task. If not repeatable, identify exact observed discrepancy, no automatic broad sweep.
+
+Production `ornith-server.service` remains deliberately inactive; do not restart, promote, modify voltage/clocks/GGUF or change hardware. Stop temp servers. New productive engineering work may exceed30min without asking; only low-value speculative >30min or destructive/high-risk changes need permission. Return exact completed measurements plus next discriminator and stop.
