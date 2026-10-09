@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-k1-final-answer-selfcheck-20261009-am
+status: COMPLETE
+
+The prompt-only self-check fixed the K1 final schedule in both configurations: both returned the unique correct answer, and their generated token arrays were identical. Both still ignored the new answer-only instruction by including an explanation before the final string. Grouped TurboPrefill replay did not activate on this short task, so this demonstrates a prompt-specific correction, not correctness under active grouped replay or general task accuracy.
+
+Original task and independent oracle
+- Original “K1 constraint scheduling (unique)” is `/home/ubuntu/brainbench/tasks_all.json`, index 9; task text SHA-256 `ea30fedb85bf2f9212da2141a05c37b543c75d3f13bae7c4f965c22be057a614`.
+- Independently enumerated all 40,320 permutations and applied the 11 constraints. Exactly one solution passed: `HBGFCADE`; all 11 checks are true. Oracle code: `independent-k1-oracle.py` SHA-256 `0dfcc999297f0f60d8a83ce1cc1ccf9a9e5be8ffa254bf78138b2639db01dfdc`; validation transcript: `oracle-validation.txt`.
+- The archived AJ request used only the task as a `/completion` prompt; there was no separate system-message field. Therefore the one standardized instruction was appended to that original prompt: “Before answering, verify the final eight-letter schedule character by character against the feasible arrangement you derived and check all eleven numbered constraints. Then output only the requested eight letters, with no separators or explanation.” No oracle answer or old model output was included.
+- New model-facing prompt SHA-256 `905e034d8055bb1ab488155b2179fcaece93c522ddb8b25c00bd79aacc347f4b`; New prompt token count 274; identical prompt-token SHA-256 `e55e85076fbb82ce52de5b2bbeb4111ffe91de59e9d4cca97223bbc82beeaf5f`; identical request-body SHA-256 `cb03de61f77f8b508259f5fd4ae7021adce1e349e4cc467511293925571747c6`.
+
+| Run order | Hook | Final answer / constraints | Semantic | Exact-only format | Output tokens / stop |
+|---|---|---|---|---|---|
+| 1 | Enabled (`ORNITH_TP_PIN_DEVICE_LOCAL=1`) | `HBGFCADE`; 11/11 | PASS | FAIL: explanation precedes answer | 2,443; natural EOS |
+| 2 | Disabled (key absent) | `HBGFCADE`; 11/11 | PASS | FAIL: explanation precedes answer | 2,443; natural EOS |
+
+Both outputs are identical token-for-token (first divergence: none); token-array SHA-256 `2318f7bfa583cc824dc57b0c75a6610923d2206d3b8f281e0253f80239a51b49`. Each final string is a complete A–H permutation and passes all 11 constraints. `stop_type=eos`, `truncated=false` for both.
+
+The previous AJ baseline had both hook modes return `HBGFCDAE`, with identical tokens. The archived reasoning included the correct slot table `H B G F C A D E`, yet the final string swapped A and D; `HBGFCDAE` violates constraint 2 (`A` must precede `D`). This is an internally inconsistent generated answer, not merely an external answer-extraction mistake. The new instruction corrected that final serialization in both arms, but did not produce answer-only output.
+
+Matched runtime and safety
+Both runs used the same isolated cachematched Haswell/Vulkan build, Q4 GGUF, Q8_0 KV, 131072 context, GPU split 0.8/1/1, CPU expert layers 5/8/20/35, B8192/UB2048, t/tb14, FA on, greedy temp0/top_k1/seed1, `cache_prompt=false`, `ignore_eos=false`, and `n_predict=8192`. TP was requested ON in both; `ORNITH_TP_OWNER_ROUND` was absent. The sole relevant environment difference was the device-local hook key. Runtime mapping gates verified the Haswell CPU backend and core libraries came from the designated build. Replay markers were absent in both arms; this short prompt did not activate grouped replay.
+
+Server SHA-256 `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`; Vulkan SHA-256 `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`; Haswell CPU SHA-256 `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`.
+
+| Hook | PP / TG (tok/s) | Request wall | Minimum free VRAM (05 / 0c / 0f) | Junction peak (05 / 0c / 0f) |
+|---|---:|---:|---:|---:|
+| Enabled | 234.16 / 31.710 | 78.18 s | 1862 / 388.2 / 660.4 MiB | 47 / 49 / 54 C |
+| Disabled | 236.48 / 31.748 | 78.08 s | 1862 / 388.2 / 660.4 MiB | 49 / 53 / 54 C |
+
+Throughput is secondary; this pair was designed to assess correctness. There were no recorded GPU faults, runner aborts, or matching journal faults; both temporary servers exited with code 0. Temperature was passive telemetry only; no arbitrary software thermal stop or hardware change was made. `ornith-server.service` remained inactive; no server remained and all GPU busy counters returned to zero.
+
+Complete artifacts are at `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/k1-final-selfcheck-prompt-pair_20261009_am/` (prompt, exact requests, token IDs, both full responses, commands, mappings, telemetry, summaries, fault and cleanup diagnostics, oracle, and offline grader). Runner copy SHA-256 `410681eb692d13d88059cfeb70a7ba5cdb18b8cb985795117a57cc2721cde74d`; offline grader SHA-256 `6c76a4815275aa8292a2e1e7e5d43deac4e74641630d662416fb42c19dee4b2e`. The old AJ artifacts and production/build/model files were not modified. No follow-up was started.
+
