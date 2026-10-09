@@ -1,0 +1,42 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-q3-fullgpu-tp-16k-off-on-20261009-bh
+status: COMPLETE_WITH_CAVEAT
+
+## Result
+
+On the same Q3 model, isolated binary, prompt, and runtime settings, TurboPrefill ON measured 520.336 PP versus 243.838 PP with it OFF: a 2.134x observed multiplier (+113.39%) and 53.13% less prompt-evaluation time. TG was essentially flat: 34.807 versus 34.734 tok/s (+0.21%). This is one sequential OFF-then-ON pair; it is not a repeatability estimate or a comparable replication of the author's eight-GPU CUDA result.
+
+Both responses naturally ended on EOS, were independently graded correct, and passed a row-by-row balance check for all 20 operative transaction events. The exact final answer was `A=710,B=775,C=615|COMMIT=6|ABORT=2` in both.
+
+## Checkpoint and controlled settings
+
+The existing model was `/opt/testmodels/models/Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS.gguf` (IQ3_S/IQ3_XXS), SHA-256 `ef388a9525a8994693b6f24ab1489d4140fcfb7ef66076ee8efe664d50d60e5d`. The existing projector was `/opt/testmodels/models/mmproj-Ornith-1.5-35B-A3B-f16.gguf`, SHA-256 `815c9a671991aceeef46ca1aa103b64499db8cfadf21c83005a20ed839d53c7c`. No model was downloaded or changed.
+
+Both arms used the preserved cachematched server SHA `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`, Vulkan SHA `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`, and Haswell CPU backend SHA `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`. Both processes mapped their core libraries from that build directory and selected its Haswell plugin. The source gate at `source/src/llama-context.cpp:1845` treats `TURBOPREFILL=0` as disabled and `=1` as requested. The runner verified those values in each live process.
+
+The only environment difference was `TURBOPREFILL=0` versus `1`. Other TP settings were held fixed: self-sync grouped replay, device-local host hook enabled, host/group/pinning/decode-copy settings unchanged, owner-round key absent, and identical RADV settings. Both commands used Vulkan0/1/2, layer split `0.8,1,1`, `-ngl 99`, context 32768, F16 KV, `-b 8192 -ub 128`, `-t 14 -tb 14`, FA on, np1, no MTP/draft, greedy temperature 0/top_k 1/seed 1, cache_prompt=false, ignore_eos=false, and n_predict=8192. No `-ot` or `-ncmoe` CPU-weight override was present.
+
+Full-GPU placement was requested with `-ngl 99` and no CPU tensor overrides. The allocator logger recorded peak Vulkan allocations of 5,765,993,594 / 5,701,569,085 / 5,561,982,648 bytes for Vulkan0/1/2 (sum of per-device peaks: 17,029,545,327 bytes), against 16,411,472,416 bytes for the Q3 GGUF plus projector. All three Vulkan devices were enumerated in PCI order 0000:05:00.0, 0000:0c:00.0 and 0000:0f:00.0. This strongly supports the intended all-GPU placement and confirms the model fit. Caveat: this build's saved startup output has no per-tensor placement census, so the allocation total is not a tensor-by-tensor proof.
+
+## Prompt, oracle, and outputs
+
+The fixed prompt was derived from the independently validated AL transaction audit fixture (source fixture SHA-256 `7b0d96b433598625d4ba22578f2be778f87cbf0f9742267b9380b9388466ac25`). It retained all instructions, all 20 operative events in order, and all snapshots; the deterministic subset kept odd-numbered non-operative audit and delivery records (141 R records and 13 D records). The shortened prompt is 55,464 characters and 16,421 tokenizer IDs. Fixture SHA-256: `df2afd4a303fabe0112a02f4648876984283840f8f51b941c73152e2f19dea30`; prompt-token-ID SHA-256: `7f888b1ffa25c1f9aed1c32ee03409cc6926fc49b93a030bf70d42966f799e13`. Both wire request bodies had SHA-256 `cf49dbd14a7ac868c98f6389ae440270319ce19959a11060963f7526004ffefb`.
+
+The independent event replay was recomputed before each arm; the expected result was not included in either prompt. An offline checker independently replayed the canonical events and verified each generated 20-row balance table and final answer.
+
+| Arm | PP / prompt eval | TG / generated tokens | HTTP wall | Replay | Min free VRAM, BDF 05/0c/0f |
+|---|---:|---:|---|---|---|
+| OFF, first | 243.838 tok/s / 67.344 s | 34.734 tok/s / 2,270 | 132.702 s | No group replay marker | 2,647.6 / 2,715.3 / 2,839.7 MiB |
+| ON, second | 520.336 tok/s / 31.558 s | 34.807 tok/s / 2,254 | 96.321 s | groups=3, splits=4, saved=63, self-sync | 2,647.6 / 2,715.3 / 2,841.9 MiB |
+
+The ON response had owner-wave markers across all three backends. Its replay was active; these scheduler markers do not prove simultaneous GPU shader execution. The token streams first differed at zero-based token 1,671; token-array SHA-256 was `40bfe16a50fb196d729b210ca1bb6096da2dd948b14069a97aae4c617fd944d2` OFF and `63702854b69defc579542a794ea22ced0677e84941507ece4c6d32f4cb0fcf05` ON. The full text differs, but both independently solve the same task and have the same exact final answer.
+
+## Safety and limitations
+
+The existing free-VRAM <300 MiB guard and kernel faultwatch remained enabled; neither triggered and no matching faults were recorded. Passive peak junction temperatures were 59/67/71 C OFF and 69/85/94 C ON for BDF 05/0c/0f. No software temperature cutoff was used; no explicit throttle indicator was sampled. No hardware settings were changed. Both temporary servers exited 0; afterward no llama-server remained, all three GPUs reported 0% busy, and `ornith-server.service` remained inactive.
+
+The comparison is one OFF-first/ON-second pair. Process order, persistent shader-cache effects, and hardware state can influence a single pair; the size of this observed PP gain should be confirmed before treating it as repeatable. TG did not regress in this pair. The different output lengths are close but not identical. Grouped replay/self-sync is verified, not shader-level overlap. This does not establish the author's 8-GPU multiplier or predict performance at 32K/90K.
+
+## Evidence
+
+Remote evidence directory: `/home/ubuntu/ornith-q3-fullgpu-tp-16k-20261009-bh/`. It contains the fixed prompt/request, selection record, oracle validator and before-arm outputs, copied runner and SHA, commands/environment, process maps, per-device residency gates, token IDs, full responses and token arrays, timing summaries, 250 ms telemetry, fault/abort and cleanup diagnostics, and offline response-grading script/result. Runner SHA-256: `64dbcd57439b0033001e7f37ac85253e63123a62fbb41ee01790d25754eb54b7`. No further runs or tuning were started.
