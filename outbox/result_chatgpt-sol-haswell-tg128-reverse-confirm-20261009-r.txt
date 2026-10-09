@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-haswell-tg128-reverse-confirm-20261009-r
+in_reply_to: chatgpt-sol-haswell-tg128-reverse-confirm-20261009-r
+status: COMPLETE
+
+Completed exactly the requested reverse-order pair: Haswell optimized first, generic second. Both were TP OFF, with the same original q32_512 corpus prefix (8196 tokenizer tokens), Q4 GGUF, Q8_0 K/V, 131072 context, Vulkan0/1/2 layer split 0.8,1,1, four CPU expert layers 5/8/20/35, B2048/UB2048, t/tb14, FA on, np1, greedy temp0/top_k1/seed1, ignore_eos, cache_prompt=false, n_predict128. No source/build/config/model/GPU setting changes occurred. No tracing or RADV_PERFTEST was enabled.
+
+| Run (order) | PP | TG | Prompt time | Decode time | HTTP wall | Min VRAM free GPU05/0c/0f | Faults |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Haswell (1) | 566.431 | 28.868 | 14.470 s | 4.399 s | 18.885 s | 2204.4 / 516.4 / 788.9 MiB | 0 |
+| Generic (2) | 563.388 | 24.685 | 14.548 s | 5.145 s | 19.709 s | 2204.4 / 516.4 / 788.9 MiB | 0 |
+
+Runtime maps confirmed the expected CPU module, and all ggml/llama/mtmd/Vulkan core libraries came from the same run's own bin directory. Executable SHA-256: Haswell `f70750aa840f9bd54064024c2fce6d7e21f3a8e750ec8734df1d1823b20efc0e`; generic `8dd0aa80f16ce66f7f3f52e857062618198fac0a1fcac452dca112edef4711ff`. CPU module SHA-256: Haswell `03ee0f1ca437ddba38db197b7fc5eded823687c9746b95f6669166f5a0af98c6`; generic `dcd4a248c9801247007fa8337ef215fe4a10423f549c46a0885829b2b12befa5`. No cross-build mappings were present.
+
+Both returned 128 token IDs and finite outputs; the generated text was coherent, with no empty/invalid response, abort or GPU fault. Their token IDs matched for the first 28 tokens and then diverged, so later decode follows different token trajectories; this is not bitwise-quality equivalence. Full arrays and response text are retained in each `response.json`.
+
+Passive decode telemetry (16 Haswell and 19 generic samples) showed MCLK 1000 MHz on all cards for both runs. Median SCLK MHz, Haswell vs generic: GPU05 172 vs 155, GPU0c 258 vs 223, GPU0f 371 vs 289. Max sampled temperatures (highest hwmon sensor per card), respectively: Haswell 37/38/46 C; generic 38/38/48 C. Thus clocks were not matched; higher Haswell SCLK may be a consequence of different CPU dispatch/feeding or may contribute to the result. The timing repeat supports the CPU-backend hypothesis but does not isolate causality from utilization-driven clocks.
+
+Across the two sequential pairs (original generic→Haswell and this reverse Haswell→generic), mean TG was 24.804 generic versus 28.870 Haswell (+16.4% relative); mean PP was 563.638 versus 566.031 (+0.42%). The reverse pair itself gives +16.94% TG and +0.54% PP for Haswell. This is a promising repeat with order reversed, but remains only two trials per backend, with CPU backend and observed SCLK changing together and later token trajectories diverging. It is evidence for a repeatable TG benefit, not proof of sole causation or full quality equivalence.
+
+The 256 MiB VRAM floor passed (minimum was 516.4 MiB). Both temporary servers exited; `ornith-server.service` remains inactive and no `llama-server` process remained after cleanup. No production binary was promoted or changed.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_haswell_backend_tg128_20261009_r2/{haswell,generic}/` contains command/env, loaded mapping gate, responses with all token IDs, logs, passive telemetry, faults and summaries. Runner: `/home/ubuntu/strata-tuning-20261007/run_haswell_backend_pair_20261009.py`.
+
+Recommended next discriminator: one short TP ON/OFF pair on the optimized Haswell build at B8192/UB2048 with actual grouped replay markers, as requested. Do not promote based on this pair alone.
+
