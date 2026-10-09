@@ -1,0 +1,30 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-32k-devicehost-ownerapproved-retest-20261009-ah
+status: COMPLETE
+
+The authorized single 31,619-input-token / 512-generated-token pair completed with the corrected telemetry-only runner. Hook-enabled was first, hook-disabled second. Both requests completed, returned 512 tokens, logged active self-sync replay, reported no matched GPU fault or guard abort, and cleaned up. This is one sequential pair, not a repeatability result.
+
+Matched setup and identity
+- Runner: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/owner_thermal_telemetry_20261009_ag/runner-thermal-telemetry.py`; SHA-256 verified before launch as `93e794f08cff148b446e80694fb649f136beef92d651f6c78ba8b464d6cb206a`.
+- Server SHA-256 `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`; Vulkan `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`; Haswell CPU `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`. Both `/proc` mapping gates showed the Haswell module and all core libraries from the same cachematched `bin/` directory.
+- Corpus `/home/ubuntu/claude-ornith-logs/q32_512.json`, SHA-256 `3f1a85db084ab5f8d24b5d4118eba0f85eecfb91c0b1161290b94cbba9a5ee2e`. Both runner-generated request bodies have SHA-256 `63ec682d7cdbaf9d1eb4ac2f66ec942d36432b5f840696b4f09cd1988d4538b9`; prompt_n was 31,619 and predicted_n 512 in both.
+- Q4 Ornith GGUF, Q8_0 K/V, context 131072, Vulkan0/1/2 split 0.8,1,1, CPU experts 5/8/20/35, B8192/UB2048, t/tb14, FA on, np1, DIO/metrics/jinja/no-webui and `RADV_PERFTEST=localbos,nogttspill,sam` were unchanged. Both had `TURBOPREFILL=1`, the same host/group/pinning/decode flags, and owner-round absent. The sole effective environment difference was `ORNITH_TP_PIN_DEVICE_LOCAL=1` in the first arm versus absent in the control. The prepared command/env are in each arm's `command.json`; `mapping-gate.json` verifies the live process selection.
+- Both logged `groups=3 splits=18 saved=3 overlap=self-sync`. Replay was active; this does not prove concurrent shader execution.
+
+| Arm | PP | TG | HTTP completion wall | Minimum free VRAM (05/0c/0f) | Maximum junction (05/0c/0f) |
+|---|---:|---:|---:|---:|---:|
+| Hook enabled | 562.162 tok/s | 27.880 tok/s | 74.633 s | 1788.0 / 325.0 / 597.1 MiB | 64 / 77 / 86°C |
+| Hook disabled | 440.047 tok/s | 27.816 tok/s | 90.282 s | 1787.9 / 325.0 / 597.1 MiB | 64 / 74 / 85°C |
+
+In this single pair, hook-enabled PP was 27.75% higher and TG was 0.23% higher; prompt evaluation took 56.245 s enabled versus 71.854 s disabled. GPU0c's 325 MiB minimum was 25 MiB above the existing 300 MiB memory guard. No temperature-based software cutoff was present. No clocks, fans, voltage, power limits, driver, firmware or service state were changed.
+
+Output and integrity
+- Both arms returned exactly 512 tokens and readable, substantive technical text without slash-only collapse or obvious repetition. Each response reaches the forced 512-token limit mid-answer; semantic correctness was not independently scored.
+- Token-list SHA-256 (compact JSON array): enabled `ae25352d1bca6b93b7aab288472091e7944b8b3f903a012501c22df735abab09`; disabled `a07d1fdc7d455a1b42cb87f37924e1363a78a696bbecf2344c83549f2e28d145`. They match for the first 20 tokens and first diverge at token 21 (enabled ID 4162, disabled ID 264); 476 positions differ. Full token arrays and texts are retained in each `response.json`. Readable output does not establish semantic equivalence.
+- Both process exit codes were 0, exceptions and persisted abort reasons were null, and faultwatch/journal queries returned no matching lines. The query returned code 0 with empty stderr; this is the recorded evidence, not a claim about unobservable kernel events.
+- Memory-logger records show generic Vulkan allocations/frees, but have no unique per-device-host-hook callsite tag; they do not independently prove which allocations came from the hook. The runner sampled temperature and `freq*_input`; the current sysfs labels map these to SCLK/MCLK, but the sampler does not collect power or an explicit throttle flag, and its intervals are not shader-active timelines. Throttle status and true GPU overlap therefore remain unknown.
+
+Artifacts are preserved at `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/hosthook_31619_tg512_reverse_ab_owner_thermal_telemetry_20261009_ag/{hook-enabled,hook-disabled}/`, including exact commands/env, mappings, request hashes, all tokens/text, summaries, complete telemetry, memory logs, faults and server logs. Prior evidence was left intact. Post-check: `ornith-server.service` remained inactive, no llama-server or port-8205 listener remained, all GPU busy counters were 0, and VRAM returned to idle use.
+
+Verdict: promising measured prefill gain with essentially unchanged TG and readable output, but token divergence, strict sequential order, and n=1 per arm prevent a causal/repeatability claim. The smallest useful next discriminator would be a reverse-order repeat of this same pair; it was not run or queued. Per the latest owner notice, I am stopping after AH and starting no follow-up.
+
