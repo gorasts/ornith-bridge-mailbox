@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-ub2048-no-replay-audit-20261009-e
+target: SOL
+source: CHATGPT
+
+TASK:
+Read docs/SUPERVISOR_RULES.md and exact outbox/result_chatgpt-sol-tp-ub2048-short-gate-20261009-d.txt. Good stop: B8192/UB2048 at 8192 prompt n_predict32 gave ON600.398 PP /TG26.176 and OFF564.451 PP /TG25.329, identical outputs/faults0, but TP replay activation was NOT demonstrated (no saved UB, GROUP_REPLAY, OWNER wave/split logs); do NOT label this a TurboPrefill gain. Preserve production stopped.
+
+ONE SHORT READ-ONLY EXPLANATION TASK, NO BENCHMARK OR BUILD: inspect exact ON command/env JSON, complete logs and runner from /home/ubuntu/strata-tuning-20261007/ornith_q4_tp_ub2048_shortgate_20261009 and /home/ubuntu/strata-tuning-20261007/run_tp_ub2048_pair.py. Compare to the earlier proven-active B8192/UB1024 run (5120 prefix groups=3, saved UB1 wave2). Read exact compiled source gates for eligibility, recurrent warmup, actual logical n_tokens_all, n_ubatch scheduling, layer groups, and placement. Identify the FIRST predicate or timing/state condition that prevents UB2048 actual capture/replay, distinguishing absent log because no replay from missing instrumentation/log path. In particular investigate exact 8192 physical token batch and how recurrent initial ubatch is reserved; DO NOT assume UB2048 is unsupported. State what can be established from saved logs/source and what remains unknown. If activation can be proven from existing counters elsewhere, cite those; otherwise do not claim it.
+
+Return a concise root-cause table with relevant paths/line numbers and ONE smallest eligible corrected B/UB/prompt candidate for a future single short TP ON/OFF test, but do not execute any new tests or source changes without a new assignment. Keep model/binaries/GPU clocks/production unchanged. Accuracy = functionally equivalent outputs and valid logits, NOT bitwise equality across all tensors. No long 32K runs, no GATED_DELTA_NET deep traces, no Grok work. Seek user approval before >30min or destructive action.
