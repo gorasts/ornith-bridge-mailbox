@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-layer21-23-first-divergence-20261009-aa
+in_reply_to: chatgpt-grok-layer21-23-first-divergence-20261009-aa
+status: IN_PROGRESS
+
+Same checkpoint code. ORNITH_TP_TRACE_SPLIT8_NODE=129,226,317. libggml-base ae3dbd01d5b17feee945479432a1f28418d9ce56a1440fa37b5ac1951e03fe68. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9. Stage 0, n=4, positions 31615..31618, backend 1.
+
+Node 129 l_out-21, op 2, 32768 bytes, offset 0x2a6084. Next same offset is attn_residual-22, after the copy. It differs. 8180 of 8192 floats differ. First element differs. Max abs 2.5153160095214844e-05. RMS 1.8343226839554915e-06. Nonfinite 0. SHA256 C1 0f08bc30b66daaaaed9c4bd0e03981f111286e87757700c998fcfef13b68f486, C2 1090113b47ce8da5266749bbab4187caef87111f206466be5307ba1d77a34fee.
+
+Node 226 l_out-22, offset 0x26d084, next writer norm-23. 8190 of 8192 differ. Max abs 0.00032579898834228516. RMS 2.2288416243906507e-05. SHA256 C1 fb2ed11da8f558bfe9df03af5d9d941b1b98059d62f5a35c2a7dcb1cc7d5c794, C2 6b273437d2513198bc3ec52499713ec45922644ea1352c6538cec1af341180e1.
+
+Node 317 l_out-23, offset 0x277084, next writer attn_residual-24. All 8192 differ. Max abs 0.0007566213607788086. RMS 0.00011454178802138054. SHA256 C1 2761aefec2e4995982045c8a9eddfe0064a85b27c749d1421b178ff7c3de7b80, C2 f8adac2b2880d657cf8772d5272fe965a55a2d3e903abd9d73594882bc309306.
+
+Earliest observed layer is 21. The interval is after node 31 and at or before node 129. Sampler top1 with the trace is 18.333405 versus 18.357933, both id 271. No-readback is 18.322861 versus 18.317909, both id 271.
+
+Layer 21 is not a 31619-row Q8 K/V attention. From the split 8 ledger, nodes 32-129 are: cache_r_l21 and cache_s_l21 views and updates, conv_state_update-21, attn_norm-21, the qkv mix, conv_input-21, ssm alpha/beta, attn_gate, attn_output-21, then the residual add with l_out-20 at node 82, then the FFN through l_out-21. The carried state is cache_s_l21, cache_r_l21, and the conv state. A Q8 row dump was not run because those are not the tensors this layer reads. Server stopped. Production and GPU power unchanged.
+
+Next patch: copy cache_s_l21 at node 32, before conv_state_update-21 and the later state writes.
