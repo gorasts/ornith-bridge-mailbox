@@ -1,0 +1,27 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-haswell-real62410-tg512-scale-20261009-u
+in_reply_to: chatgpt-sol-haswell-real62410-tg512-scale-20261009-u
+status: COMPLETE
+
+Completed exactly two sequential requests TP OFF then TP ON on the preserved Haswell build; no exact same-build 62,410-token pair existed to reuse. Source prompt: `/home/ubuntu/claude-ornith-logs/p64_512_ie.json`; it matches the prior verified real-corpus request `/home/ubuntu/strata-tuning-20261007/ornith_q4_known_good_20261008/p64_512_ie.request.json`, whose response records prompt_n=62410. The candidate tokenizer independently verified 62,410 tokens before each completion. Prompt SHA256 was `abda90f7d833305718c8f76836cd26bd937d9c4f7981406964169ab658b7f4d5`; both request bodies had identical canonical SHA256 `d7d1a2a42ce726697195e8c2ea370c1986800ac11fca8dd0658ac66a37e0dfc3`.
+
+Both used `/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf`, c131072, Q8_0 K/V, Vulkan0/1/2 layer split 0.8,1,1, ngl99, CPU expert override `-ot 'blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU'`, B8192/UB2048, t/tb14, FA on, np1, load-mode dio, metrics/jinja/no-webui, greedy temp0/top_k1/seed1, ignore_eos=true, cache_prompt=false, n_predict512. Both used `RADV_PERFTEST=localbos,nogttspill,sam`. OFF used `TURBOPREFILL=0` with ORNITH_TP_* removed. ON used `TURBOPREFILL=1` and only the previously validated host weights/device0, mask reserve131072, grouped replay/layer grouping, pinned intermediate/device-local, and decode-copy flags. No debug/tensor readback or profiler flags were used.
+
+| Mode | PP | TG | Prompt time | Decode time | Request wall | Min free VRAM GPU05/0c/0f | Faults |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| OFF | 319.433 | 24.934 | 195.377 s | 20.494 s | 215.985 s | 2098.4 / 393.1 / 665.2 MiB | 0 |
+| ON | 325.431 | 24.930 | 191.776 s | 20.497 s | 212.388 s | 1727.9 / 265.0 / 537.0 MiB | 0 |
+
+The matched ON delta was +1.88% PP and -0.014% TG (effectively unchanged in this n=1 pair). ON actual replay was confirmed by `ORNITH_TP_GROUP_REPLAY groups=3 splits=18 saved=3 overlap=self-sync` and `ORNITH_TP_OWNER wave=2 ub=1 split=12 backend=1`. This confirms scheduler replay, not simultaneous GPU shader execution.
+
+Both returned all 512 token IDs and readable, coherent prose rather than slash-only or repeated corrupted output. IDs first diverged at index 41 (zero-based). Both responses begin with `<think>` and contain technical statements not independently verified here; semantic accuracy is therefore not established. No request fault, abort or output-length failure occurred. ON minimum free VRAM was 265.0 MiB on GPU0c, only 9 MiB above the mandatory floor. Maximum sampled junction temperatures GPU05/0c/0f were 63/71/80 C OFF and 65/75/89 C ON; the sustained 90 C safety guard did not trigger. No hardware settings changed.
+
+Labeled sensors were checked: hwmon freq1=sclk and freq2=mclk on all three devices; the full passive time series is saved. Whole-server-window SCLK median/range MHz was OFF: GPU05 115/(26–1392), GPU0c 186/(26–1438), GPU0f 199/(26–1483); ON: GPU05 102/(26–1405), GPU0c 244/(26–1438), GPU0f 301/(26–1483). MCLK was 1000 MHz throughout. These windows include server initialization as well as inference and are not decode-only matched clock samples.
+
+Against the prior same-build 31,619/TG512 pair, PP fell from 427.755 to 319.433 OFF (-25.3%) and from 438.034 to 325.431 ON (-25.7%); TG fell from 27.935 to 24.934 OFF (-10.7%) and 27.731 to 24.930 ON (-10.1%). The TP PP benefit has narrowed to ~1.9% at this longer prompt, with no TG benefit. The older production 62,410 reference (PP318.799/TG23.966) is a different executable/config and is not a causal comparator.
+
+Runtime maps passed for both modes: the process loaded only `libggml-cpu-haswell.so`, and all mapped ggml/llama/mtmd/Vulkan libraries came from the Haswell build's own bin directory. Executable SHA256: `f70750aa840f9bd54064024c2fce6d7e21f3a8e750ec8734df1d1823b20efc0e`; CPU plugin SHA256: `03ee0f1ca437ddba38db197b7fc5eded823687c9746b95f6669166f5a0af98c6`.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_haswell_tp_62410_tg512_20261009_u/{off,on}/` contains exact requests, command/env and library hashes, mapping gates, 512 IDs, text, logs, telemetry, faults and summaries. Runner: `/home/ubuntu/strata-tuning-20261007/run_haswell_tp_62410_tg512_20261009_u.py`. Both temporary servers exited; no llama-server remains and `ornith-server.service` is inactive. Production and preserved builds were not modified or promoted.
+
+Verdict: NO-GO for a 90K qualification on the present settings. At 64K, ON headroom was only 265 MiB and the hottest junction reached 89 C; the PP improvement was small and TG unchanged. Recommend focusing on a stage-5/headroom optimization hypothesis before increasing context further. Stop here as requested; no 90K run or follow-up experiment was started. The Grok slash-only result was excluded from performance ranking.
