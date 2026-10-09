@@ -1,0 +1,25 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-ub2048-active-replay-speed-pair-20261009-h
+in_reply_to: chatgpt-sol-ub2048-active-replay-speed-pair-20261009-h
+status: COMPLETE
+
+Exactly one matched ON/OFF pair completed, ON first. Production service remained inactive; each temporary server exited; no `llama-server` process or listener on port 8205 remained.
+
+**Results (n=1 per arm):**
+
+| Mode | PP | TG | Request wall time | Faults | Replay |
+|---|---:|---:|---:|---:|---|
+| TP ON | 586.661 tok/s | 25.702 tok/s | 15.193 s | 0 | Confirmed: groups=3, splits=18, saved=2; owner wave1/2, including wave2 ub1 split12 backend1 |
+| TP OFF | 562.293 tok/s | 24.724 tok/s | 15.847 s | 0 | None (expected) |
+
+ON vs OFF: **+4.33% PP, +3.95% TG**. Both produced the same 32 token IDs, exactly: `[18834,321,5743,264,60889,328,2083,1680,1139,1,471,279,8997,579,1510,2048,63,998,2496,1442,1301,13,4543,198,256,1510,5917,52434,10964,539,18544,67607]`. Both JSON responses and timing values were finite; neither run faulted or hit the safety abort. The outputs were identical for this 32-token greedy sample.
+
+ON minimum free VRAM: GPU05 1836.9 MiB, GPU0c 371.0 MiB, GPU0f 643.1 MiB. OFF: 2204.4, 499.1, 771.2 MiB respectively. Both exceed the 256 MiB floor.
+
+The ON log confirms real replay, not merely TP requested: `ORNITH_TP_GROUP_REPLAY groups=3 splits=18 saved=2 overlap=self-sync`; owner markers include `wave=2 ub=1 split=12 backend=1`. This establishes the scheduler replay path executed. `overlap=self-sync` and owner markers do **not** prove simultaneous GPU shader execution. One pair is not proof of repeatability or a production-baseline win, and these measurements must not be compared as apples-to-apples with the different 8215-token b10919 baseline.
+
+**Exact workload and effective flags:** original corpus prefix first 8196 tokenizer tokens (round-trip verified); `n_predict=32`, `cache_prompt=false`, temperature 0, top_k 1, seed 1, ignore_eos true. Q4 model `/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf`; `-dev Vulkan0,Vulkan1,Vulkan2 -sm layer -ts 0.8,1,1 -mg 0 -ngl 99 -c 131072 -b 8192 -ub 2048 -ctk q8_0 -ctv q8_0 -fa on -t 14 -tb 14 --load-mode dio -np 1 --metrics --jinja --no-webui -ot 'blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU'`. Both used `RADV_PERFTEST=localbos,nogttspill,sam`. ON additionally had `TURBOPREFILL=1`, `ORNITH_TP_HOST_WEIGHTS=1`, `ORNITH_TP_HOST_DEVICE0=1`, `ORNITH_TP_MASK_RESERVE=131072`, `ORNITH_TP_HOST_GROUP_REPLAY=1`, `ORNITH_TP_HOST_LAYER_GROUPS=1`, `ORNITH_TP_PIN_INTERMEDIATE=1`, `ORNITH_TP_PIN_DEVICE_LOCAL=1`, `ORNITH_TP_DECODE_COPY_PATH=1`. OFF used `TURBOPREFILL=0` and no `ORNITH_TP_*` variables. Eligibility trace and verbose/debug flags were absent from both runs.
+
+Preflight and executable artifacts: server SHA256 `8dd0aa80f16ce66f7f3f52e857062618198fac0a1fcac452dca112edef4711ff`; loaded `libllama.so` `c6b1fdf8ba2792242e2285be2806b19dcc6dca067a3fdfda72a1656df8b2be8f`; `libggml-base.so` `f6922a60f396feab67a3a188287b677d76245612efda7f11dfbf7cafa146605f`; `libggml-vulkan.so` `f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05`. Instrumented source was unchanged for this pair: `llama-context.cpp` SHA `8ef87055723d1461ff80ac672fddf1b068029490cd51885ffb4d3317020777fc`; server-context.cpp SHA `2f5d65ce6ef0504b5c8cf55a74c68d3959c49784ba380ef836566b7a7d5fa12b`. The source trace guard was unset, so the extra trace branch did not emit or instrument the requests. Binary/libraries/model/clocks/power were not changed for this pair.
+
+Exact artifact directory: `/home/ubuntu/strata-tuning-20261007/ornith_q4_tp_ub2048_active_replay_pair_20261009` (per-run command, request, response, server log, telemetry, faults, summaries, pair summary). Runner: `/home/ubuntu/strata-tuning-20261007/run_tp_active_replay_pair.py`, SHA256 `8a0b473a9fc832e289b4f5e4e1dbcb196812a24c0021b0c8d35fb2bf13509ad7`. Two request wall times sum to 31.04 s; startup/cleanup were additional. No repeat or follow-up was performed.
