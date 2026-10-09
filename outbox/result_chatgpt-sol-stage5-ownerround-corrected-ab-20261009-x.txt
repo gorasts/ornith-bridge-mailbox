@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-stage5-ownerround-corrected-ab-20261009-x
+status: COMPLETE
+
+The corrected A/B ran on the same preserved Haswell build and the actual scheduler modes were verified before/after inference. A had `ORNITH_TP_OWNER_ROUND` absent from both prepared env and `/proc/<pid>/environ`, and logged `overlap=self-sync`. B had `ORNITH_TP_OWNER_ROUND=1` in both places and logged `overlap=owner-round`. Both logs showed `groups=3 splits=18 saved=2`; each had 34 owner records. No third run was made.
+
+| Mode | PP | TG | request wall | prompt eval | generated IDs | faults |
+|---|---:|---:|---:|---:|---:|---:|
+| self-sync | 587.534 tok/s | 29.914 tok/s | 18.214 s | 13.950 s | 128 | 0 |
+| owner-round | 606.236 tok/s | 30.004 tok/s | 17.771 s | 13.519 s | 128 | 0 |
+
+Owner-round is +3.18% PP and +0.30% TG in this profiled n=1 pair. This falls in the requested 3–5% uncertain band: it does not establish a material (>5%) scheduling gain. The token sequences diverged at token 0, although both outputs were readable, non-slash-only responses on the same prompt and neither showed an obvious corruption defect. No stronger semantic-equivalence conclusion is supported by this short pair.
+
+The request and prompt identities matched exactly across arms: tokenizer count 8196, request SHA256 `a85183a9033a80ad8efd8149cf6df3dcbde36ca9dff341f0439c8944999ea4f4`, prompt SHA256 `da285f99302cad9c8c0fb3de57f196bd32e3b1e2a814e48213510fed943b7ec1`, tokenized prefix-ID SHA256 `3804056f7396deec19800375f90a89355843bf7d84fec7d17c9045446648a3f9`. Original corpus `/home/ubuntu/claude-ornith-logs/q32_512.json` SHA256: `3f1a85db084ab5f8d24b5d4118eba0f85eecfb91c0b1161290b94cbba9a5ee2e`. Q4 model SHA256: `6def24b4ef1436f080403b8c0fa9ca3b593abc080c74e64ef7c72d3d6a7322f1`.
+
+Both processes mapped their own build's Haswell CPU, ggml, llama, and Vulkan libraries. Executable SHA256 `f70750aa840f9bd54064024c2fce6d7e21f3a8e750ec8734df1d1823b20efc0e`; Haswell plugin `03ee0f1ca437ddba38db197b7fc5eded823687c9746b95f6669166f5a0af98c6`; Vulkan `8b7c71c6bd04d94d9ac49e7694f5e3a57ee2c4e3720fcec27c0af2597fdef472`.
+
+**Profile (API calls within each request window):** `get_async` recorded Vulkan0 0.101 GB/<0.01 s, Vulkan1 0.071 GB/1.787 s self-sync vs 1.722 s owner-round, Vulkan2 0.165 GB/2.049 s vs 1.984 s; CPU 0.161 GB/0.021 s in both. `set_async` logical bytes were Vulkan0 7.174 GB, Vulkan1 0.153 GB, Vulkan2 0.153 GB in both (about 0.05 s aggregate enqueue-call time). These are API-requested bytes, not physical PCIe counters. `backend_wait` call-time union across devices was 5.278 s self-sync vs 5.214 s owner-round; per-device summed call durations were 1.088/2.207/1.983 s vs 1.059/2.182/1.972 s (Vulkan0/1/2). `event_wait` is a queued GPU dependency and is not equivalent to host blocking.
+
+Kernel trace paired queue/job residence by device: 5023/3121/2365 intervals (Vulkan0/1/2) in each arm. The fraction with at least two device job-residence intervals was 3.23% self-sync and 4.75% owner-round. This is queue residence including dependency/queue delay, not active shader execution. The hwmon sampler actually achieved only 5 samples in the self-sync request (~3.33 s cadence) and 10 in owner-round (~1.1–2.2 s cadence); busy counters therefore do not prove sustained or shader-level overlap. Shader overlap remains UNKNOWN.
+
+Safety: minimum request-window VRAM free was 1836.9/371.0/643.1 MiB (05:00.0/0c:00.0/0f:00.0), above the 300 MiB target. Peak sampled junction temperatures were 37/62/63 C self-sync and 48/49/54 C owner-round. No GPU faults; both temporary servers exited and `ornith-server.service` remains inactive.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_stage5_ownerround_8196_profile_20261009_x/` contains commands/env checks, prompt identity, loaded-library maps/hashes, full responses and token IDs, API CSV, kernel traces, telemetry, fault files, and runner. Verdict: confirmed a small +3.18% PP result with stable TG and readable output, but not a material scheduling win or proof of concurrent shader work. It is in the explicitly uncertain band; prioritize the previously proposed narrow per-device host-buffer-hook proof instead of further owner-round knob sweeps. Production was not changed.
