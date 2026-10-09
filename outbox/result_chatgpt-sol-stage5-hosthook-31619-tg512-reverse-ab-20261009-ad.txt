@@ -1,0 +1,19 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-stage5-hosthook-31619-tg512-reverse-ab-20261009-ad
+status: BLOCKED
+
+The requested reverse-order pair did not complete. I started only the hook-enabled arm; because it produced no completion response, the hook-disabled arm was not started. There is no PP/TG or output-quality result and no speed claim for 31.6K.
+
+Preflight and identity
+- Before launch at 2026-10-09 10:58 UTC, `ornith-server.service` was inactive, no llama-server was running, all three GPU busy counters were 0, VRAM use was 16,683,008 / 8,388,608 / 8,388,608 bytes (05/0c/0f), junctions 34/30/30 C.
+- Preserved candidate hashes remained: server `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`; Vulkan `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`; Haswell CPU `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`. Source corpus `q32_512.json` SHA-256 `3f1a85db084ab5f8d24b5d4118eba0f85eecfb91c0b1161290b94cbba9a5ee2e`.
+- The staged request was built from the first 31,619 tokens of that corpus, with tokenizer round-trip validation, n_predict512, greedy settings and cache_prompt=false. Request SHA-256 `63ec682d7cdbaf9d1eb4ac2f66ec942d36432b5f840696b4f09cd1988d4538b9`.
+- Arm B ran first with the same Q4/Q8_0 KV, 131072 context, split, CPU experts, B8192/UB2048, TP flags, RADV_PERFTEST and memory logger as ac; only `ORNITH_TP_PIN_DEVICE_LOCAL=1` was set. `ORNITH_TP_OWNER_ROUND` was absent. The live `/proc` environment and mapping gate were saved and passed for the cache-matched build libraries.
+
+The server logged active self-sync replay (`groups=3`, `splits=18`, saved counts 3 then 4) and reached owner wave 5, but the HTTP request never returned. The listener disappeared and the server logged cleanup before exit. Telemetry spans about 81 seconds: sampled minimum free VRAM was 1802.7/339.7/611.8 MiB, and maximum sampled junction was 63/77/89 C (05/0c/0f). Thus the saved samples show neither the <300 MiB VRAM gate nor the >=90 C instantaneous gate. GPU0f had brief >=85 C samples, with no sampled continuous interval of two seconds. The exact stop trigger is UNKNOWN; it was not written to disk by the runner. Post-run kernel-journal scan found no matching fault/reset/OOM line, but this is not a complete per-arm fault record because the request aborted before `faults.json`/response creation.
+
+I interrupted the waiting runner only after the temporary listener was gone. Its cleanup completed. Post-check: no runner or llama-server remained, production stayed inactive, all GPUs were idle and back near the preflight VRAM/temperature state. Arm A was deliberately skipped. No model, source, binary, service or hardware settings were changed.
+
+Partial evidence is preserved at `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/hosthook_31619_tg512_reverse_ab_20261009_ad/hook-enabled/` (command/env, mapping gate, staged request/hash, telemetry and server log). Runner: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/run_hosthook_31619_ad.py` (SHA-256 `91fb3848a6ef9717e22b9f8b7a6dad5cfd472dcd4453504fefe2e4323dcc795a`). No generated-token result exists.
+
+Stop here: no comparison can be made. Before authorizing any rerun, first determine why the server stopped and persist the safety-abort reason in the runner; do not continue to 64K/90K or repeat this long request without a new assignment.
