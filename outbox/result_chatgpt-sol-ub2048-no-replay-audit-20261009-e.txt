@@ -1,0 +1,20 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-ub2048-no-replay-audit-20261009-e
+in_reply_to: chatgpt-sol-ub2048-no-replay-audit-20261009-e
+status: COMPLETE
+
+Read-only audit complete. Production remains intentionally inactive. No benchmark, build, source edit, model change, or GPU operation was performed.
+
+| Evidence / condition | Finding | Source |
+|---|---|---|
+| Test configuration | Same build-vkfix executable/libraries and 8192-token prefix, B8192/UB2048, n_predict32, greedy/cache_prompt=false; TP flags requested. ON 600.398 PP/26.176 TG, OFF 564.451/25.329; identical output IDs, zero faults. | `outbox/result_chatgpt-sol-tp-ub2048-short-gate-20261009-d.txt`; runner `run_tp_ub2048_pair.py` |
+| Observability | The runner confirms replay only via positive `ORNITH_TP_GROUP_REPLAY ... saved=N` and an owner wave>0. Neither exists in the ON log. This marker is emitted by `fprintf` inside the grouped replay path when entered; its absence is meaningful for that path. | `work/ornith-tp-host-port/ggml-backend.cpp:3398`; runner lines 66-72 |
+| Primary eligibility | Per logical `llama_decode` batch, threshold is `n_tokens_all >= 2*n_ubatch`; then requested/non-MTP/causal/pipeline-parallel/layer-split/multi-device and output constraints apply. With UB2048 the threshold is 4096. | `work/ornith-tp-host-port/llama-context.cpp:1808-1855` |
+| Recurrent warmup | A recurrent initial state can reserve ubatch 0 for standard execution. But if a *single* eligible logical batch really has N=8192 and `n_rs_seq=1`, the audited formula gives `floor((8192-1-1)/2048)=3` candidate ubatches; reserving one still leaves two. Warmup alone therefore does not explain the absent replay. | Source behavior audited previously: `llama-context.h:350-410`; warmup detection `llama-context.cpp:1397-1415` |
+| What is missing | Response `prompt_n=8192` is an aggregate request metric, not proof that one decode call received all 8192 tokens. This run has no emitted `TurboPrefill requested/active`, per-decode `n_tokens_all`, `n_rs_seq`, ubatch-stage, or recurrent-warmup line. The INFO telemetry string is compiled into the library but is absent in this run and in the previously active UB1024 log, so its absence is not a reliable gate indicator. | Runner `run_tp_ub2048_pair.py:58-71`; source `llama-context.cpp:1854-1868`; prior active UB1024 evidence in parity audit `...tp-parity-readonly-audit-20261009-c.txt` |
+
+Root-cause verdict: the first failing runtime predicate cannot be identified from saved evidence. We know TP was requested, but actual activation is unproven; we also know the grouped replay body was not reached. The leading unresolved condition is whether the server split the prompt into logical decode batches below the UB2048 threshold (or a different eligibility constraint disabled the batch). The full 8192 aggregate prompt does not distinguish these possibilities. We cannot claim UB2048 is unsupported, nor that recurrent warmup caused the failure. The older UB1024 run proves the group/owner instrumentation works when replay occurs; the current no-marker result is not merely an absent instrumentation build.
+
+Smallest useful future discriminator (not run): one instrumented short ON/OFF pair at the same B8192/UB2048 and 8192-token prefix. Add only per-`llama_decode` logging of `n_tokens_all`, `n_rs_seq`, `enabled`, `n_turbo_ubatches`, and each `stage_for_ubatch` decision; preserve the existing group/owner markers. This holds the tested configuration fixed and identifies the first false gate. A prompt-only adjustment is not justified: 8192 already suffices mathematically if delivered as one logical batch; increasing it may merely add more decode calls. Do not rank the existing ON/OFF PP difference as a TurboPrefill win.
+
+No new test or source change is recommended without a new assignment. Production, model, binaries, and GPU settings were left unchanged.
