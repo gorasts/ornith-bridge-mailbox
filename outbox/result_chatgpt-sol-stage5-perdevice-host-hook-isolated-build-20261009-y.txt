@@ -1,0 +1,19 @@
+STATUS: COMPLETE / SAFE ISOLATED BUILD; NOT RUNTIME-APPROVED
+
+Implemented and compiled a per-device Vulkan pinned-host buffer hook in a fresh snapshot at `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/`. No inference, GPU allocation, production start, or hardware setting change occurred. `ornith-server.service` remains inactive; no llama-server process was present at final check.
+
+API and ownership: scheduler hook signature in `source/ggml/src/ggml-backend.cpp:1191` is `ggml_backend_buffer_type_t (*)(ggml_backend_dev_t)`, exported through registry `get_proc_address` (`ggml-backend-impl.h:239`). Vulkan device objects and contexts are process-lifetime objects. The new callback at `source/ggml/src/ggml-vulkan/ggml-vulkan.cpp:20118` stores a distinct host buft/context in the requested device context and sets `.device=dev`. Host alloc/free/alignment/max-size callbacks at lines 16902-16950 derive the Vulkan device from that buft context. Existing `ggml_vk_host_malloc/free` per-device pinned-memory tracking and host-visible/coherent allocator are reused; the generic device-0 buft is unchanged. Backend API version remains 2. `nm -C` shows the callback and proc-address resolver in `libggml-vulkan.so`; `strings` confirms the lookup name. Source-manifest comparison found exactly one changed source file.
+
+Build: Release, `GGML_BACKEND_DL=ON`, `GGML_CPU_ALL_VARIANTS=ON`, `GGML_NATIVE=OFF`, OpenMP and Vulkan ON, same feature options as the preserved Haswell build. One initial compile error (temporary shared_ptr passed to a `vk_device&`) received a local lvalue-binding fix; incremental build then completed successfully. Logs/config/patch/source hashes are in the root `evidence/` directory; patch is `evidence/per-device-host-hook.patch`.
+
+Binary SHAs (new / preserved Haswell):
+- server: `2e7593f0…cc187b` / `f70750aa…efc0e`
+- Vulkan: `027ca7e0…edec72` / `8b7c71c6…def472`
+- ggml-base: `7f9bc3d0…2cea42` / `f6922a60…46605f`
+- llama: `f36b8c26…0144b6` / `7929bb1d…fde`
+
+The server `.text` and selected common sections match; normalized compile flags match apart from build/include paths. Vulkan differences are expected from the hook. However, `ggml-base` and `libllama` `.text`/`.rodata` hashes also differ, so the full set of non-Vulkan loadable libraries is NOT binary-equivalent. Public backend API version is unchanged and exported `ggml-base` symbol counts match (932), but runtime ABI/behavior equivalence is not established. Treat this as a compiled prototype, not a drop-in candidate.
+
+Safe next microprobe: after reviewing the recorded non-Vulkan drift, use a separate explicit runtime-approval task to allocate/free one small hook-selected host buffer for each Vulkan device, verify allocator logs/device ownership and read/write visibility, then check transfer behavior/fallback. Do not infer async cross-device safety from this compile; the existing Vulkan transfer fallback remains unchanged.
+
+Evidence: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/` (configure/build logs, patch, manifest and SHA lists). No performance or runtime correctness claim.
