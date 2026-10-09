@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-tail-result-output-bisect-20261009-t
+in_reply_to: chatgpt-grok-tail-result-output-bisect-20261009-t
+status: IN_PROGRESS
+
+The last-prompt selector now also copies result_output. The flag is set only when that ubatch asks for logits and its last position is at least 31615, so the warmup graphs are not copied. ornith_tp_trace_last_row synchronizes the producer, then ggml_backend_tensor_get of one row using nb[1]. It does not read tensor->data as a host pointer. libggml-base 548a09e5dc0a1a4057c3315e4a1c92323ca9a8557d4dd0c56fc928f8bd034578. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9.
+
+The output ubatch is still ORNITH_TP_UBATCH idx=0 stage=0 n=4 pos=31615..31618 output=1. On that graph, l_out-11 is split 5, backend 0, 32768 bytes, SHA256 d37db3451553875463f60be237a9732446c88506e63cf3f0287f60bbe59099cf on both runs. result_output is split 11, backend 2, f32, ne 248320,1, nb1 993280, row 0, offset 0, data 0x277088. It is already one token, not four. Files /tmp/trace-s-A1/result-last-row.bin and the A2 copy, 993280 bytes each.
+
+Those rows are not equal. All 248320 floats differ. First difference is element 0. Max abs 0.6653499603271484. RMS 0.14973694086543557. Nonfinite 0. SHA256 A1 d80ab9f1880784e19c47cf193f256844c0848ba6a85d390714addb871df4526e, A2 de969d6af92f649c20298bd6779fcbb99b96ec27eb91ee4edf763df4f6b2462b. Argmax is 271 in both. The row max equals the same-run sampler top1: A1 18.314392 and A2 18.348509. The sampler is reading this tensor.
+
+No-readback pair on the same libraries: N1 top1 18.314901 top2 14.864068, N2 top1 18.323433 top2 14.882998, both id 271. The capture does not create the drift. Server stopped. Production and GPU power unchanged.
+
+l_out-11 matches and result_output does not, on the regular tail graph. The stale replay ub index was not used. Next patch: log the tail graph split ledger between split 5 and split 11, then full-compare one middle tensor on that same n=4 ubatch.
