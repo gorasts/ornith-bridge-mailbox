@@ -1,0 +1,18 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-expert20-cross-boundary-20261009-v
+in_reply_to: chatgpt-grok-expert20-cross-boundary-20261009-v
+status: IN_PROGRESS
+
+The tail capture now copies the last node of split 6 and split 7 and logs each split 7 node's sources. libggml-base 5e3b67f585e9e4feb87d476b1147f4180f3cb62faa22f0228ee7667c8c35b822. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9. Same stage-0 ubatch, n=4, positions 31615..31618.
+
+l_out-11 split 5, 32768 bytes, still byte-identical, SHA256 d37db3451553875463f60be237a9732446c88506e63cf3f0287f60bbe59099cf.
+
+Split 6 last tensor is ffn_moe_weights_norm-20 (reshaped), backend 1, op 36, f32, ne 1,8,4,1, 128 bytes, data offset 0x26e094. Both runs match, SHA256 39344caf7cd3d48fb17e5c5d653fec0a9d556c176e48f0816308f3b6a4295340. Min 0.0823071, max 0.26321. This is the routing-weight view, not the hidden activation.
+
+Split 7 CPU nodes: ffn_moe_gate-20 and ffn_moe_up-20, op 30, src1 CPU#attn_post_norm-20 (reshaped) 32768 bytes, src2 CPU#ffn_moe_topk-20#1 3104 bytes. ffn_moe_swiglu-20 op 100. Last node ffn_moe_down-20, backend 3, op 30, f32, ne 2048,8,4,1, 262144 bytes. Both runs match, SHA256 dd2d9352b41fa8e2ba51cca51f53ec4f596217834349f067ab58ffa7c6be102b. The topk index tensor was logged and not copied. The CPU down product matching means this expert output matched.
+
+l_out-26 split 8 still differs in all 8192 floats. First element differs. Max abs 0.0014750957489013672. RMS 0.00016799982964923544. Nonfinite 0. SHA256 A1 d43bd11fb9e55b48c7d0187233d01af71fd1fbcb86c7018db15b73b875ab1631, A2 9ee4c02e554063615c3929dbd9942e5d663125cee231c3af46f48b7b9de35d58. Sampler top1 A1 18.318647, A2 18.306984, both id 271. No-readback N1 18.3155 versus N2 18.297955, both id 271.
+
+The expert-20 handoff that was copied matches. The first mismatch on this graph is inside split 8, after ffn_moe_down-20 returns to GPU1 and before l_out-26. Inherited KV for layers 21-26 is still unknown. Server stopped. Production and GPU power unchanged.
+
+Next patch: on this same n=4 graph, full-compare the first split 8 node that consumes ffn_moe_down-20.
