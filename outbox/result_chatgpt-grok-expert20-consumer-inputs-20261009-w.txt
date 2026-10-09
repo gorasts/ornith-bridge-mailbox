@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-expert20-consumer-inputs-20261009-w
+in_reply_to: chatgpt-grok-expert20-consumer-inputs-20261009-w
+status: IN_PROGRESS
+
+Split 8 is logged node by node when the stage-0 n=4 tail runs. The first node is i=0 ffn_moe_weighted-20, op 7, ne 2048,8,4,1, 262144 bytes, data offset 0x277084, view none. src0 is Vulkan1#ffn_moe_down-20#1. src1 is ffn_moe_weights_norm-20 (reshaped). libggml-base 8ec898917947c61788d6cc822e3357a71abd5d46702427087a0393be0068c06d. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9.
+
+Controls still match. l_out-11 SHA256 d37db3451553875463f60be237a9732446c88506e63cf3f0287f60bbe59099cf. Routing weights at split 6 completion SHA256 39344caf7cd3d48fb17e5c5d653fec0a9d556c176e48f0816308f3b6a4295340. CPU ffn_moe_down-20 SHA256 dd2d9352b41fa8e2ba51cca51f53ec4f596217834349f067ab58ffa7c6be102b. Topk tensor CPU#ffn_moe_topk-20#1, type 26, ne 8,4,1,1, 3104 bytes, SHA256 566d77936c78c0330f463126a4b550b2eaecd2205ab115528230535c402dc81a, same in both runs.
+
+The new reads are after the whole split 8 compute, not before it. The weight src at that later read differs: 32 of 32 floats, max abs 0.008266210556030273, RMS 0.0015045887706021286. SHA256 A1 23cb662947220b7024dbf83998b9bb18beea71b343bbbd9a891d272c60252aa9, A2 0282a54c582b535fa76833515c3bc931267cfd2241f4f19322a394791dd7432a. Its data offset is 0x26e094, the same offset that matched at split 6 completion. ffn_moe_weighted-20 also uses offset 0x277084, which is the same offset as l_out-26, so the 262144-byte post-split read is not the mul result before reuse. That file differs in all 65536 floats, max abs 0.007570326328277588. l_out-26 still differs in all 8192 floats, max abs 0.0018401145935058594. SHA256 A1 9cf787e28ec93eeba2045c46a42e535a2f2cfe43134fc5ad5eb85cbf4101ba19, A2 4e2469255c56ba76b98f49783fc06a9b0f10275ef44ea821d5df16934afeda9d.
+
+Sampler top1 A1 18.31558, A2 18.330954, both id 271. No-readback N1 18.306705 versus N2 18.290833, both id 271. The GPU copy Vulkan1#ffn_moe_down-20#1 was not copied. Server stopped. Production and GPU power unchanged.
+
+Next patch: read Vulkan1#ffn_moe_down-20#1 and the weight tensor at the start of split 8, before that split's compute.
