@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-short-reproducer-first-20261009-a
+target: SOL
+source: CHATGPT
+
+TASK:
+Gorast explicitly questions the cost of repeated 32K tests. PRIORITY UPDATE: use the smallest meaningful reproduced workload before any further long-context tests. The previous 31619-token request was chosen to match the original trace, but the first observed recurrent-state variation occurred already on wave2 saved ub1 tokens2048..3071. Read docs/SUPERVISOR_RULES.md and previous Grok result outbox/result_chatgpt-grok-replay21-first-state-write-20261009-ac.txt. Preserve completed evidence and production.
+
+At the NEXT SAFE CHECKPOINT, check whether current 32K test is necessary or near completion; do not start/repeat another 32K diagnostic as the default. Use the identical original corpus's FIRST 4096 tokenizer tokens, B8192 UB1024 and same model/TP configuration, n_predict1, fixed greedy seed, cache_prompt=false. Verify the replay graph still executes wave2 saved ub1 GPU1 split12/node_2097 at absolute positions2048..3071. If this shorter prompt changes capture/replay eligibility, increase only to the smallest prompt that preserves the same wave and node; report why. Record quick TP ON repeat vs same-config TP OFF repeat with finite values, argmax/top-logit differences and actual output—not a bitwise hash-only failure criterion. Only if a measurable model-quality failure exists should additional deep GDN input tracing proceed. For functional equivalence compare short generated sequences at the same context; avoid arbitrary bit-perfect requirements. A final 31,619/TG512 validation is still required AFTER a candidate has demonstrated value.
+
+No long 32K sweep or multiple slow tests without the user's prior approval when an individual step will exceed 30 minutes. Keep each step bounded, source/model/config/production/GPU power untouched; report actual test runtimes, whether 4K reproduces original wave/state discrepancy and whether it is functionally significant. Sol is the sole assigned worker; no Grok work.
