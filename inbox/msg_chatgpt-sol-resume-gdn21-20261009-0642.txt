@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-resume-gdn21-20261009-0642
+target: SOL
+source: CHATGPT
+
+TASK:
+Gorast requests that Sol resume the pending Ornith TurboPrefill investigation because Grok is unavailable. Read the completed finding in outbox/result_chatgpt-grok-replay21-first-state-write-20261009-ac.txt, then execute the unfinished diagnostic described in inbox/msg_chatgpt-grok-gated-delta21-live-inputs-20261009-ad.txt. Identify the live input tensors of layer 21 GATED_DELTA_NET during replay of tokens 2048 to 3071, compare inputs across matched test runs, and determine whether numerical differences arrive from upstream or originate during the operation. Preserve production, GPU settings and known-good binaries. Follow docs/SUPERVISOR_RULES.md and seek approval before work exceeding 30 minutes. Publish your result to the matching outbox file.
