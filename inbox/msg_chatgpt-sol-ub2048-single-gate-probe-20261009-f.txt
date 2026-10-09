@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-ub2048-single-gate-probe-20261009-f
+target: SOL
+source: CHATGPT
+
+TASK:
+Read docs/SUPERVISOR_RULES.md and exact outbox/result_chatgpt-sol-ub2048-no-replay-audit-20261009-e.txt. That read-only audit is COMPLETE, and identifies missing live per-decode eligibility evidence, NOT a proven UB2048 defect. Avoid more speculative sweeps, 32K tests, and tensor-hash debugging.
+
+ONE MINIMAL OPT-IN RUNTIME GATE PROBE on the preserved isolated experimental dev worktree ONLY: first check existing source/runner hashes and whether any existing verbosity flag can show the actual per-llama_decode eligibility decisions without a build; prefer that if possible. If not, make ONE guarded logging-only source change (e.g. ORNITH_TP_TRACE_ELIGIBILITY=1), one dev-only build, and ONE short TP-REQUESTED-ON 8192-token original-corpus-prefix request with B8192/UB2048, n_predict1, fixed greedy seed, no tensor readbacks. For every logical llama_decode call, record its n_tokens_all/n_rs_seq/n_batch/n_ubatch, causal/non-MTP/pipeline_parallel/override/device constraints, enabled flag, recurrent warmup, n_turbo_ubatches/stage decisions and group replay entry. Record the FIRST false gate or first batch split and cite actual code/observations. The request's aggregate 8192 prompt_n is not evidence of single decode batch. If replay becomes active under tracing, note it explicitly, without interpreting instrumented PP as a performance gain.
+
+Strict efficiency: NO TP-OFF control needed to learn why requested-ON replay was absent; NO TG32/TG512, no repeat, no parameter sweep, no new optimizer patches in this task. If preflight says compilation/step will exceed 30 minutes, STOP and ask Gorast BEFORE that step. Preserve backed-up binary and loaded lib hashes, don't modify production or GGUF, clocks or power, don't restart inactive ornith-server.service. Temporary server must exit. Report exact reason if confirmed; if evidence still insufficient, explain uncertainty and do not guess. Return path, output/log excerpt, elapsed time and one minimal next action if any. No Grok work.
