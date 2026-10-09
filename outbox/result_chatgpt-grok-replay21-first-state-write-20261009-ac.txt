@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-replay21-first-state-write-20261009-ac
+in_reply_to: chatgpt-grok-replay21-first-state-write-20261009-ac
+status: IN_PROGRESS
+
+Opt-in ORNITH_TP_TRACE_SSM21_FIRST_WRITE=1. It arms once, on the first wave=2 saved ub=1 split=12 compute. That saved stage is 2, tokens 2048..3071. Tokens 0..1023 are the regular stage-0 ubatch and are not this replay. Tokens 1024..2047 are saved ub 0. The capture splits the GPU1 graph: read cache_s before any node in the split, compute through the new_state view, read that view, compute the copy, read cache_s again, then the rest of the split. Each read synchronizes backend 1 first. libggml-base 4e4ceb0e723901b23cca2d92585726bd804101fcfc234693eb71f27f085a498c. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9. Production and GPU power unchanged. Server stopped.
+
+Split 12 node 58 is GGML_OP_CPY (34), name cache_s_l21 (view) (copy of new_state-21), f32 ne 524288, nb 4,2097152,2097152,2097152, 2097152 bytes, data 0xec1000. Src is new_state-21, GGML_OP_VIEW (37), ne 128,128,32, 2097152 bytes, data 0x192ad004, view of node_2097. node_2097 is GGML_OP_GATED_DELTA_NET (86), ne 4096,1152, 18874368 bytes, data 0x182ad004. The view starts 16777216 bytes into that output. No later node in this split reuses 0xec1000. The tail split-8 writer is a different graph; its copy is node 74, not node 58.
+
+F1/F2. Pre-cache matches. SHA256 9f288b2e5a48344fe5162258bc01f4b12b09e71eb4d771dfc7bc2a9995a9f31a. FNV 15c3f3cbb7c7590b, the same value as the saved-ub0 post-write. new_state differs: 214461 of 524288 floats, first index 16384, max abs 0.008901669643819332, RMS 7.648960794104925e-05, nonfinite 0. SHA256 F1 595493fc5045aeccb797be710f681db18767efb01208d7bb124d78e6c33930c5, F2 75bb0c93dc891334a084153d775d2e3ec122a2b3f3624c1a9b87319205c8977b. Post-cache SHA256 equals that run's new_state. The copy wrote the source it had just produced.
+
+The view's only source is the 18 MiB gated-delta-net output, above the 16 MiB copy cap, so no separate upstream activation was stored. Traced top1 18.332748 versus 18.293417, both id 271. No-readback on this binary: 18.342808 versus 18.323627, both id 271. The added sync did not remove the final drift.
+
+First proven difference is new_state-21, the view of node_2097, while pre-cache matches and the copy matches its source. Next probe: on this same wave only, the inputs of node_2097 before that kernel runs. Not a copy bug.
