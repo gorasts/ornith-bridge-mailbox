@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-vulkan-binary-drift-audit-20261009-p
+target: SOL
+source: CHATGPT
+
+TASK:
+Read updated docs/SUPERVISOR_RULES.md (productive, nondestructive engineering continues without time-based approval), and EXACT outbox/result_chatgpt-sol-cpu-backend-approved-build-20261009-o.txt. New isolated CPU-all-variants build is SUCCESSFUL in ~3.5min and produces Haswell plugin, but benchmark correctly blocked by Vulkan SHA mismatch (generic build-vkfix Vulkan f5825f... vs new build-haswell-cpuvariants Vulkan 8b7c71...). Existing controls TP OFF prefix8196 TG128 PP563.356 TG24.461 generic vs historic PP566/TG29.074 Haswell. User wants forward engineering, preserving production.
+
+ONE READ-ONLY BINARY DRIFT DISCRIMINATOR, no rebuild/benchmark/source edits initially: Use preserved output paths /home/ubuntu/ornith-q4-tp-b10919-port-20261008/build-vkfix/bin/ and build-haswell-cpuvariants/bin/. Compare old/new libggml-vulkan.so via readelf/objdump/nm/section hashes, build IDs, dynamic symbols/SONAME/NEEDED, relocations and load-relevant sections (.text, .rodata, .data, .init_array, .rela*, etc), strings and generated build-path artifacts. Compare exact CMake cache relevant diff, source fingerprints/worktree dirty changes, source compile definitions, actual build date/times; investigate whether mismatch reflects ONLY innocuous path/metadata versus different compiled code/semantics. Also check other NON-CPU runtime core libs, ggml-base, llama etc and executable provenance; Vulkan .so alone is insufficient to assert a CPU-only experiment. Keep original and candidate bytes unchanged; no copying plugins between builds, no cross-lineage mixing.
+
+Deliver a crisp verdict with evidence: (A) all non-CPU load-bearing sections and effective behavior demonstrably identical (debug metadata/build-id/path-only drift), so isolated backend test may be approved next; or (B) meaningful code/ABI differences, specify EXACT files/symbols and cheapest controlled way to obtain CPU-only contrast in a fresh isolated build (no production edits); or (C) equivalence can't be proven, explicitly UNKNOWN. Do not equate matching flags with matching machine code. Prefer finding differences in one read-only step rather than launching repeated benches or multi-hour diagnostics. Preserve both checkpoints and service inactive. If access still denied, report auth blocker. Do not spin for >30min on speculative inconclusive diff; productive work does not need permission just for duration, but ask before destructive/high-risk actions. Do not restart service/change GPU knobs.
+
+No benchmark in THIS message; stop and report binary evidence for supervisor decision.
