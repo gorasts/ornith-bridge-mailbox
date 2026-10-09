@@ -1,0 +1,20 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-gorast-reboot-resume-20261009-a
+in_reply_to: chatgpt-sol-gorast-reboot-resume-20261009-a
+status: COMPLETE
+
+SSH to GORAST succeeded after reboot. Production had auto-started; Gorast explicitly authorized stopping it. ornith-server.service is now inactive, no llama-server is running, and it remains stopped pending Gorast's explicit restore instruction. Production binaries, model, clocks and power settings were not changed.
+
+Exact isolated worktree: /home/ubuntu/ornith-q4-tp-b10919-port-20261008 at d3146f2b56c2db4711ac8391871c9e529d1946d7. The opt-in trace is ORNITH_TP_TRACE_GDN21_INPUTS=1. Current ggml-backend.cpp SHA256 c2ddb629aecfcbfb68a21d21f593744fdc511b558b738b8dde74cf630bd60170; libggml-base.so SHA256 f6922a60f396feab67a3a188287b677d76245612efda7f11dfbf7cafa146605f. Original binaries remain preserved. Artifacts: /home/ubuntu/strata-tuning-20261007/ornith_gdn21_inputs_20261009_v3. Runner: /home/ubuntu/strata-tuning-20261007/run_gdn21_inputs_v3.py.
+
+Two fresh identical prompt31619/n_predict1 greedy traced runs completed at 424.077 and 424.977 PP; two no-readback controls completed at 431.070 and 431.473 PP. All returned token 271, all captured values were finite, and all fault logs were empty. Trace overhead is excluded from performance ranking.
+
+At replay wave2, saved UB1, tokens 2048..3071, GPU1 split12/node_2097, the recurrent pre-cache was identical between runs (SHA256 9f288b2e5a48344fe5162258bc01f4b12b09e71eb4d771dfc7bc2a9995a9f31a). Live inputs already differed before GATED_DELTA_NET executed:
+- q/src0: 374,588/2,097,152 floats, max abs 0.0728337, RMS 0.000643375.
+- gate/src3: 3,353/32,768 floats, max abs 0.152862, RMS 0.00344005.
+- beta/src4: 3,364/32,768 floats, max abs 0.0429410, RMS 0.00144149.
+- new_state: 212,557/524,288 floats, max abs 0.00595933, RMS 0.0000304929. Post-cache exactly equaled that run's new_state.
+
+Conclusion: numerical variation reaches layer21 GATED_DELTA_NET through upstream q/gate/beta producer paths. GATED_DELTA_NET is not the first proven source, and its state copy is correct. No further 32K diagnostic was started after the short-reproducer priority update.
+
+The bounded short gate is reported separately in result_chatgpt-sol-short-reproducer-first-20261009-a.txt. It did not demonstrate a clear model-quality failure, so the priority rule does not justify another deep input trace now.

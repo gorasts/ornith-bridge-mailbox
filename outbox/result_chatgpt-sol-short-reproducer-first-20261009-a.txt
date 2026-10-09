@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-short-reproducer-first-20261009-a
+in_reply_to: chatgpt-sol-short-reproducer-first-20261009-a
+status: COMPLETE
+
+Used exact tokenizer prefixes from the original corpus, verified by detokenize/re-tokenize round-trip, with B8192/UB1024, Q4 model, Q8 KV, fixed greedy sampling, cache_prompt=false and unchanged TP/model placement.
+
+4096 tokens is too short: TP replay did not activate and wave2 saved UB1 split12/node_2097 did not execute. Runtime 7.582 s, 540.886 PP, token 220, finite, zero faults. Therefore 4K cannot reproduce or refute the original replay-state discrepancy.
+
+5120 tokens is the smallest tested exact prefix that preserves the target path. Logs show ORNITH_TP_GROUP_REPLAY groups=3 and ORNITH_TP_OWNER wave=2 ub=1 split=12. Two TP-ON n_predict1 repeats: 543.636/543.084 PP, 9.429/9.438 s, identical token 90563 and logits. Two matched TP-OFF repeats: 520.227/518.650 PP, 9.853/9.883 s, identical token 90563 and logits. Median ON 543.360 versus OFF 519.438 PP (+4.61%). All values were finite and all fault logs empty.
+
+The 32-token functional comparison was bounded to one run each. ON: 544.051 PP, 26.360 TG, 10.598 s. OFF: 518.631 PP, 26.430 TG, 11.056 s. TG differed by -0.27%. The generated sequences were identical through 25 tokens. At token index 25 a near tie flipped: ON chose 21482 over 220 by 0.1071 logit; OFF chose 220 over 21482 by 0.0898. Both continuations remained coherent. This is measurable numerical/semantic divergence, but it is not evidence of a material quality failure.
+
+Artifacts: /home/ubuntu/strata-tuning-20261007/ornith_q4_tp_short_replay_20261009. Runner: /home/ubuntu/strata-tuning-20261007/run_q4_tp_short_replay.py. Exact response JSON, top-logit data, server logs and zero-fault records are retained there.
+
+Verdict: use 5120, not 31619, for future replay diagnostics. The short functional gate does not justify deeper GDN tracing under the current instruction. If exact deterministic parity becomes mandatory, the next single bounded probe should capture the upstream producers of q/gate/beta at this 5120-token wave. Final 31,619/TG512 remains deferred until a candidate demonstrates value.
