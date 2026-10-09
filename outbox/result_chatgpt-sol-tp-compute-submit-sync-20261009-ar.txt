@@ -1,0 +1,41 @@
+# AR: TP compute submit/sync diagnostic
+
+Status: COMPLETE_WITH_CAVEAT. Exactly one isolated 8,306-token request ran. The instrumentation measured host API-call wall time and existing explicit waits; it did not measure GPU shader duration or establish simultaneous shader execution.
+
+## Method and provenance
+
+Read the owner thermal policy in `docs/SUPERVISOR_RULES.md`: temperature was telemetry only, with no software temperature cutoff. The AR tree is `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/compute-submit-sync_20261009_ar/`; it was copied from AQ and differs from AQ source in only `ggml/src/ggml-backend.cpp`. AQ/AP source and binaries were left intact. One opt-in timing patch wraps existing split `ggml_backend_graph_compute_async` and `ggml_backend_event_wait` calls and aggregates their monotonic host intervals by backend/group/wave. Existing AQ phase and group-sync counters and TP-series clock were reused. No fence, event, synchronization, allocation, scheduler decision or execution order was added or changed. Runner SHA-256: `3a4a5261c2ce594b1aa4f74ef840298b59ae10252827df2457331481684f3697`; patched backend source SHA-256: `b2662d60ea03db36474707d90550e05c12a29a515030e7a1ece78f88c57411c3`. The isolated server/Vulkan/Haswell plugin SHA-256 values are `6c78261eafa8cff812d113fc737ab05730feb8d0b4d26d69314def96ed810818`, `89a8ec4a086fb6f40f082039ff103a8d3c7d974a114409b6230956dd63670a67`, and `535fed10656dd3d49b49104a318158ed12002d19a3a8a611432028c68bc76698`. The runner verified all core libraries mapped from that AR build and loaded `libggml-cpu-haswell.so`; `ORNITH_TP_PIN_DEVICE_LOCAL=1`, owner-round absent. It logged `GROUP_REPLAY groups=3 splits=18 saved=2 overlap=self-sync`.
+
+AQ's initial cache was used with Release and GNU 13.3. Normalized cache differences were build/source path entries plus cache bookkeeping; no intentional GGML/LLAMA setting changed. The full binary/source/config/log hashes are in the artifact manifest.
+
+No existing quiet/verbosity gate controls `ORNITH_TP_SLOT_POST` and `ORNITH_TP_SLOT_EVENT`; those inherited prints remain enabled. Their possible timing perturbation is a caveat. They were not rewritten.
+
+## Measurements from this request
+
+The exact AK fixture was independently revalidated before inference: 8,306 tokenizer IDs, prompt SHA-256 `3efaeafa85d98e762c56cc0f027d99cd825d31a41932d446451ff05552e21e96`, fixture SHA-256 `ab2f68a9e46edc086f826524d4d5facf5bedd9c38b9a36ac07662c2d512465f2`, expected `A=710,B=775,C=615|COMMIT=6|ABORT=2`. Request SHA-256 was `689f30c7b249e1fb65dc08558a2895eebe8fa0a39804091f6dd89880caf204a0`. The answer naturally stopped at EOS after 2,333 tokens, was finite and independently correct, and exactly matched AQ’s full text and token sequence. Text/token hashes: `9aae46ba2bccde29ce19d4ff45363c0f7a5709cbc2cf87ef598831bfc27f149a` / `9025cb874ac58644688358ede95c2578a5b02b6ab0d5dda155bb803b3765d8b6`.
+
+| Measurement | AR result | Denominator / interpretation |
+|---|---:|---|
+| API prompt evaluation | 13.642 s; 608.87 PP | Full 8,306-token prompt |
+| TP series | 5.756 s | Existing series start-to-end clock, includes its capture/replay work |
+| PREPARE_H2D / COMPUTE / STORE phase windows | 0.108 / 3.652 / 0.077 s | Sum 3.837 s; host-inclusive per-split windows |
+| COMPUTE `graph_compute_async` host-call intervals | 34 calls, 3.609 s; union 3.609 s | 98.8% of COMPUTE phase windows; not shader time |
+| COMPUTE event-wait API calls | 34 calls, 0.000138 s | Included in the host-call union; call duration only |
+| Existing backend sync waits | 6 calls, union 0.677 s | 0.148 s Vulkan0, 0.356 s Vulkan1, 0.174 s Vulkan2; 4.97% of API prompt time |
+| Remaining TP-series wall outside those measured intervals | about 1.470 s | Difference within the same run; not assigned to a cause |
+
+COMPUTE phase p50/p95/max were Vulkan0 (group 0, 14 split windows) 15.551/239.940/260.385 ms; Vulkan1 (group 1, 10) 0.093/341.391/563.964 ms; Vulkan2 (group 2, 10) 0.116/140.900/754.473 ms. The graph-compute API call sums were 1.376/1.222/1.011 s respectively. Largest per-group/wave graph-call p50/p95/max: Vulkan0 group0 wave1 8.411/252.159/252.159 ms; Vulkan1 group1 wave1 316.158/563.846/563.846 ms; Vulkan2 group2 wave2 115.087/754.356/754.356 ms. Backend indices map to Vulkan0/1/2, previously verified as PCI BDFs 05:00.0 / 0c:00.0 / 0f:00.0.
+
+The Vulkan implementation’s graph-compute function builds command buffers and submits work; the explicit `waitForFences` is conditional on `GGML_VK_PERF_LOGGER`, which the runner cleared and did not set. Thus the 3.609 s is wall spent inside the graph-compute API (including CPU graph/command preparation, submission, and any implicit host/driver blocking), not a measured GPU execution interval. The 0.677 s backend synchronization is direct blocking host-call time. Neither quantity proves shader overlap. Passive 250-ms busy samples averaged 17.4%, 36.5%, and 39.8% across the entire run; they are not synchronized to replay and cannot establish concurrent active shaders.
+
+Per-run PP/TG were 608.866/30.430 tok/s, with 90.296-s request wall. These are instrumented secondary observations, not a throughput comparison. There were 534 passive telemetry samples, minimum free VRAM 1,836.5/370.5/642.6 MiB and maximum junction temperatures 58/69/75 C (05/0c/0f); no thermal abort was used. Faultwatch found no matching GPU fault, abort reason was null, child exited 0, service remained inactive, and no server remained afterward.
+
+## Finding and next diagnostic
+
+The measured COMPUTE windows were almost entirely inside host time in `ggml_backend_graph_compute_async`, while event-wait API time was negligible. Existing backend synchronization accounted for about 0.677 s, material but smaller. This does **not** establish that the graph-call time is CPU encoding, a hidden wait, or GPU execution. The meaningful bottleneck is therefore narrowed to long per-device Vulkan graph-compute host calls plus explicit backend synchronization, with the split between host submission and device work still unknown. No optimization lever is justified yet.
+
+The smallest useful next diagnostic would add device-side timestamps around the already-submitted per-device graph work and read them only at the existing end-of-series synchronization, then compare device elapsed time with these host-call intervals. Do not enable the existing Vulkan performance logger for this purpose: its path adds a fence wait and changes timing. No follow-up was run or queued.
+
+## Evidence
+
+Remote evidence directory: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/compute-submit-sync_20261009_ar/evidence/`. It contains `compute-submit-sync/{command.json,request.json,response.json,summary.json,diagnostics.json,mapping-gate.json,telemetry.json,faults.json,server.log,allocator-log.txt,artifact-sha256.json}`, the exact fixture, oracle files, runner, configure/build logs, and patched source. Post-run check confirmed `ornith-server.service` inactive and no `llama-server` process.
