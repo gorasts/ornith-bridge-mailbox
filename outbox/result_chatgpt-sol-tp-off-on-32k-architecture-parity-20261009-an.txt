@@ -1,0 +1,32 @@
+STATUS: COMPLETE
+
+TurboPrefill architecture parity check — 2026-10-09
+
+Both matched requests completed naturally and independently produced the correct transaction-audit answer. The OFF reference had no grouped-replay or owner-wave markers. The ON arm confirmed grouped replay (`groups=3 splits=18 saved=3 overlap=self-sync`). This supports functional correctness for this one real task and fixture with the scheduler active; it does not establish general model accuracy or simultaneous GPU shader execution.
+
+Fixture and oracle
+
+The unchanged AL fixture is `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/replay_active_task7_semantic_integrity_20261009_al/fixture.prompt.txt`, 31,802 tokenizer tokens. SHA-256: `7b0d96b433598625d4ba22578f2be778f87cbf0f9742267b9380b9388466ac25`. Both arms recorded identical tokenizer-ID SHA `132fbe9e72bded2723ac26ec16be4af7bfa429edee179691c4bcdabae23ccc75` and request-body SHA `0862829d2b02d4850b9d5fc89e5a928bb04a960a4a00e77996e7de4a357316e4`.
+
+Before inference, the independent validator re-parsed the 20 operative events (event SHA `0a946bacfa1543ad42b5ed1d47fdc0611345144036c6c7e4e41d43ccd7d2b733`), checked the 281 non-operative audit records and four snapshots, and recomputed `A=710,B=775,C=615|COMMIT=6|ABORT=2`. Validator SHA is `0705b849ff3b3fa9ac4b8989d9966c02f8d22802f36e8a693c2fa8927d312830`.
+
+Controlled arms (OFF first, then ON)
+
+| Mode | Prompt rate | Generation rate | Generated | Wall | Replay | Semantic result |
+|---|---:|---:|---:|---:|---|---|
+| TurboPrefill OFF | 496.492 tok/s | 27.799 tok/s | 2,227 | 144.191 s | No group replay; 0 group lines, 0 owner lines | PASS; exact oracle final answer |
+| TurboPrefill ON | 562.926 tok/s | 27.650 tok/s | 2,823 | 158.619 s | 3 groups, 18 splits, 3 saved; 221 owner-wave lines | PASS; exact oracle final answer |
+
+The prompt-processing rate increased 13.38%; generation rate decreased 0.53%. The ON response used 596 more tokens, so its overall wall time was 14.43 s longer. The generated token arrays first diverged at zero-based index 149 (token 150); both outputs nevertheless completed at EOS, were finite, and ended with the exact expected final string. Their full reasoning and final response are retained in each `response.json`; neither was truncated. This is one paired observation, not a repeatability claim.
+
+Both answers show the correct per-event balances, conservation total 2,100, six committed transactions and two aborted transactions. The fixture includes a quoted instruction-injection record; each response followed the operative-event definition. This is a semantic PASS for this task, not evidence of broad task accuracy. No exact-answer-only format constraint was part of this assignment.
+
+Binary/configuration and safety evidence
+
+Both arms used the same cachematched experimental server and libraries, confirmed by process mappings: server SHA `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`, Vulkan SHA `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`, Haswell CPU SHA `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`. The only intended environment difference was `TURBOPREFILL`: absent in OFF, `TURBOPREFILL=1` in ON. `ORNITH_TP_PIN_DEVICE_LOCAL=1` and the remaining host/group settings were held constant; owner-round was absent. The source gate audit is in `gate-audit.txt`.
+
+No GPU faults, OOM, or runner aborts were recorded; kernel-journal fault matches were empty. Minimum free VRAM (05/0c/0f) was 1790.5/324.5/596.5 MiB OFF and 1787.4/324.5/596.5 MiB ON. Passive maximum junction readings were 80°C OFF and 89°C ON; no software temperature cutoff was applied. The temporary servers exited, no llama-server remained, and `ornith-server.service` remained inactive.
+
+Artifacts: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/tp-off-on-architecture-parity_20261009_an/`. The runner copy is `runner-tp-architecture.py` (SHA `bd30273eed3e2e2f18e232c0b38c274e0d0dc6e6e8fb045971fa261892e33d0b`). Per-arm `command.json`, `mapping-gate.json`, `request.json`, `request.sha256`, prompt token IDs/SHA, `server.log`, `response.json`, `summary.json`, `telemetry.json`, `faults.json`, and allocator logs are preserved in `turboprefill-off/` and `turboprefill-on/`.
+
+Verdict: functional parity PASS for this independently graded transaction task. TurboPrefill engaged and improved prompt processing in this single pair, with near-flat generation throughput and correct completed output. The logs explicitly label replay `overlap=self-sync`; they do not prove concurrent shader execution. No follow-up test was run.
