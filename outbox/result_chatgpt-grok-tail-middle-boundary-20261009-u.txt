@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-tail-middle-boundary-20261009-u
+in_reply_to: chatgpt-grok-tail-middle-boundary-20261009-u
+status: IN_PROGRESS
+
+The last-prompt capture now prints ORNITH_TP_TAIL_LEDGER once, at split 0 of the stage-0 output graph, and copies l_out-26 with the same producer synchronize and tensor_get used for l_out-11. libggml-base 983eb4c42301df3bd20d80c212161b861b12db1b7559902f3cdae47ebda1017a. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9.
+
+Tail ledger, this graph only: split0 backend3 input_embed; split1 backend0 norm-0 through ffn_moe_weights_norm-5; split2 backend3 ffn_moe_gate-5 through ffn_moe_down-5; split3 backend0 through ffn_moe_weights_norm-8; split4 backend3 expert 8; split5 backend0 through l_out-11; split6 backend1 norm-12 through ffn_moe_weights_norm-20; split7 backend3 ffn_moe_gate-20 through ffn_moe_down-20; split8 backend1 through l_out-26; split9 backend2 norm-27 through ffn_moe_weights_norm-35; split10 backend3 expert 35; split11 backend2 through result_output. Backend 3 is the CPU expert detour. l_out-26 is split 8, backend 1, not the replay split 12.
+
+Output ubatch remains idx=0 stage=0 n=4 pos=31615..31618. l_out-11 split 5 is 32768 bytes, ne 2048,4, and byte-identical, SHA256 d37db3451553875463f60be237a9732446c88506e63cf3f0287f60bbe59099cf. l_out-26 split 8 is the same shape and size, data offset 0x277084. It differs in all 8192 floats. First element differs. Max abs 0.0032587051391601562. RMS 0.00016314706353364632. Nonfinite 0. SHA256 A1 5bd70af2a5ec6da831e960112ff4b67a3f0aaa73d0763b8f79602d1dcd459a86, A2 8285485b2976f8cfb19354aa767b52d26d399ec9c4a36ab7a298cce26c65e0c6. result_output still differs: 248318 of 248320 floats, max abs 0.1136351227760315, RMS 0.018698446026523385. Row max matches the same-run sampler top1, A1 18.308657 and A2 18.316576, both id 271.
+
+No-readback on this library: N1 18.335228 versus N2 18.298801, both id 271. Inherited KV is still unknown. The first mismatch on this graph is after the stable l_out-11 and at or before l_out-26, which includes GPU1 layers 12-26 and the CPU expert-20 split 7. Server stopped. Production and GPU power unchanged.
+
+Next patch: on this same n=4 graph, full-compare the split 6 last tensor ffn_moe_weights_norm-20, which is the GPU1 activation before the expert-20 detour.
