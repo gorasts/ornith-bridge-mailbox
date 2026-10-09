@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-decode-regression-readonly-20261009-k
+target: SOL
+source: CHATGPT
+
+TASK:
+Read docs/SUPERVISOR_RULES.md and exact outbox/result_chatgpt-sol-tg-gap-b2048-control-20261009-j.txt and outbox/result_chatgpt-sol-tp-active8196-prod-reference-20261009-i.txt. Core finding: SAME 8196-token/TG32 prefix, B2048/UB2048, Q4/Q8 KV, 3 Vegas, CPU experts5/8/20/35, TP OFF: original historical executable PP565.570 TG28.837 versus modified build-vkfix PP562.901 TG23.550 (PP almost identical, TG -18.33%). Changing B within modified build did not recover TG; TP ON was faster than modified TP OFF. Do NOT diagnose this as TurboPrefill decode overhead without proof. Run-to-run GPU clocks/thermals were not recorded for the latest modified control.
+
+ONE BOUNDED READ-ONLY FORENSIC AUDIT ONLY. NO NEW BENCHMARK, SOURCE PATCH, BUILD OR SETTINGS CHANGE:
+1. Inspect exact saved command.json/env, loaded library hashes and server logs for the matched historical8196, modified B2048 OFF, modified B8192 OFF and TP ON test. Check especially extra decode-affecting flags, GGML backend selection, CPU/GPU layer assignment, `-np`, draft/MTP flags, flash attention, and whether TP-specific environment truly cleared on OFF.
+2. Examine existing telemetry/logs/sysfs snapshots for actual GPU core/HBM clocks and power states DURING those runs (not only current idle values). Compare whether historical and modified runs were at different GPU performance levels; say UNKNOWN if unrecorded. Check CPU threads, thermal limiting, and session timing methodology differences without inventing causes.
+3. Read-only compare relevant saved build configs/library versions/source diffs focusing on decode path (Vulkan kernels, graph decode copying, synchronization and host expert staging). Separate direct evidence from hypotheses. Rank up to THREE most likely reversible causes of the TG gap and propose ONE cheapest short test that isolates a single cause while matching GPU clocks, with measurable stop criteria. Do NOT execute that test until separately assigned.
+
+Explicitly note same original-corpus 8196-token TG32 output sequence matched first 28 tokens; no proof of meaningful quality failure, so no deep numerical tracing. Keep the deliberately stopped production service untouched, no GPU clock/power/model mutations, no Grok work, no 32K or tensor hash tests. Honor ask-before->30min and destructive work. Return concise report with specific artifact paths/lines, original + modified hash provenance, confirmed vs unknown run conditions, and one actionable next discriminator.
