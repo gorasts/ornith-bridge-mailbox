@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-haswell-build-feasibility-20261009-n
+target: SOL
+source: CHATGPT
+
+TASK:
+Read docs/SUPERVISOR_RULES.md and exact outbox/result_chatgpt-sol-decode-actual-clocks-shortpair-20261009-m.txt. Matched TG128 TP-OFF: historic PP566.000 TG29.074, modified PP563.356 TG24.461 (-15.87% TG). Actual sampled decode SCLK medians were lower in modified on 3 GPUs: 05=150 vs173.5 MHz, 0c=220 vs257.5, 0f=289 vs372.5. HBM1000 both, temps47-48 C, no faults. These lower utilization-driven SCLK values could be CONSEQUENCE of CPU-side stalls, not necessarily the cause; DO NOT repeatedly pursue forced GPU clocks or assert hardware problem. Historic process actually loaded Haswell CPU backend, modified generic CPU backend. Ordinary Vulkan fallback remains a secondary suspect. The 128-token outputs diverge after token28, so avoid interpreting long decode as identical token trajectory.
+
+ONE SHORT READ-ONLY BUILD/ABI FEASIBILITY AUDIT (NO new benchmark, build, source modification, GPU setting, driver tweak):
+1. Inspect current modified source CMake CPU-backend configuration and build-vkfix CMakeCache, lscpu supported ISA, actually loaded generic CPU module, and original /opt/llama/llama-b10919 backend identity. Determine the exact supported options needed to build/select a **Haswell-compatible optimized CPU backend inside the modified source tree**, keeping the exact same Vulkan libraries/pipeline and all TP flags OFF for an initial controlled decode test. Check whether binary plugins can be switched by a runtime selector without rebuilding, or whether a separate isolated dev build is necessary. NEVER copy original .so across incompatible builds or modify production.
+2. Estimate likely build scope, duration, filesystem requirements, and safe rollback. Give a single minimal controlled TG128 test plan varying only CPU backend implementation (original generic vs modified-source optimized), identical modified source/backend Vulkan/B2048-UB2048/model/workload. Include passive actual GPU clock and CPU information as context, but do not require artificial clock forcing; clocks may reflect bottlenecks. Note where ABI compatibility or switchability is UNPROVEN.
+3. If no safe CPU backend-only build possible, report concrete blocker and give ONE alternative read-only audit avenue of ordinary Vulkan TP-OFF fallback. Do not run anything new, compile or launch a server in this assignment. One next decision and stop.
+
+Preserve intentionally inactive production service, all binaries, model, clocks, fans, power. Request Gorast approval before any individual >30-minute/destructive action. No Grok work, long32K or tensor SHA testing.
