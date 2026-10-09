@@ -1,0 +1,28 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-q4-8k-tb14-vs12-ab-20261009-bb
+status: COMPLETE
+
+Result
+
+The single `-tb14` versus `-tb12` pair showed no gain from reducing batch threads. At 8,306 prompt tokens, `-tb12` was 0.22% slower in prompt evaluation and 0.81% slower in generation; both changes are small and not repeatable evidence. Keep `-tb14`; per the requested gate, do not run a thread sweep or reversed-order confirmation.
+
+Preflight and identity
+
+The host reported 28 CPUs, Xeon E5-2680 v4, process affinity 0-27, and load average 0.06 before the run. No llama-server was active, the production service was inactive, and all three GPUs were idle with over 8 GiB free. Afterward no llama-server remained, GPU busy readings returned to 0%, and `ornith-server.service` remained inactive.
+
+Both requests used the same preserved cachematched build and model: server SHA-256 `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`, Vulkan module `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`, Haswell CPU module `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`, and Q4 GGUF `6def24b4ef1436f080403b8c0fa9ca3b593abc080c74e64ef7c72d3d6a7322f1`. Runtime maps confirmed the CPU and Vulkan modules came from that build.
+
+The sole effective launch difference was `-tb14` (control first) versus `-tb12` (candidate second), with `-t14` unchanged. Split remained `0.8,1,1`; both used TP ON, device-local hook ON, and owner-round absent. Both showed active replay: 3 groups, 18 splits, saved=2, self-sync. Fixture SHA-256 was `ab2f68a9e46edc086f826524d4d5facf5bedd9c38b9a36ac07662c2d512465f2`; prompt-token SHA-256 `3efaeafa85d98e762c56cc0f027d99cd825d31a41932d446451ff05552e21e96`; request SHA-256 `689f30c7b249e1fb65dc08558a2895eebe8fa0a39804091f6dd89880caf204a0` in both arms. The sealed oracle was independently rerun before inference and returned `A=710,B=775,C=615|COMMIT=6|ABORT=2`.
+
+| Arm | Prompt eval | PP | Generated | TG | HTTP wall |
+|---|---:|---:|---:|---:|---:|
+| `-tb14` | 13.598 s | 610.829 tok/s | 2,333 tokens, natural EOS | 30.454 tok/s | 90.192 s |
+| `-tb12` | 13.628 s | 609.473 tok/s | 2,333 tokens, natural EOS | 30.206 tok/s | 90.849 s |
+
+Both final answers were exactly `A=710,B=775,C=615|COMMIT=6|ABORT=2`; all 2,333 generated token IDs matched. Both were independently correct. No GPU fault, request error, VRAM abort, or server failure was recorded. Minimum free VRAM was 1,836.5 / 370.5 / 642.6 MiB on BDF 05:00.0 / 0c:00.0 / 0f:00.0 for both arms. Passive maximum junction temperatures were 57/67/73 C for `-tb14` and 57/68/76 C for `-tb12`; no temperature-based software cutoff was used.
+
+A first runner invocation exited at its existing artifact-directory guard before inference because the copied runner still pointed at the prior experiment’s output root. That guard prevented any overwrite or request. I corrected only the fresh runner copy’s output root and thread selection, verified the diff, then ran the two arms above. The original runner, binaries, model and prior experiment artifacts remain unchanged.
+
+Evidence is preserved at `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/q4_8k_tb14_vs12_ab_20261009_bb/`. Runner SHA-256: `17a66154b1b56fef83cb52010890e1374015c79d226d91f857a5fd944d2c0444`. Both request files have the same SHA above; both serialized prompt-token files have SHA-256 `8ca664328db5d30b1ad604731b124c838e15beb06f360cc0d6c2eae0b2219d8e`.
+
+Conclusion: `-tb12` did not improve this real-task workload. Retain `-tb14`; stop this thread-count branch without further sweep. This one sequential pair is not a repeatability study.
