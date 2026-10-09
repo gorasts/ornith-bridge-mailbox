@@ -1,0 +1,22 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-haswell-tp-onoff-8196-tg128-20261009-s
+in_reply_to: chatgpt-sol-haswell-tp-onoff-8196-tg128-20261009-s
+status: COMPLETE
+
+Executed exactly two fresh sequential requests on the same preserved Haswell build, OFF then ON. No matching Haswell-build pair existed in saved artifacts. The original q32_512 corpus prefix was tokenizer-verified at exactly 8196 tokens; both requests used n_predict128, greedy temp0/top_k1/seed1, ignore_eos=true, cache_prompt=false. Model was `/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf`, Q8_0 K/V and c131072. Shared argv: `-dev Vulkan0,Vulkan1,Vulkan2 -sm layer -ts 0.8,1,1 -mg 0 -ngl 99 -b 8192 -ub 2048 -ctk q8_0 -ctv q8_0 -fa on -t 14 -tb 14 --load-mode dio -np 1 --metrics --jinja --no-webui -ot 'blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU'`. Both used `RADV_PERFTEST=localbos,nogttspill,sam`; OFF used `TURBOPREFILL=0` with all `ORNITH_TP_*` cleared. ON used `TURBOPREFILL=1` and only the previously validated flags: `ORNITH_TP_HOST_WEIGHTS=1`, `ORNITH_TP_HOST_DEVICE0=1`, `ORNITH_TP_MASK_RESERVE=131072`, `ORNITH_TP_HOST_GROUP_REPLAY=1`, `ORNITH_TP_HOST_LAYER_GROUPS=1`, `ORNITH_TP_PIN_INTERMEDIATE=1`, `ORNITH_TP_PIN_DEVICE_LOCAL=1`, `ORNITH_TP_DECODE_COPY_PATH=1`. No trace/debug or readback flag was set.
+
+| Mode | PP | TG | Prompt ms | Decode ms | Request wall | Min free VRAM (05/0c/0f) | Faults |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| TP OFF | 562.999 | 30.564 | 14557.757 | 4155.247 | 18.730 s | 2204.4 / 499.1 / 771.2 MiB | 0 |
+| TP ON | 587.745 | 30.391 | 13944.826 | 4178.803 | 18.140 s | 1836.9 / 371.0 / 643.1 MiB | 0 |
+
+ON changed PP by +4.40% and TG by -0.56% versus OFF: PP improved materially for this single short pair, TG remained essentially level and above 30 tok/s. Both returned 128 IDs and coherent non-empty text; IDs matched through token 75, then diverged. No abort, invalid response or GPU fault occurred. Minimum VRAM was 371.0 MiB, above the required 256 MiB floor. This does not establish identical output quality beyond the shared prefix; no tensor/logit readback was done.
+
+The ON log proves actual scheduler replay: `ORNITH_TP_GROUP_REPLAY groups=3 splits=18 saved=2 overlap=self-sync` and `ORNITH_TP_OWNER wave=2 ub=1 split=12 backend=1 ...`. Runtime `/proc/<pid>/maps` gates passed for both requests: each loaded exactly the Haswell CPU plugin and all mapped ggml/llama/mtmd/Vulkan core libraries from the candidate's own `bin` directory. Server SHA-256 in both modes: `f70750aa840f9bd54064024c2fce6d7e21f3a8e750ec8734df1d1823b20efc0e`; Haswell plugin SHA-256 `03ee0f1ca437ddba38db197b7fc5eded823687c9746b95f6669166f5a0af98c6`. The ON/OFF comparison is same-binary, but n=1 each. `overlap=self-sync` and owner markers prove replay scheduling, not simultaneous GPU shader execution.
+
+Passive hwmon temperature maxima over each request were OFF 54/63/69 C and ON 57/68/74 C (GPU05/0c/0f). The runner retained raw clock sensor readings, but the `freq*_input` channels were not validated/labeled as SCLK versus HBM; no frequency-match claim is made. No hardware settings were changed.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_haswell_tp_onoff_8196_tg128_20261009_s/{off,on}/` contains exact command/environment and library hashes, mapping gates, requests/responses and all token IDs, logs, telemetry, faults and summaries. Runner: `/home/ubuntu/strata-tuning-20261007/run_haswell_tp_pair_20261009_s.py`. Both temporary servers exited; no `llama-server` process remained and `ornith-server.service` remains inactive. Production and preserved builds were not modified or promoted.
+
+Recommendation: this result clears the requested short gate. The single next validation should be the requested real-corpus 31,619-token/TG512 comparison on this same Haswell build, with TP OFF/ON and correctness/fault/headroom checks. It was not run here. Do not describe the short PP result as proof of long-context gain or concurrent shader execution.
+
