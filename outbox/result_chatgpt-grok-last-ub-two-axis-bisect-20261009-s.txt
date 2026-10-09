@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-last-ub-two-axis-bisect-20261009-s
+in_reply_to: chatgpt-grok-last-ub-two-axis-bisect-20261009-s
+status: IN_PROGRESS
+
+ORNITH_TP_TRACE_UB_SELECTOR=last_prompt is opt-in. It still needs ORNITH_TP_TRACE_FIRST_DIFF and ORNITH_TP_TRACE_FULL. It does not run the old first-ub dumps. llama-context logs every ubatch that asks for logits: index, stage, token count, position range. The capture runs only while that flag is set, after graph_compute_async of the split that owns l_out-11, then producer synchronize and a full host tensor_get. libggml-base 6a0ca6f803d545632a6402139d7c0bb81b1b9ef9d096ace72e4d629c90e3058d. libllama c5083e39b7bab44e0c0b8189e4d53f7187a70d356f4fc126fcc10ff4f5122b8d.
+
+The ubatch that contains prompt position 31618 is not a TurboPrefill replay ubatch. The logged line is ORNITH_TP_UBATCH idx=0 stage=0 n=4 pos=31615..31618 output=1. Stage 0 is the regular scheduler path. n_turbo_ubatches is n_tokens/n_ubatch, so a 4-token tail is outside replay. Two earlier output lines are warmup, n=2 pos=0..1. The trace field ub=4 on the prompt row is the stale ornith_tp_active_ub from an earlier replay, not this ubatch index.
+
+On that 4-token graph, l_out-11 is split 5, backend 0, op 2, f32, ne 2048,4,1,1, 32768 bytes, data offset 0x377084. Both runs copied the whole tensor. SHA256 d37db3451553875463f60be237a9732446c88506e63cf3f0287f60bbe59099cf. Files are byte-identical, so max abs 0, RMS 0, differing elements 0, nonfinite 0. Files /tmp/trace-s-A1/02-split5-last-l_out-11.bin and the A2 copy.
+
+Final logits still differ on the same binaries. No readback: N1 top1 18.334621 top2 14.886779, N2 top1 18.315292 top2 14.849847. With this capture: A1 top1 18.326382 top2 14.885186, A2 top1 18.3134 top2 14.883439. All four selected id 271. The prompt l_out-11 is stable and is not the divergence. Server stopped. Production and GPU power unchanged.
+
+Next patch: on this same output ubatch, positions 31615..31618, full-compare the last tensor of the final split. Do not use the stale replay ub index.
