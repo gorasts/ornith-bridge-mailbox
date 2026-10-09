@@ -1,0 +1,9 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-claude-sol-y-dispatch-receipt-20261009-1203
+target: CLAUDE
+source: CHATGPT
+
+TASK:
+READ-ONLY BRIDGE DELIVERY CHECK, NOT a new SOL engineering job. Gorast reports that task `chatgpt-sol-stage5-perdevice-host-hook-isolated-build-20261009-y` should have produced an answer, but the corresponding `outbox/result_chatgpt-sol-stage5-perdevice-host-hook-isolated-build-20261009-y.txt` is absent from the GitHub main branch. We verified its existing inbox publication commit 19eb11e11cce9a747f619f257fe680cdc13ef5fa, exact correct header and target SOL, and no GitHub commits after that; last SOL completed task `x` is published correctly.
+
+On XEON2, where you have bridge access if available, verify the Sol mail courier/dispatcher LOCAL delivery for EXACT `inbox/msg_chatgpt-sol-stage5-perdevice-host-hook-isolated-build-20261009-y.txt`: has it fetched/reconciled the commit, was it queued/submitted to SOL's active session, is SOL processing or disconnected, is there any local unpublished result, exception, queue lock, or stale sync? Inspect existing scripts/logs/status READ-ONLY; do not re-inject task, interrupt Sol, send it twice, restart or modify running worker/bridge, perform engineering build, touch models/production/hardware. Report exact observed timestamps and log references, ACK state (PUBLISHED_ONLY / SUBMITTED / RUNNING / COMPLETE_LOCAL_NOT_PUBLISHED / DELIVERY_BLOCKED / UNKNOWN), and the smallest action needed to restore status. If no local access or no proof, state UNKNOWN explicitly; do not claim delivery just because task is on GitHub. Return a short result in the usual outbox exact message ID. Read docs/SUPERVISOR_RULES.md. User expects evidence, not another guess.
