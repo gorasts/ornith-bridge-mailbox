@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-tp-bottleneck-readonly-from-an-20261009-ao
+source: SOL
+target: SUPER
+status: COMPLETE
+
+READ-ONLY BOTTLENECK AUDIT — 2026-10-09
+
+Conclusion: AN establishes a measured prompt-rate improvement from enabling the TurboPrefill scheduler on this one 31,802-token task (+13.38%), with correct natural-EOS answers in both modes. It does NOT identify the remaining prefill critical-path bottleneck or prove simultaneous GPU shader execution. The best-supported remaining hypothesis is host-side serialization/waits at cross-device handoffs; wait duration and its critical-path share are not measured in AN, so this is a hypothesis, not a finding.
+
+AN measurements
+
+Same prompt/request hashes, Q4/Q8KV model/config, executable and libraries were used. OFF: prompt 31,802 tokens at 496.492 tok/s (64.053 s), generation 2,227 tokens at 27.799 tok/s (80.076 s), total runner time 144.191 s. ON: prompt 31,802 at 562.926 tok/s (56.494 s), generation 2,823 tokens at 27.650 tok/s (102.060 s), total 158.619 s. Thus prompt processing improved 13.38%; generation rate decreased 0.53%. Total wall is not a matched-work comparison: ON emitted 596 more tokens before EOS, so its longer total is explained by unequal output length and must not be called a throughput regression. Responses were independently correct; generated token arrays first diverged at index 149 (zero-based), while both final strings matched the oracle.
+
+The 250 ms telemetry sampler collected 747 OFF and 804 ON rows across process startup, prompt, decode and teardown. Whole-run `busy_percent` means were OFF 20.2/39.1/39.5% and ON 21.7/41.2/40.2% for GPU 05/0c/0f; maxima were 100%. These windows are not phase-aligned and do not quantify prompt-only utilization or cross-GPU shader overlap. They are not evidence that shader execution overlapped. Minimum free VRAM was 1790.5/324.5/596.5 MiB OFF and 1787.4/324.5/596.5 MiB ON. GPU0c was only 24.5 MiB above the runner's 300 MiB headroom guard in both runs: this is a real limit on adding buffers, but does not establish memory pressure as the observed throughput cause. Passive peak junction temperatures were 80°C OFF and 89°C ON. No GPU fault, reset, OOM or abort was recorded; production remained inactive.
+
+Ranking: observed costs versus unresolved causes
+
+1. Largest measured interval in these completed answers is autoregressive generation: 80.076 s OFF and 102.060 s ON. Its token counts differ, so these values cannot rank scheduler efficiency. For the equal 31,802-token prompt, prefill took 64.053 s OFF and 56.494 s ON. This is measured elapsed time, not a breakdown into compute, synchronization or transfer.
+2. Host handoff synchronization is the leading structural candidate, but its duration is UNKNOWN. In the isolated source, `ggml_backend_sched_tp_copy_input` calls `ggml_backend_tensor_get_async`, then immediately records and synchronizes the producer event (or synchronizes the backend), before `ggml_backend_tensor_set_async`: `source/ggml/src/ggml-backend.cpp:1138-1152`. The call named async therefore has an explicit host wait on this path. No AN log counter times these calls.
+3. Self-sync replay has explicit synchronization boundaries but not a proven absence of device overlap. `ggml-backend.cpp:4803-4808` sets one step for self-sync; `4843-4863` selects a group's splits and synchronizes its backend before phase work. Prepare/H2D, compute and store are iterated at `4863-4864`. This orders host orchestration and inserts waits; asynchronous backend queues may still execute outstanding work. `overlap=self-sync` is a scheduler mode label, not a measured GPU concurrency result.
+
+Vulkan readback is another possible wait, not yet tied to the AN path. In `source/ggml/src/ggml-vulkan/ggml-vulkan.cpp:17177-17208`, when `ggml_vk_buffer_read_2d_async` returns false, the fallback synchronizes buffers, copies through a sync staging buffer and calls `ggml_vk_synchronize`. AN contains no counter for the return value, invocation count or time in this fallback. It cannot be blamed or excluded from current evidence.
+
+Older profile boundary: `/home/ubuntu/strata-tuning-20261007/ornith_q4_b10919_profile_on_20261008/` (different build/workload) measured 14.5015 s prefill and 4.1462 s union of explicit host event/backend waits. It reported 0.4235 s where at least two compute jobs were resident in device queues (2.92% of that profiled prefill). Those are queued-job residence intervals, not shader-active intervals. This older result motivates measurement but cannot quantify the cachematched build's 31.8K critical path. The AN server logs themselves have zero wait/copy-duration/shader-timestamp lines.
+
+Prior comparisons must stay separate: AN's +13.38% is the single TP OFF/ON scheduler pair. The earlier TP-ON device-host hook OFF/ON pair showed about +27.6% PP, a different pair and independent variable. Do not add or multiply those effects. AH's interrupted 31.6K attempt is not a valid paired performance result.
+
+One minimal next experiment (not run)
+
+If approved as a next task, profile one 8,196-token active-replay request on the same cachematched build. Add non-serializing host interval timing around the producer get/event-or-backend wait and consumer set, and record whether the Vulkan asynchronous-read fallback is entered and how long it synchronizes. In the same capture, place device-side timestamps around actual compute command-buffer execution on each BDF and correlate intervals to one monotonic timeline. This would distinguish host waiting from device execution and test real overlap; queue submission/residence counters alone are insufficient. Preserve the current memory guard and do not increase pinned arenas given GPU0c's narrow 24.5 MiB margin. No profiler or benchmark was run during this audit.
+
+Evidence paths: AN raw artifacts `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/tp-off-on-architecture-parity_20261009_an/{turboprefill-off,turboprefill-on}/{summary.json,diagnostics.json,telemetry.json,server.log,command.json}`; runner timing/sampling logic `runner-tp-architecture.py` (monitor interval 0.25 s; no phase labels); source paths/lines as cited above; prior profile summary `outbox/result_sol-q4-first-principles-measured-20261008.txt`. Scheduler mode was active only in ON (`groups=3 splits=18 saved=3 overlap=self-sync`) and absent in OFF; active replay does not by itself establish overlapping shaders.
+
+No inference, build, source edit, server launch, GPU setting or production change was made for this audit. `ornith-server.service` remains intentionally inactive. Stop here pending supervisor review.
