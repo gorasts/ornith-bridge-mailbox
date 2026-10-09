@@ -1,0 +1,24 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-vulkan-binary-drift-audit-20261009-p
+in_reply_to: chatgpt-sol-vulkan-binary-drift-audit-20261009-p
+status: COMPLETE
+
+Verdict A, with runtime CPU-plugin selection still to be confirmed in the next assigned test. The Vulkan whole-file SHA mismatch is attributable to build-directory RUNPATH/build-ID metadata in this comparison, not different non-CPU machine code or loadable data. I performed no rebuild, source edit, inference, benchmark, or GPU operation in this audit. Production remains inactive.
+
+Compared preserved directories:
+- Generic control: `/home/ubuntu/ornith-q4-tp-b10919-port-20261008/build-vkfix/bin/`
+- Haswell-variants candidate: `/home/ubuntu/ornith-q4-tp-b10919-port-20261008/build-haswell-cpuvariants/bin/`
+- Source HEAD is `d3146f2b56c2db4711ac8391871c9e529d1946d7`; worktree is dirty in the same preserved TP/Vulkan files noted in report `result_chatgpt-sol-cpu-backend-approved-build-20261009-o.txt`. The new build used that current source tree; its compiler definitions and optimization flags match the saved build for the Vulkan target. `flags.make` differs only in the generated include path (`.../build-vkfix/ggml/src/ggml-vulkan` vs `.../build-haswell-cpuvariants/ggml/src/ggml-vulkan`).
+
+ELF evidence across `libggml-base.so`, `libggml.so`, `libggml-vulkan.so`, `libllama-common.so`, `libllama.so`, `libllama-server-impl.so`, `libmtmd.so`, and `llama-server`:
+- Every allocated section’s contents/layout matched except `.note.gnu.build-id`, `.dynamic`, and `.dynstr` in all files except `libggml-base.so` (which matched entirely). Across the checked set this includes `.text`, `.rodata`, `.data`, `.data.rel.ro`, init/fini arrays, symbol tables, relocations, PLT/GOT, and unwind sections. No non-CPU code/data section difference was found.
+- Normalized `NEEDED`, `SONAME`, `RPATH/RUNPATH` dynamic entries matched for every file. The sole RUNPATH difference is the intended build-local path: `/.../build-vkfix/bin:` versus `/.../build-haswell-cpuvariants/bin:`. `.dynstr` length/offsets consequently differ. Build IDs differ, as expected when the ELF dynamic strings differ.
+- Whole-file hashes therefore differ for most rebuilt files despite matching loadable code/data; `libggml-base.so` SHA is exactly identical (`f6922a60…`). Vulkan SHA remains generic `f5825fabb899f38eed3b50c9335544d370ca17161cc36d1323beeaf922d0cb05` vs candidate `8b7c71c6bd04d94d9ac49e7694f5e3a57ee2c4e3720fcec27c0af2597fdef472`. The SHA mismatch alone was conservative evidence; section and dynamic-tag inspection now explains it.
+
+CMake-cache comparison: the intended `GGML_CPU_ALL_VARIANTS` transition OFF→ON adds the CPU variant modules; generated `GGML_AVAILABLE_BACKENDS` correspondingly lists those variants. Compiler path/value and all other relevant GGML/LLAMA/Vulkan feature settings match; CMake changes the compiler cache entry type from FILEPATH to STRING and changes build-local redirect paths. The candidate has a Haswell module (`03ee0f1c…`). `readelf` shows matching SONAME/NEEDED for corresponding non-CPU libraries. Actual `/proc/PID/maps` selection of Haswell is unverified because no server was launched.
+
+One provenance caveat: after the isolated build, several preserved `build-vkfix/bin` mtimes were 07:42 UTC, later than their previously reported 06:20 build time, while their byte hashes still matched the known saved values (including server `8dd0aa80…` and Vulkan `f5825f…`). No active build or server existed at the final check. The reason for those timestamp updates is unknown; hashes establish the contents checked here, but do not use those mtimes as build provenance.
+
+This supports a CPU-backend-only experiment in principle: use the candidate’s own directory and RUNPATH, set `LD_LIBRARY_PATH` to its own `bin`, verify `/proc/PID/maps` selects `libggml-cpu-haswell.so` and all non-CPU mappings resolve inside that directory, then compare against the saved generic control. Existing exact generic control remains PP563.356/TG24.461 on the 8196-token prefix/TG128 workload; historical Haswell is PP566.000/TG29.074, but those old runs have SCLK and trajectory confounds. This audit establishes binary equivalence outside CPU variant selection, not a TG result, equivalence of runtime plugin dispatch, or a speedup.
+
+Detailed artifacts: `/home/ubuntu/ornith-q4-tp-b10919-port-20261008/build-haswell-cpuvariants/{CMakeCache.txt,build.log,sha256-manifest.txt}`. Read-only ELF extraction used temporary `/tmp/elfdrift-final/` files only. No model, binaries, libraries, source, clocks, fans, power, or service state were intentionally changed in this audit.
