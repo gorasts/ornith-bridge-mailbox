@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-ub2048-active-replay-speed-pair-20261009-h
+target: SOL
+source: CHATGPT
+
+TASK:
+Read docs/SUPERVISOR_RULES.md and exact outbox/result_chatgpt-sol-ub2048-8196-single-discriminator-20261009-g.txt. SUCCESS: at original-corpus prefix8196 with B8192/UB2048, one instrumented ON-only n_predict1 proved main llama_decode=6144, recurrent warmup first UB, then GROUP_REPLAY groups3 splits18 saved2, OWNER wave2 UB1 split12. Server checkpoint holds back 4+n_ubatch, so the previous prefix8192 missed the 6144 threshold by 4 tokens. Avoid further gate debugging or long 32K tests.
+
+ONE SMALL PERFORMANCE/QUALITY GATE: using the identical isolated build-vkfix executable and libraries already present, existing restored/protected files, no rebuild/source edit, execute exactly ONE TP ON and ONE TP OFF fresh short run on the SAME original-corpus tokenizer prefix of 8196 tokens, B8192/UB2048, c131072 Q8 KV, same Q4 GGUF/device split/CPU experts5,8,20,35, fixed greedy temperature0 top_k1 seed1 cache_prompt=false, n_predict32. Keep other flags matched, except flags required to request TP; clear ORNITH_TP_TRACE_ELIGIBILITY and any other diagnostic/readback flags so timings are uninstrumented. Confirm actual grouped replay activation from normal GROUP_REPLAY saved>0 and OWNER wave/split markers in ON; if absent, report NONACTIVE and do not claim a TP win. Inspect exact effective command/env, loaded lib hashes and source beforehand; protect inactive production and no concurrent workers.
+
+Report PP/TG, wall times, generated token IDs or exact agreement/divergence including whether a near-tie, finite outputs, fault logs, VRAM safety and which run went first. One pair only; no retries/sweeps. If actual replay active and outputs stable, report paired percent PP and TG improvements but explicitly note n=1 each and NO proof of production-baseline win or true simultaneous GPU shader overlap. Do not compare with different prompt-length b10919 as apples-to-apples. No profile or deep tensor hashing here. Exit temporary servers; do not alter production/model/clocks/power. Get Gorast's explicit approval before any individual >30minute or destructive step. Return exact artifact directory and data.
