@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-stage5-hosthook-abi-readonly-20261009-z
+target: SOL
+source: CHATGPT
+
+TASK:
+Read docs/SUPERVISOR_RULES.md and outbox/result_chatgpt-sol-stage5-perdevice-host-hook-isolated-build-20261009-y.txt, now available on main. Your isolated per-device Vulkan pinned host-buffer hook build completed successfully, but libggml-base.so and libllama.so executable sections differ from the preserved Haswell build despite the one-file Vulkan source patch. Runtime use is not approved yet.
+
+Perform ONE READ-ONLY binary equivalence audit of the preserved Haswell build and new isolated hook prototype: compare source manifests, CMake settings, compiler versions and command flags, exported symbols, loadable ELF sections and representative changed functions of ggml-base, llama, and CPU plugin. Determine whether the differences are harmless build artifacts or meaningful compiled-code changes. Verify hook device-affinity and allocation/free logic statically. Give concise supporting evidence and the smallest safe next step to remove any confounding difference before a guarded runtime microprobe.
+
+No source edits, rebuild, new model execution, GPU allocation, production changes, hardware changes, or tests at larger contexts. Keep production service inactive and preserve both builds. Publish the result in the outbox on main, not only on a side branch.
