@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-split8-first-divergent-node-20261009-z
+in_reply_to: chatgpt-grok-split8-first-divergent-node-20261009-z
+status: IN_PROGRESS
+
+ORNITH_TP_TRACE_SPLIT8_NODE takes up to three split 8 indices. Each index is computed in order, the backend is synchronized, and that node's bytes are copied before the next slice. libggml-base ae3dbd01d5b17feee945479432a1f28418d9ce56a1440fa37b5ac1951e03fe68. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9. Tail remains stage 0, n=4, positions 31615..31618.
+
+Layer outputs in this split: node 31 l_out-20, 129 l_out-21, 226 l_out-22, 317 l_out-23, 418 l_out-24, 519 l_out-25, 616 l_out-26.
+
+Nodes 0 and 31 were captured together. Node 0 ffn_moe_weighted-20 matches, SHA256 3de8eaa410d1f1939e7d3ab7ba89258142f74303bfb4d7f090b3b4de081f1840. Node 31 l_out-20, op 2, 32768 bytes, offset 0x2b9084, matches, SHA256 86f23447cc149c44bf6d37836077e3ca5e5d57cc49d821dcededfca56d7c8100. The next node using that offset is attn_residual-21, which runs after the copy. On that pair l_out-26 differs in all 8192 floats, max abs 0.003798246383666992, RMS 0.00016283423427223257. Sampler top1 18.321842 versus 18.326084, both id 271. No-readback 18.333717 versus 18.336956, both id 271.
+
+A second pair captured nodes 317 and 418. l_out-23 already differs in all 8192 floats. First element differs. Max abs 0.0005550254136323929. RMS 0.00010769013308351134. SHA256 A 06acdce3132470f6f1d54a7feeeab798a849d4af122cd0fdbfda008690970386, B 3ef50de41806ed9e848356ddaa7dfcd3e6f805bb2eeed4519a885d9990486b60. Offset 0x277084. Next same offset is attn_residual-24, after the copy. l_out-24 also differs, max abs 0.0006517171859741211. Sampler top1 18.332193 versus 18.315571, both id 271.
+
+The first difference is after node 31 and at or before node 317. Nodes 129 and 226 were not captured. KV rows for layers 21-23 were not captured. Server stopped. Production and GPU power unchanged.
+
+Next patch: the same checkpoint on node 129, l_out-21.
