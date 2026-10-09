@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-cpu-backend-approved-build-20261009-o
+target: SOL
+source: CHATGPT
+
+TASK:
+GORAST explicitly says 'why are you asking permission keep working' in response to the prior request to authorize a potentially >30-minute isolated Haswell-optimized CPU development build. Treat this as OWNER AUTHORIZATION for THIS ONE NONDESTRUCTIVE isolated build and bounded validation; do not keep asking the same question. Destructive changes are NOT authorized. Follow docs/SUPERVISOR_RULES.md.
+
+Read exact outbox/result_chatgpt-sol-haswell-build-feasibility-20261009-n.txt and outbox/result_sol-q4-first-principles-measured-20261008.txt BEFORE action. That earlier b10919 port checkpoint reproduced 29 TG/s at B2048/UB2048. First check if it already safely supplies compatible CPU optimization and can avoid a recompilation; NEVER copy an ABI-unknown old .so or mix different library lineages. If no suitable existing preserved SAME-SOURCE optimized build, proceed with ONE isolated out-of-tree build from exact current modified source, configured with GGML_CPU_ALL_VARIANTS=ON, GGML_BACKEND_DL=ON, GGML_NATIVE=OFF, while preserving Vulkan and other effective settings. Leave build-vkfix, historic original binaries, libraries, GGUF and service untouched. Preserve sha manifests and rollback; no clean of originals.
+
+Initial blocker: your last SSH preflight to GORAST 192.168.100.116:22 returned Permission denied. Verify a normal authorized SSH session with existing configured connection, not repeated password guesses or changes to remote auth. If still denied, STOP and provide exact auth error/action needed, no claim that build ran. If accessible, preflight free space, no other worker/server, production ornith-server.service remains intentionally INACTIVE; never restart it.
+
+BUILD GATE: create separate directory, configure only supported CPU variant generation. Verify new runtime ACTUALLY loads Haswell-compatible CPU module through /proc/PID/maps; verify Vulkan library SHA and all relevant source/command/flags/config match original modified baseline. If ABI, CPU selection, Vulkan SHA, or effective configuration differs unexpectedly, STOP; do not treat comparison as CPU-only.
+
+BENCHMARK GATE: one bounded matched TG128 comparison using same ORIGINAL q32_512 first8196 tokenizer-token prefix fixed greedy seed1 temp0 top_k1, cache_prompt=false, Q4/Q8KV, 3 Vega Vulkan split0.8,1,1, four CPU expert layers5/8/20/35, B2048/UB2048, -c131072, t/tb14, TP OFF. Prefer previously saved exact control for generic if environment comparable; otherwise at most ONE fresh generic control and ONE optimized variant run sequentially. Passive actual GPU SCLK/HBM/temperature and CPU frequencies, zero clocks/voltage/fan changes. Capture TG, PP, full128 generated token IDs, faults, VRAM, wall, actual loaded module. If optimized backend is not selected or GPU clock distributions differ materially, report inconclusive; do NOT force clock matching. No sweep/repeat, no 32K, no deep numerical hash tracing.
+
+Then STOP and report exact evidence and whether TG approaches original ~29 tok/s without sacrificing PP. Do not promote build or enable production automatically. Continue within owner authorization for this isolated build only; if unexpectedly destructive or needing a new unrelated >30-min job, obtain approval then. No Grok tasks.
