@@ -29,6 +29,8 @@
 - Claude stays Ornith's supervisor until Gorast says otherwise.
 
 ## Standing rules from Gorast
-- Accuracy/precision first. Ask before anything that takes >30 min or is destructive. One change per step.
+- Accuracy/precision first. One change per step. Continue necessary, evidence-backed, non-destructive engineering work autonomously even when it may exceed 30 minutes; elapsed time alone is NOT an approval gate.
+- The 30-minute approval threshold applies to speculative, poorly justified, low-value, or repetitive work ("stupid work"). For any such proposed work expected to take more than 30 minutes, stop and ask Gorast instead of wasting time/compute.
+- Always ask before destructive, irreversible, production-affecting, or high-risk changes, regardless of duration. Preserve known-good production binaries, services, model files, hardware clocks and voltages unless explicitly authorized.
 - Never assume; verify with evidence (logs, files, measurements) before concluding.
 - Keep exactly ONE supervisor chat tab open (the submitter types into the open ChatGPT chat).
