@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-haswell-backend-tg128-controlled-20261009-q
+target: SOL
+source: CHATGPT
+
+TASK:
+Read updated docs/SUPERVISOR_RULES.md and EXACT outbox/result_chatgpt-sol-vulkan-binary-drift-audit-20261009-p.txt (status COMPLETE, verdict A). The new build-haswell-cpuvariants non-CPU code/data sections, including Vulkan, llama and server, match preserved build-vkfix; whole-file SHAs differ only because intended build-local RUNPATH and build IDs. New CPU Haswell module compiled, selected runtime backend has NOT yet been checked. The owner directs continue productive non-destructive work without 30min permission stops.
+
+ONE BOUNDED CONTROLLED CPU-BACKEND SPEED DISCRIMINATOR. Use two isolated builds, no rebuilding/source changes and no mixing library lineages: generic /home/ubuntu/ornith-q4-tp-b10919-port-20261008/build-vkfix/bin/ and optimized /home/ubuntu/ornith-q4-tp-b10919-port-20261008/build-haswell-cpuvariants/bin/. Before testing optimized model, verify via /proc/<pid>/maps and startup backend logs that the candidate ACTUALLY selects `libggml-cpu-haswell.so` and ALL core libraries and Vulkan module load from its own candidate bin directory. Generic counterpart must load its own generic `libggml-cpu.so`. STOP with precise blocker if Haswell is not loaded, or an unexpected cross-build library mapping appears. Startup alone permissible to verify mappings, but shutdown cleanly before comparing.
+
+If gate passes, execute EXACTLY TWO sequential short benchmark requests: 1 generic TP OFF then 1 Haswell-optimized TP OFF, identical first 8196 tokenizer tokens of original q32_512 corpus, same Q4 GGUF, c131072 Q8_0 K/V, GPU Vulkan0/1/2 layer split 0.8,1,1, 4 CPU experts 5/8/20/35, b2048 ub2048, -t14 -tb14 FA on -np1 and other original flags. REST: n_predict128, cache_prompt=false, temp0 top_k1 seed1 ignore_eos=true; no draft/MTP, no RADV_PERFTEST, TURBOPREFILL=0, clear ORNITH_TP_* and other trace/debug flags. Capture per-run actual effective CLI/env, loaded module maps, PP, TG, decode wall timing, full128 token arrays and text quality (not strict bit-identical requirement), faults, VRAM headroom, passive actual GPU SCLK/MCLK CPU frequencies/temperatures at decode 250ms without clock/power mutation. Record if divergence of token trajectories prevents exact decode time matching. Single trial each, do not overclaim.
+
+Interpret: if Haswell yields materially higher TG (>~10%) at comparable PP/clean output, evidence supports CPU backend cause; if unchanged, prioritize modified ordinary Vulkan fallback instead. Lower/higher SCLK can be effect of changed dispatch, don't demand artificial clock equality and don't claim temperature differences without evidence. Do not compare to historical original as if the runs were same-source; historic TG128 ~29 is goal only.
+
+No further sweeps, shader hashes, kernel patches, 32K/TG512 or production promotion. Leave `ornith-server.service` deliberately inactive, no model or original build changes, no GPU fan/voltage/clocks/power changes. Stop temporary servers, report measurements and ONE next step.
