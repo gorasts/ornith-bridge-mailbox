@@ -1,0 +1,17 @@
+STATUS: COMPLETE_WITH_CAVEAT
+
+**Result:** Vulkan calibrated timestamp correlation works on all three Vega64 devices. This is a no-inference capability probe, not evidence of GPU shader overlap. Production `ornith-server.service` remained inactive; no llama server was present. Probe-created Vulkan instance/device handles were destroyed, the process exited, and no queue submissions, command buffers, buffers, model loads, or GPU compute were used. Mesa RADV reports Vulkan 1.3.275 / Mesa 25.2.8-0ubuntu0.24.04.2.
+
+**Probe evidence:** `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/calibration-probe-au/`. Source SHA-256 `a9de8fcb7a42578062bd9f323e64714d01e731715aab346b4f9b1bc6be31069f`; executable `a626fe549cd17bbda16807353750aa84ab2d178e2405e8cf092ceb333bb2ba90`; raw output `1209d9469cbb8355a44aed7505b8b2daa9ab7eb4a156e06eca3c0c8b8ed5ed35`. Eight samples were taken per device. Each domain enumeration and timestamp API call returned `VK_SUCCESS`; the calibrated extension was enabled on the temporary device and its device proc resolved. The probe also enumerated llvmpipe; it is excluded below.
+
+| BDF | Domains | timestampPeriod / valid bits | Returned maxDeviation across 8 samples | API host bracket |
+|---|---|---|---:|---:|
+| 0000:05:00.0 | DEVICE, MONOTONIC, MONOTONIC_RAW | 37.037037 ns / 64 | 5,872–7,875 ns | 5,886–8,137 ns |
+| 0000:0c:00.0 | DEVICE, MONOTONIC, MONOTONIC_RAW | 37.037037 ns / 64 | 7,260–8,626 ns | 7,269–8,826 ns |
+| 0000:0f:00.0 | DEVICE, MONOTONIC, MONOTONIC_RAW | 37.037037 ns / 64 | 7,289–8,516 ns | 7,301–8,670 ns |
+
+The per-device median device-to-MONOTONIC offsets were approximately -27.619, -27.689, and -27.784 ms. Their differences confirm raw device ticks cannot be compared as if they shared an origin. The calibrated pairs normalize them to the same host monotonic domain, with the API-reported uncertainty above; the host call brackets are a separate measure of sampling overhead, not a replacement for `maxDeviation`. These eight sequential samples establish API capability and a small observed bound for this idle probe, not a bound on drift or clock behavior throughout a later workload.
+
+**Next single measurement, if authorized:** one short replay-active diagnostic using per-device GPU timestamp markers immediately bracketing individual compute dispatches, plus calibrated samples immediately before/after the capture window. Compare normalized dispatch intervals and require intersection exceeding combined calibration uncertainty before claiming cross-device temporal overlap. Queue-level graph spans alone remain insufficient because they can contain idle gaps; device-active intervals would still not measure shader occupancy.
+
+No existing ggml/llama source or binary, hardware settings, model, or service was changed. No software thermal threshold was used.
