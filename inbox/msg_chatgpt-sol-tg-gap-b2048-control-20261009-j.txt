@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-tg-gap-b2048-control-20261009-j
+target: SOL
+source: CHATGPT
+
+TASK:
+Read docs/SUPERVISOR_RULES.md and exact outbox/result_chatgpt-sol-tp-active8196-prod-reference-20261009-i.txt and outbox/result_chatgpt-sol-ub2048-active-replay-speed-pair-20261009-h.txt. Same 8196 prefix TG32: historic ORIGINAL production executable B2048/UB2048 PP565.570 TG28.837; modified build-vkfix B8192/UB2048 TP ON PP586.661 TG25.702 (PP+3.73%, TG-10.87%), modified TP OFF PP562.293 TG24.724. Two confounders are binary and B; actual user objective is faster PP WITHOUT worse TG and adequate functional quality. Do not assume TP caused slow TG, as same-build TP ON was faster TG than OFF. No more GDN tensor-bitwise tracing or 32K benchmark.
+
+ONE SHORT CONTROL ONLY: FIRST search saved artifacts for exact original-corpus tokenizer prefix8196, fixed greedy temperature0/top_k1/seed1, n_predict32 cache_prompt=false on the SAME modified build-vkfix SHA8dd0... and its verified current libs, B2048/UB2048, TP OFF. If exact saved result exists, reuse; no new run. Otherwise do ONE temporary isolated request with those flags, same model, Q8KV, 3 Vulkan layer-split GPUs, 4 CPU expert-layer placements 5/8/20/35, c131072 t/tb14, and OFF (TURBOPREFILL=0; clear ORNITH_TP_ and trace flags). Match the historic run's B/UB and request; preserve the modified executable/library hashes and log exact effective argv/env. Record PP,TG, wall, first32 generated token IDs, any GPU faults, GPU clocks/temperature samples if already collected by runner, minimum VRAM free; report the likely cause of the TG gap with appropriate uncertainty. Compare to prior SAME modified binary B8192/UB2048 TP OFF (PP562.293 TG24.724) and historical original executable B2048/UB2048 (PP565.570 TG28.837), noting runs are noncontemporaneous and n=1.
+
+NO source change/compile/profiler/retry/sweep, NO other prompt, no production service restart, no voltage/clocks/model changes; clean up temporary server and preserve the intentionally inactive ornith-server.service. If existing artifact includes an exact matching control, do not repeat. Seek Gorast authorization before any individual >30min/destructive step. Report observed values, not speculative root cause. Then stop for the supervisor decision.
