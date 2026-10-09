@@ -1,0 +1,28 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-q4-8k-headroom-split-ab-20261009-ba
+status: COMPLETE
+
+Result
+
+The sole split change moved substantial VRAM use from Vulkan1 (BDF 0c:00.0, the constrained x1 card) to Vulkan0 (BDF 05:00.0) while retaining correct output and active grouped replay. It did not produce a material prefill improvement: PP rose only 0.21% in this one sequential pair. This does not justify the requested 32K follow-up or another split sweep.
+
+Test and controls
+
+- Same preserved cachematched server and libraries in both arms; no source/build edits. Server SHA-256: 63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46; Vulkan: 60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f; Haswell CPU: 4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f.
+- Q4 model SHA-256: 6def24b4ef1436f080403b8c0fa9ca3b593abc080c74e64ef7c72d3d6a7322f1.
+- Same 8,306-token fixture and request in both arms. Fixture SHA-256: ab2f68a9e46edc086f826524d4d5facf5bedd9c38b9a36ac07662c2d512465f2; prompt-token SHA-256: 3efaeafa85d98e762c56cc0f027d99cd825d31a41932d446451ff05552e21e96; request-body SHA-256: 689f30c7b249e1fb65dc08558a2895eebe8fa0a39804091f6dd89880caf204a0.
+- Only effective launch difference: `-ts 0.8,1,1` baseline versus `-ts 1,0.8,1` candidate. Both used TP ON, device-local hook ON, three devices, identical CPU expert placements and remaining flags. Runtime mappings were checked against the preserved build. Replay was active in both: groups=3, splits=18, saved=2, self-sync; owner-round was absent.
+- The independent event replay was checked before inference: `A=710,B=775,C=615|COMMIT=6|ABORT=2`.
+
+| Arm | PP (tok/s) | Prompt eval | TG (tok/s) | Output | Minimum free VRAM (BDF 05 / 0c / 0f) |
+|---|---:|---:|---:|---:|---:|
+| Baseline 0.8,1,1 (first) | 610.755 | 13.600 s | 30.301 | 2,333 tokens; 90.578 s wall | 1,836.5 / 370.5 / 642.6 MiB |
+| Candidate 1,0.8,1 (second) | 612.061 | 13.571 s | 30.709 | 2,329 tokens; 89.396 s wall | 461.7 / 1,748.4 / 642.6 MiB |
+
+Candidate PP change was +0.21%; TG was +1.35%. These are single-run observations, with order and run-to-run variation, not evidence of a repeatable speed gain. Both answers naturally completed below the 8,192-token cap and independently matched the expected balances/counts. The final answer text differed in formatting; generated token streams first diverged at token 755 (1-based), but both final answers passed the oracle. Token SHA-256: baseline `9025cb874ac58644688358ede95c2578a5b02b6ab0d5dda155bb803b3765d8b6`; candidate `d8574c8482450ef1e684c8fbfa4ea07f490f65790db292b029721ca158c84065`.
+
+Memory logger data confirms the split shifted roughly 1.37 GiB of device allocation from Vulkan1 to Vulkan0. Minimum free VRAM on Vulkan0 remained 461.7 MiB, above the existing 300 MiB guard; no fault or abort was recorded. Exact layer counts per device were not emitted by the startup logs, so this report does not infer them from split weights. Passive peak junction temperatures were 57/67/75 C baseline and 57/67/76 C candidate for BDF 05/0c/0f; no temperature-triggered software stop was used.
+
+Artifacts are under `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/q4_8k_headroom_split_ab_20261009_ba/`. Runner SHA-256: `3d108d534d070d1b9bdc49f4c49ba4c69916f3d51cde59d535606fa8757aa4f4`; oracle script SHA-256: `d95d8157c55fefa6fee628191f757eca50752db161467f271057007d885c2e67`. The originally supplied fixture hash contained a typo; the preserved fixture’s verified hash is the corrected value above, and its requested token and body hashes matched. Temporary servers were stopped, GPUs were idle afterward, and `ornith-server.service` remained inactive.
+
+Verdict: the candidate is useful for headroom redistribution but did not materially improve speed. Do not run 32K based on this result; no further split candidate is justified by this pair. The invalid 639 PP slash-only run is not a valid comparator, and this result makes no cross-benchmark victory claim.
