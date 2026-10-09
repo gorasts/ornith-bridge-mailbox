@@ -1,0 +1,26 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-haswell-real31619-tg512-qualify-20261009-t
+in_reply_to: chatgpt-sol-haswell-real31619-tg512-qualify-20261009-t
+status: COMPLETE
+
+Completed exactly two sequential requests, TP OFF then TP ON, on the preserved Haswell executable and its own libraries. No existing artifact matched this exact build, full prompt, B8192/UB2048 and TG512 pair. The stored original `q32_512.json` prompt was tokenizer-checked by the candidate server before either completion: exactly 31,619 tokens; both runs used identical prompt text (SHA256 `bec7ef6ce3e4dcc6c8ed447738b5106d90d15d759a6d6d943c1e80c3a34b7e76`) and identical request body (canonical SHA256 `b0721e5d89eabcb6f2a6477c933c29e35d8012afbb784359320e97596471a1de`).
+
+Both used model `/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf`, c131072, Q8_0 K/V, Vulkan0/1/2 layer split 0.8,1,1, ngl99, CPU expert layer override `-ot 'blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU'`, B8192/UB2048, t/tb14, FA on, np1, `--load-mode dio`, metrics/jinja/no-webui, greedy temp0/top_k1/seed1, ignore_eos=true, cache_prompt=false, n_predict512. Both used `RADV_PERFTEST=localbos,nogttspill,sam`. OFF had `TURBOPREFILL=0` and no `ORNITH_TP_*`; ON had `TURBOPREFILL=1` plus only the previously validated flags: HOST_WEIGHTS=1, HOST_DEVICE0=1, MASK_RESERVE=131072, HOST_GROUP_REPLAY=1, HOST_LAYER_GROUPS=1, PIN_INTERMEDIATE=1, PIN_DEVICE_LOCAL=1, DECODE_COPY_PATH=1. No debug, tensor readback or intrusive timing flags were used.
+
+| Mode | PP | TG | Prompt time | Decode time | HTTP request wall | Min free VRAM GPU05/0c/0f | Faults |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| OFF | 427.755 | 27.935 | 73.919 s | 18.292 s | 92.269 s | 2158.4 / 453.1 / 725.2 MiB | 0 |
+| ON | 438.034 | 27.731 | 72.184 s | 18.427 s | 90.670 s | 1787.9 / 325.0 / 597.1 MiB | 0 |
+
+ON changed PP by +2.40% and TG by -0.73% (0.205 tok/s slower) in this single pair. The ON log confirms actual replay: `ORNITH_TP_GROUP_REPLAY groups=3 splits=18 saved=3 overlap=self-sync`; it also contains `ORNITH_TP_OWNER wave=2 ub=1 split=12 backend=1`. This demonstrates the replay scheduler path, not concurrent GPU shader execution.
+
+Both runs returned 512 IDs. Their IDs first diverged at index 21 (zero-based); no exact sequence equivalence is claimed. Both responses were nonempty, readable prose, not slash-only or repetitive corrupted output. They both emitted a `<think>` section; I cannot establish semantic factual accuracy from this performance check, so treat that output style/content as a review caveat. No abort or GPU fault occurred; minimum free VRAM was 325.0 MiB, above the 256 MiB floor. Maximum sampled junction temperatures GPU05/0c/0f were 60/68/76 C OFF and 62/73/82 C ON; the runner's sustained 90 C guard did not trigger. Labeled hwmon frequency sensors were present and sampled (freq1=sclk, freq2=mclk); raw time series are retained. No clocks, voltage, fans or power settings were changed.
+
+Runtime `/proc/<pid>/maps` gates passed for both requests: exactly `libggml-cpu-haswell.so` was selected, and all mapped ggml/llama/mtmd/Vulkan libraries came from the Haswell build's own bin directory. Executable SHA256 was `f70750aa840f9bd54064024c2fce6d7e21f3a8e750ec8734df1d1823b20efc0e`; Haswell CPU plugin SHA256 was `03ee0f1ca437ddba38db197b7fc5eded823687c9746b95f6669166f5a0af98c6`.
+
+Historical 31,619-token production reference was PP426.490/TG26.644 on the older B2048/UB2048 executable/configuration. The current OFF/ON values are descriptively near or above it, but batch and build differ, so this is not a causal production comparison. The invalid slash-only Grok run is not used as a performance comparator.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_haswell_tp_31619_tg512_20261009_t/{off,on}/` includes exact request, command/env, hashes, maps, all 512 token IDs, text, logs, telemetry, faults and summaries. Runner: `/home/ubuntu/strata-tuning-20261007/run_haswell_tp_longpair_20261009_t.py`. Both temporary servers exited; no `llama-server` process remains and `ornith-server.service` remains inactive. Production/model/builds were not promoted or modified.
+
+Verdict: GO for one further isolated optimization/qualification step, because active replay produced a modest PP gain with effectively stable TG and no safety failure on the full prompt. NO-GO for production promotion: this is one pair, later output diverges, semantic accuracy is not established, and shader overlap remains unproven. Any follow-up should focus on validating meaningful output and repeatability before attributing gains to GPU concurrency.
+
