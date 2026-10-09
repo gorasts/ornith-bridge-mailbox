@@ -1,0 +1,25 @@
+# AX Vulkan graph API stage profile — BLOCKED BEFORE INFERENCE
+
+**Status: BLOCKED.** The requested single AK-fixture inference was not run. The AX diagnostic source did not compile, so there are no AX timing, performance, output-quality, replay, or fault measurements. AW, its preserved binaries, the GGUF, and production were not changed. `ornith-server.service` was confirmed `inactive`; no `llama-server` inference process was running at the final check.
+
+## Source trace and attempt
+
+The read-only walk confirmed a suitable host-side call chain in the AW source: TP replay’s split callback in `ggml/src/ggml-backend.cpp` calls `ggml_backend_graph_compute_async`; Vulkan enters `ggml_backend_vk_graph_compute` (`ggml/src/ggml-vulkan/ggml-vulkan.cpp`, around 18106). That callback submits the transfer context, records graph nodes via `ggml_vk_build_graph`, ends command buffers in `ggml_vk_ctx_end`, and submits through `ggml_vk_submit` to `vk::Queue::submit`. Existing fence waits are conditional on serialized submissions; the optional Vulkan perf logger adds waits and was not enabled. Host timers around these sites could separate CPU-side wall intervals, but cannot measure GPU shader time or overlap.
+
+AX is a fresh source copy at `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/vulkan-graph-api-ax_20261009_ax/source`; comparison against AW reported exactly two changed files: `ggml/src/ggml-backend.cpp` and `ggml/src/ggml-vulkan/ggml-vulkan.cpp`. The first build directory had copied ExternalProject cache paths into AW and failed before compilation; it was not reused. A fresh `build-fresh` was configured from AW’s user-facing CMake options. The cache confirms Release, `GGML_BACKEND_DL=ON`, `GGML_CPU_ALL_VARIANTS=ON`, AVX/AVX2/BMI2/F16C/FMA/SSE42 OFF, and VXE ON.
+
+The fresh build then failed in `ggml-vulkan.cpp`. Representative errors: `ax_vk_timer` undeclared at lines 3327, 3337, 3386, 3458, 8477, 18149 and later; profile types undeclared at line 18118; `ax_prof` undeclared at lines 18244 and 18558; malformed queue-submit timing syntax at line 3458. Inspection shows the new declarations were placed inside an existing `GGML_VULKAN_RUN_TESTS || GGML_VULKAN_CHECK_RESULTS` conditional, which is not enabled in this build, and loop timing markers escaped the intended graph callback scope. No executable was produced. The patch is isolated to AX, but its timing output is not usable.
+
+## Evidence and next step
+
+Remote AX directory: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/vulkan-graph-api-ax_20261009_ax/`.
+
+- AX `ggml-backend.cpp` SHA-256: `6de83bdb197ed839e745f46982baebcccf0dcd425f148fc93ee1be6c357091f8`
+- AX `ggml-vulkan.cpp` SHA-256: `c942a160ef1d3b288a37936f8cd090b3a38329a766f4057b89fce5166dd714a6`
+- Fresh build log SHA-256: `ad97f092a792ed095200fa5866cd40c2e1a723c76d9309927b069372c6e33708`
+- Fresh configure log SHA-256: `ba98fd2f0fa944d56c5a4c7d864121703a8cffe5d3dd385d71e07c9bd95a2478`
+- Prior AW comparison/result: `outbox/result_chatgpt-sol-tp-slot-log-overhead-ab-20261009-aw.txt`; AW’s logging A/B was correctness-equivalent and showed only +0.15% PP, so the AX run requested quiet logging with `ORNITH_TP_SLOT_DEBUG=0`, but that run never occurred.
+
+The diagnostic design was intended to report enclosing graph-call wall time plus nested host setup/recording, descriptor, command-buffer end, submit, queue-submit, and existing-wait intervals by Vulkan device. No extra synchronization or device-side timing was added. Because the build failed, there are no valid timing denominators or segment rankings; AW’s prior 3.609-second graph API aggregate remains the only relevant measured value and cannot be decomposed from this attempt.
+
+The smallest next step is a reviewed AX-only correction that moves timer declarations out of the test-only preprocessor guard, confines loop markers to `ggml_backend_vk_graph_compute`, and fixes the queue-submit wrapper syntax; then compile and validate before considering the single inference. This report makes no claim that any one Vulkan host segment dominates. No retry, inference, or production action was started.
