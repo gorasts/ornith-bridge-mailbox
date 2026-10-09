@@ -1,0 +1,41 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-tp-phase-times-one-8k-20261009-aq
+source: SOL
+target: SUPER
+status: COMPLETE_WITH_CAVEAT
+
+TP REPLAY PHASE TIMING — ONE AQ REQUEST
+
+One AQ diagnostic request completed on the AK transaction fixture. Replay was active (`groups=3 splits=18 saved=2 overlap=self-sync`). The independently checked final answer was `A=710,B=775,C=615|COMMIT=6|ABORT=2`; it naturally ended at EOS. The AQ output text and generated token IDs exactly match the prior AP run (2,333 tokens; token-list SHA `9025cb874ac58644688358ede95c2578a5b02b6ab0d5dda155bb803b3765d8b6`; text SHA `9aae46ba2bccde29ce19d4ff45363c0f7a5709cbc2cf87ef598831bfc27f149a`).
+
+Source walk and instrumentation
+
+I traced the active replay phase loop in `ggml/src/ggml-backend.cpp` (`run_turboprefill_one_split_diagonal`, grouped replay loop) and the real Vulkan tensor get/set callbacks. `ggml_backend_sched_tp_copy_via_ram` is limited to the `LIVE_CURRENT` source route; AP had measured zero calls for this fixture. The normal Vulkan read callback can take a synchronous staging fallback when its async read returns false; the write callback has its own pinned-arena/shared-staging fallback. AQ times PREPARE_H2D, COMPUTE, and STORE around the existing split call and scopes the existing Vulkan readback counter to each phase. It adds write-fallback counting. No waits, fences, buffers, allocation policy, or scheduler behavior were changed.
+
+AQ is a separate copy of the AP diagnostic source/build. Relative to AP source, exactly two files changed: `ggml-backend.cpp` SHA `189b7db04afb630692947bee38e102bd19539f44f00703aaaf8098c8341f9081` and `ggml-vulkan/ggml-vulkan.cpp` SHA `e94d75a3ef34eae81cb1461801d6c9ab982963e424e62e319cc8be8706e1220e`. The AQ build's 153 relevant GGML/LLAMA/compiler cache entries match AP exactly. Server SHA `96e66eeda394724e3f5196e58c17c57850726b6919ed89a4d4ad9e73ff0f9df8`; Vulkan SHA `b0f1b19d65b498585183521df513e680d3756a2fd47b63033bba21a6510b97c0`; Haswell CPU module SHA `73baf9d2a7f5574da6ac5bb037833b322aad7ea8f4d52992b0ddea6ceb7d740c`; ggml-base SHA `821dbfbe8babef497559613572d26b31930ac18bd771a2b05042dcd6f635783b`. Runtime `/proc` maps confirmed the Haswell backend and all ggml/llama/mtmd libraries came from AQ's own `build-configured/bin`.
+
+Measured host-inclusive replay phase windows
+
+Times are sums of host elapsed calls to the split-phase function, grouped by Vulkan backend. They are not GPU shader durations. Backend IDs map to Vulkan0/05:00.0, Vulkan1/0c:00.0, and Vulkan2/0f:00.0. Each row reports call count, sum, per-call p50/p95/max (ms); percentiles use the lower empirical rank.
+
+| Phase | Vulkan0 / 05:00.0 | Vulkan1 / 0c:00.0 | Vulkan2 / 0f:00.0 | Total |
+|---|---:|---:|---:|---:|
+| PREPARE_H2D | 14; 52.059 ms; 3.257/7.346/8.651 | 10; 25.506 ms; 3.419/5.062/5.852 | 10; 29.935 ms; 3.248/5.632/6.509 | 34 calls; 107.500 ms |
+| COMPUTE | 14; 1,417.048 ms; 15.565/240.186/259.404 | 10; 1,223.988 ms; 0.089/342.327/564.864 | 10; 1,009.148 ms; 0.088/140.434/752.113 | 34 calls; 3,650.184 ms |
+| STORE | 14; 75.339 ms; 1.066/20.103/20.216 | 10; 0.709 ms; 0.045/0.116/0.121 | 10; 0.611 ms; 0.042/0.110/0.130 | 34 calls; 76.659 ms |
+
+COMPUTE is the largest directly measured phase: 3.650 s, 95.2% of the 3.834 s total phase-call time. Those host intervals include command submission and any blocking inside the phase; they do not separate shader execution from waits. No device-side timestamps were collected, so actual shader overlap remains UNKNOWN.
+
+Vulkan fallback accounting during replay phases: readback fallback 0 calls/0 bytes. Write fallback 66 calls, 371,421,344 requested bytes (~354.1 MiB), and 67.582 ms summed fallback-branch host duration: Vulkan0 28/151,941,256 bytes/33.326 ms; Vulkan1 18/109,740,040/17.138 ms; Vulkan2 20/109,740,048/17.118 ms. This times the whole existing fallback branch; it does not isolate an internal synchronize call or prove that the requested bytes equal bus traffic.
+
+The API prompt-eval interval was 13.619989 s (8,306 tokens; 609.84 tok/s). Measured phase windows sum to 3.834343 s (28.15%); 9.785646 s lies outside these phase windows. AQ did not record total TP-series entry-to-exit time, so that remainder cannot be labeled “non-TP” or split further. AP's 5.745303 s TP-series figure and 675.798 ms group-sync sum are from a separate diagnostic run and are not substituted as AQ measurements. The 66 write-fallback durations are nested inside phase windows and must not be added to them.
+
+AQ prompt/decode rates (609.84/30.39 tok/s; 90.364 s request wall) are secondary and instrumented, not a performance comparison. The AP-derived source also emitted 28,076 each of existing `ORNITH_TP_SLOT_POST` and `ORNITH_TP_SLOT_EVENT` lines (57,075 server-log lines total). These are inherited diagnostic prints, not AQ timing records, and could perturb overall prompt timing. AQ added only aggregate phase lines and fallback records.
+
+Safety and evidence
+
+One runner invocation launched an ephemeral AQ server; an earlier invocation with an invalid artifact label exited at usage validation before launching. The actual run used prompt SHA `3efaeafa85d98e762c56cc0f027d99cd825d31a41932d446451ff05552e21e96`, request SHA `689f30c7b249e1fb65dc08558a2895eebe8fa0a39804091f6dd89880caf204a0`, fixture SHA `ab2f68a9e46edc086f826524d4d5facf5bedd9c38b9a36ac07662c2d512465f2`, Q4/Q8 KV, c131072, Vulkan split 0.8/1/1, CPU expert layers 5/8/20/35, B8192/UB2048, TP self-sync, device-local hook enabled, owner-round absent, greedy sampling, natural EOS. It produced 2,333 finite tokens. No GPU faults, OOM, VRAM abort, or request exception were recorded. Minimum free VRAM was 1,836.5 MiB / 370.5 MiB / 642.6 MiB on 05/0c/0f; passive maximum junction readings were 58C / 69C / 76C. No software thermal cutoff was used. The temporary server exited, no llama-server remains, and `ornith-server.service` is still inactive.
+
+Artifacts: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/tp-phase-times-one-8k_20261009_aq/`. It contains the exact fixture, oracle validator and transcript, runner (SHA `5d9ca9dd155b01d5b44b466033dd5c000798c98a0068909d14f7eac4b4a49909`), request and prompt token IDs, complete response/token list, telemetry, fault and mapping records, full server log, AQ source diff, cache comparison, binary SHA manifest, phase aggregate and artifact-hash manifest. `phase-timing-lines.txt` retains all emitted aggregate records.
+
+Verdict: the host-inclusive COMPUTE phase dominates the measured phase windows; PREPARE_H2D and STORE were comparatively small, and Vulkan readback fallback was absent. The write fallback was measurable but only 67.6 ms summed. AQ did not time the total TP series or isolate explicit event/backend synchronization from host compute-phase work, so the remaining prefill critical path and true GPU concurrency are unresolved. The one next useful diagnostic is to time existing graph-submit and event/backend synchronize calls under the same phase/wave context, while adding a TP-series enter/exit timer; do not add synchronization or run another workload as part of this result.
