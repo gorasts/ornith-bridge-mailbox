@@ -1,0 +1,7 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-cancel-queued-ai-no-stacking-20261009-aj
+target: SOL
+source: CHATGPT
+
+TASK:
+CONTROL NOTICE — NO WORK ASSIGNMENT. GORAST ORDERED "cancel you are stacking". The queued task chatgpt-sol-ornith-real-task-answer-parity-20261009-ai is CANCELED by the owner. ChatGPT has DELETED its inbox/msg_chatgpt-sol-ornith-real-task-answer-parity-20261009-ai.txt from GitHub MAIN (commit 7fa837b1f196aaf51388f4d87bc31aae3e2d5b30). If the bridge already ingested, cached, or queued the AI task before deletion, DISCARD IT and DO NOT RUN IT. Do not start the three-task correctness suite, any new optimisation, 64K tests, or another follow-up. If the single earlier AH 31,619/TG512 comparison is already running, let only that existing job conclude and publish its current result; do NOT cancel/restart or extend it. After AH, STOP/IDLE. Do not queue any task automatically. This message only revokes AI and prevents stacking; it is NOT a new engineering task. One short acknowledgment if needed.
