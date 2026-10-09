@@ -1,0 +1,19 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-stage5-32k-abort-logging-offline-hardening-20261009-af
+status: COMPLETE_OFFLINE_VALIDATED
+
+I created and validated an offline-hardened copy only. No inference, server launch, allocator call, GPU API, build, model/config edit, service action, or hardware adjustment was performed. The prior abort reason cannot be recovered: the original runner and partial artifacts did not persist it, and the old process session/cgroup is gone.
+
+Preservation and artifacts
+- Original runner remains unchanged at `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/run_hosthook_31619_ad.py`; its SHA-256 before and after is `91fb3848a6ef9717e22b9f8b7a6dad5cfd472dcd4453504fefe2e4323dcc795a`.
+- New copy: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/offline_hardening_20261009_af/runner-hardening.py`, SHA-256 `a61cd964a4c56710b526e46c57ef5005ce294b1466ded57aab0f35aa187a7f3a`. It writes any future run to a separate fresh root ending `hosthook_31619_tg512_reverse_ab_hardened_20261009_af`, preserving the prior trial artifacts.
+- Offline tests: `test-runner-hardening-offline.py`, SHA-256 `a0ed943248e681eea88d1ed84e8dd9f15eb0d3075a11211f801e67c426a47268`; output is `selftest.stdout.txt`; `SHA256SUMS` contains the two file hashes. No `__pycache__`/`.pyc` was created in the remote evidence directory.
+
+The copied runner retains the existing thresholds and stop behavior: instantaneous junction ≥90°C, junction ≥85°C sustained for 2 seconds, and sampled free VRAM <300 MiB. Every guard now first appends the trigger sample, then atomically writes and fsyncs `abort.json`, then signals the server. If that write fails, it still terminates the server before raising, so inference fails closed. Faultwatch matches use the same ordering and save the matched line with the latest sensor context. Finalization atomically saves complete telemetry and `diagnostics.json` even when the HTTP request raises or times out, including exception/traceback, child return code and decoded signal, process status/cgroup visibility, last server-log lines, journal command status/stderr/matches, monitor exceptions, and abort summary. Unavailable journal/cgroup fields are explicitly recorded UNKNOWN.
+
+Abort-record schema/example (illustrative values, not a real event):
+`{"schema":"ornith-run-abort-v1","arm":"hook-enabled","abort_reason":"junction_instant_ge_90C","guard":"junction_instant_ge_90C","bdf":"0000:0f:00.0","pid":4242,"pgid":4242,"timestamp_utc":"...","wall_time_s":0,"monotonic_time_s":0,"raw_sensor_values":{"junction_mC":90000,"vram_free_mib":400},"observed_duration_s":null,"faultwatch_line":null,"last_five_samples":[...]}`.
+
+Offline tests on GORAST syntax-compiled both files and passed: 89°C does not trip the instantaneous guard; 90°C persists the BDF/reason/trigger row before the mocked terminate callback; ≥85°C for 2 seconds trips with duration; <300 MiB trips; synthetic faultwatch persists its line and sensor context; simulated abort-file persistence failure terminates fail-closed; and a simulated request timeout plus child signal are preserved by final-diagnostics persistence. The termination callback only checks a temporary JSON file and never calls OS signal APIs; tests contain no real PID, server launch, GPU or backend calls.
+
+Next gate: owner approval is required before another thermally uncertain 31.6K/TG512 run. Even then, use only the new runner after reviewing its saved live guard event/telemetry and an explicit thermal safety margin. This offline hardening does not establish the cause of the previous exit or validate runtime performance.
