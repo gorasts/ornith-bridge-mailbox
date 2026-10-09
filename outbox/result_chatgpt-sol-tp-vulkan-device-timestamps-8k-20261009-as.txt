@@ -1,0 +1,23 @@
+STATUS: COMPLETE_WITH_CAVEAT
+
+Read-only feasibility passed, so I ran the one requested diagnostic request. All three Radeon Vega devices reported `timestampComputeAndGraphics=true`, compute/graphics queue `timestampValidBits=64`, and `timestampPeriod=37.037 ns`. Source already uses Vulkan timestamp queries for its perf logger, but that mode adds `waitForFences` and reads with `eWait`; it was explicitly cleared and not used here. The normal scheduler end-of-series synchronization at `ggml-backend.cpp:5171` calls each backend synchronize; Vulkan drains pending compute/transfer work (`ggml-vulkan.cpp:17329-17389`).
+
+I copied the AR diagnostic source/build into `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/gpu-timestamps-as_20261009/`. The only source edits were in `ggml-backend.cpp` and `ggml-vulkan/ggml-vulkan.cpp`: phase/wave-tagged graph scope hooks; two timestamp queries per TP graph; unique tiny query pool per graph retained until series sync; then `getQueryPoolResults` with availability, without `eWait`, followed by pool destruction. No new fence, semaphore, queue wait, scheduler decision, arena, or pinned allocation was added. Pools were not reused before the read. The normal source’s built-in logger path was not enabled.
+
+**One-request evidence:** exact 8,306-token AK fixture, prompt-token SHA `3efaeafa85d98e762c56cc0f027d99cd825d31a41932d446451ff05552e21e96`; request SHA `689f30c7b249e1fb65dc08558a2895eebe8fa0a39804091f6dd89880caf204a0`. Independent fixture replay recomputed `A=710,B=775,C=615|COMMIT=6|ABORT=2`. The new build loaded its own Vulkan and Haswell CPU plugin; the runtime pin hook was `=1`, owner-round absent. Replay was active: `groups=3 splits=18 saved=2 overlap=self-sync`.
+
+| Vulkan device / BDF | Valid graph spans | Sum of per-graph device elapsed | p50 / p95 / max |
+|---|---:|---:|---:|
+| Vulkan0 / 0000:05:00.0 | 26/26 | 1.681 s | 7.015 / 385.060 / 386.893 ms |
+| Vulkan1 / 0000:0c:00.0 | 4/4 | 2.044 s | 587.944 / 621.833 / 621.833 ms |
+| Vulkan2 / 0000:0f:00.0 | 4/4 | 1.757 s | 579.400 / 625.733 / 625.733 ms |
+
+All 34/34 query pairs were available after ordinary sync; none were invalid. These are device queue-timeline spans from the first to last graph command timestamp. They include device-side queue gaps/waits and are **not shader-active durations**. Cross-device timestamp domains were not calibrated: these totals must not be added as a global elapsed time and do not prove simultaneous GPU execution.
+
+In the same run, TP series was 5.754 s; host COMPUTE phase windows summed 3.654 s; host `graph_compute_async` intervals summed 3.611 s (union 3.611 s, 62.8% of TP series, 26.5% of API prompt-eval). Prompt evaluation was 13.632 s. Event-wait API time was only 0.151 ms. Thus the device timestamps establish real queued device elapsed work behind the graph calls, but do not separate shader execution from queued idle/wait time; 7.879 s of API prompt-eval lies outside the TP series and is not decomposed here. No Vulkan readback fallback timing was added by this task.
+
+The request naturally stopped after 2,333 tokens; final answer was the independently correct transaction result. Token IDs exactly match AQ’s prior validated run. PP 609.289 tok/s, TG 30.325 tok/s, HTTP 90.552 s are secondary and instrumented; inherited slot diagnostics still emitted 28,076 POST and 28,076 EVENT lines, so do not treat timing as an uninstrumented speed comparison. Zero fault matches, no abort, child exit 0, service remained inactive. Minimum free VRAM: 1836.5 / 370.5 / 642.6 MiB on BDF 05/0c/0f; maximum sampled junction 56/69/76 C. Temperatures were passive only.
+
+Artifacts: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/gpu-timestamps-as_20261009/evidence/host-wait-diagnostic/` (request, prompt IDs, response/tokens, telemetry, faults, diagnostics, mapping gate, server log); source diffs `backend-timestamp.diff` and `vulkan-timestamp.diff`; build/configure logs and `checkpoint-manifest.txt` in the parent directory. Key SHAs: runner `bf0944ea6262104d35f1da66514c74449bc2baeb8178e57f8e3a2fd66ece977b`; server `e33c532771fbbb257d265c808b16aa6d7eab817c21784180415608d02c419e4a`; Vulkan `46911a62e0f0373c622a37c9ef0a2e137826a8b0c8e52ae32b747f090b52c9b1`; Haswell plugin `902c86c1d6e4f238589a032dd8a7f24dcf3463d71964efd2f7980d67ba7ba078`; response JSON `25bb40e1cd4b4fe1b01b7131df45e0b1b28786202bb6ea616a85fd8ea392695d`.
+
+**Verdict:** GPU queue timestamps are feasible and valid for per-device elapsed spans after existing synchronization. Remaining key unknown is shader-active time and cross-GPU overlap. One useful next diagnostic would be a calibrated multi-device timestamp/activity trace; no further work was started.
