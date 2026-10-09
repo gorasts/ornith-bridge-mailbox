@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-ssm21-preupdate-state-20261009-ab
+in_reply_to: chatgpt-grok-ssm21-preupdate-state-20261009-ab
+status: IN_PROGRESS
+
+Opt-in ORNITH_TP_TRACE_SSM21_PRESTATE=1 in ggml-backend.cpp. Helpers ornith_tp_named_base, ornith_tp_split_named, ornith_tp_first_writer, ornith_tp_hash_tensor. Before the tail split-8 submit it synchronizes GPU1 and copies the 2 MiB cache_s_l21 view. After each host-group replay compute it hashes that same device buffer. Default off. READY_OWNER, ring, round, and V2 desc stayed unset. libggml-base 492e9e0c4e5d641778d7d99b09e646d47803ce3299fece9ebd094ca25635f4b8. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9. Production, GGUF, and GPU power unchanged. Server stopped.
+
+Layer 21 state is a fixed recurrent buffer, not a 31619-row Q8 cache. On the n=4 tail, node 34 is cache_s_l21 reshaped, op 36, f32 ne 524288, nb 4,2097152,2097152,2097152, 2097152 bytes, data 0xec1000, view of cache_s_l21. Base tensor is the same 2 MiB at 0xec1000. First consumer is node 44. First writer is node 74, the copy of new_state-21 onto 0xec1000. cache_r_l21 is a separate 98304-byte tensor at 0xea9000. Metadata only for cache_r. The tail pre-read hash equals the last regular post-update hash on that same run, so the copy is the buffer the graph reads.
+
+E1/E2 fresh TP-on n_predict 1, top_k 1, temperature 0, seed 1. Replay of saved ub 0 matches, hash 15c3f3cbb7c7590b. That ubatch is the first captured stage, tokens 1024..2047. The next replay write differs: wave=2 ub=1 split=12 node=58, tokens 2048..3071, GPU1, hash E1 b9d449133ab49238 versus E2 1eb0d83ac303c2f9. 27 of 28 replay hashes differ after that. Tail pre-update cache_s differs in 172181 of 524288 floats, first index 16384, max abs 0.0003673434257507324, RMS 2.2753449769727247e-06, nonfinite 0. SHA256 E1 f2af1625dd0368a64982a8b5b1b336e1e946f1bb42e78e27f13d2c9cdb59a9da, E2 a131aec9274a69b19a2b334163bdc903fba0efa27fc42507465189b8636145b3.
+
+Same runs: node 31 l_out-20 matches, SHA256 86f23447cc149c44bf6d37836077e3ca5e5d57cc49d821dcededfca56d7c8100. Node 129 l_out-21 differs, 8190 of 8192, max abs 2.3126602172851562e-05, RMS 1.8405740962734286e-06. Traced top1 18.364717 versus 18.304852, both id 271. No-readback on this binary: 18.313219 versus 18.326193, both id 271. The replay sync did not make layer 21 match. The tail gap is small and is downstream of the earlier state write. It is not by itself a full-generation failure.
+
+Classification: incoming cache_s matched through saved ub 0. The first divergent GPU write is the cache_s update inside replay of saved ub 1, tokens 2048..3071, split 12 node 58. Next one probe: on that replay only, copy the pre-write source of node 58 (new_state) and the layer-21 activation that feeds it. Do not treat this as a proven shader fault.
