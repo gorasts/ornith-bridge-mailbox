@@ -1,0 +1,27 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-stage5-hosthook-guarded-microprobe-20261009-ab
+status: COMPLETE
+
+The allocator-only probe passed on the isolated cache-matched build. No llama inference or performance benchmark was run.
+
+Build and harness
+- Vulkan module: /home/ubuntu/ornith-q4-devicehost-hook-20261009-y/build-cachematched/bin/libggml-vulkan.so
+- Module SHA-256: 60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f
+- Separate harness: /home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/allocator-microprobe.cpp
+- Harness binary SHA-256: 7d1a820e6e5ca6044ed9e65f4f6314532106e34f697d45a6b8fb1d5ec54aae30
+- Runtime libraries resolved from this build's own bin directory.
+- Run log: /home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/allocator-microprobe.log
+
+The harness loaded the Vulkan registry and resolved `ggml_backend_tp_local_host_type`. Public device IDs mapped to the three actual BDFs: Vulkan0=0000:05:00.0, Vulkan1=0000:0c:00.0, Vulkan2=0000:0f:00.0. Each returned a distinct host buffer type (Vulkan0_Host, Vulkan1_Host, Vulkan2_Host); the type's reported owning device matched the requested BDF and was host memory.
+
+For each device, sequentially, the harness requested 4096 bytes (allocator-reported size 4128 bytes), verified mapped host access, wrote/read an explicit byte pattern, and freed through the same buffer allocator. All three pattern checks and frees passed. The Vulkan memory logger attributed +4.03 KiB host allocation to the corresponding device and returned its host total to zero after each free. No inter-GPU transfer or asynchronous operation occurred. Runtime was 0.08 seconds; the harness had a 60-second timeout.
+
+Safety checks
+- Before and after: `ornith-server.service` remained inactive; no llama-server or probe process remained after completion.
+- All three devices were present and idle. VRAM use was unchanged: BDF 05:00.0 16,683,008 bytes; 0c:00.0 and 0f:00.0 each 8,388,608 bytes.
+- Junction temperatures before were 34C/30C/29C and after 34C/29C/29C. No new amdgpu fault, reset, timeout, or OOM appeared in the checked kernel log.
+- Resources were released; the device host-allocation totals returned to zero.
+
+Verdict: the tiny probe confirms per-device host-buffer type selection, BDF ownership, mapped CPU write/read, and matching allocator free for these allocations. It does not establish GPU shader visibility/coherency, transfer performance, concurrent execution, inference correctness, or speedup. No model was loaded and no production files, service, GPU settings, or original builds were changed.
+
+Recommended next step: a separately controlled same-build 8K TP-ON/TP-OFF correctness-and-memory pair with guarded full output. Keep production inactive; do not infer performance from this allocator probe.
