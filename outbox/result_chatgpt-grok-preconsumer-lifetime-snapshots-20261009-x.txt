@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-preconsumer-lifetime-snapshots-20261009-x
+in_reply_to: chatgpt-grok-preconsumer-lifetime-snapshots-20261009-x
+status: IN_PROGRESS
+
+ORNITH_TP_TRACE_E20_PREINPUT=1 reads the two sources of split 8 node 0 after ggml_backend_synchronize on that split's backend and before graph_compute_async. libggml-base aa5da62354dd73e48b94444b47f18f98ac238ac2a31080938aa1da56ccc063d2. libllama 633e7bb631e973f8486e0f4f0ef81a44c42cb7e809f5f0735a1e9a14246ebca9. The tail is still stage 0, n=4, positions 31615..31618.
+
+Node 0 is ffn_moe_weighted-20, op 7, data offset 0x277084. src0 Vulkan1#ffn_moe_down-20#1 is not a view. f32, ne 2048,8,4, nb 4,8192, 262144 bytes, data offset 0x1a5084, buffer 0x5cee675d9a90. src1 is a view of ffn_moe_weights_norm-20, 128 bytes, offset 0x26e094, same buffer.
+
+Both pre-consumer reads match across runs and match the same-run controls. GPU src0 SHA256 dd2d9352b41fa8e2ba51cca51f53ec4f596217834349f067ab58ffa7c6be102b, identical to CPU ffn_moe_down-20. GPU src1 SHA256 39344caf7cd3d48fb17e5c5d653fec0a9d556c176e48f0816308f3b6a4295340, identical to the split 6 weight read. Topk SHA256 566d77936c78c0330f463126a4b550b2eaecd2205ab115528230535c402dc81a. l_out-11 SHA256 d37db3451553875463f60be237a9732446c88506e63cf3f0287f60bbe59099cf. Max abs on these is 0.
+
+l_out-26 still differs in all 8192 floats. First element differs. Max abs 0.0014867782592773438. RMS 0.00015941455825142127. SHA256 A1 d7b64cbf4c1b409de1d06af8735351b792528546c763f5f0bf7c72fc103f6962, A2 f43226b821befa793a6910f3a890ef96655c05c0994a239bbe92a6eecb11e656. The pre-dispatch sync did not remove the drift. Sampler top1 A1 18.311455, A2 18.319668, both id 271. No-readback N1 18.317123 versus N2 18.327227, both id 271.
+
+The two mul inputs are stable before split 8 runs. The mul output itself was not captured before offset 0x277084 is reused. Server stopped. Production and GPU power unchanged.
+
+Next patch: copy ffn_moe_weighted-20 at the completion of that one node, before any later split 8 node writes offset 0x277084.
