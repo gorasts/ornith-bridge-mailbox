@@ -1,0 +1,13 @@
+STATUS: BLOCKED_PRE_INFERENCE_SSH_AUTH
+
+The requested UB128-versus-UB64 Q3 pair did not run. The final remote preflight could not authenticate to GORAST: `ssh -o BatchMode=yes -o ConnectTimeout=8 ubuntu@192.168.100.116 ...` returned `Permission denied` (SSH exit code 1). No llama-server was launched and no completion request was sent. Consequently there are no PP/TG, replay, correctness, or run-time VRAM measurements for BI.
+
+Preparation completed before access was lost:
+- Read the BH result and supervisor thermal policy. The preserved BH runner was SHA-256 `64dbcd57439b0033001e7f37ac85253e63123a62fbb41ee01790d25754eb54b7`; its original fixture SHA is `df2afd4a303fabe0112a02f4648876984283840f8f51b941c73152e2f19dea30`.
+- Created an isolated, uniquely named evidence directory `/home/ubuntu/ornith-q3-fullgpu-tp-ub128-vs64-16k-20261009-bi/`, without changing the BH directory, model, binaries, or production assets. Copied fixture, request, token IDs, event list and oracle validator.
+- Copied runner SHA-256 `1642c632489a6bace2c8f5c9438566052320de504e53b817a6d47268acdce611`; Python compilation passed. Its only intended execution changes are arm labels/paths and `-ub 128` then `-ub 64`, with TP requested ON for both. It has explicit refusal gates for the recorded prompt-token-ID SHA `7f888b1ffa25c1f9aed1c32ee03409cd825d31a41932d446451ff05552e21e96` and request-body SHA `cf49dbd14a7ac868c98f6389ae440270319ce19959a11060963f7526004ffefb`. The copied runner retains the prior nonthermal VRAM/fault safeguards and passive temperature telemetry; it adds no temperature cutoff.
+- The staged setup manifest is `setup-manifest.json`. The source fixture, request file and token-ID file were copied byte-for-byte from BH. The task oracle remains local to the runner and is not included in the model request.
+
+The last successful remote check before the SSH denial reported `ornith-server.service` as `inactive`. That earlier command's broad `pgrep -af` output included its own shell command, so it does not establish whether another llama-server was running. Current process/GPU state, model and runtime-library hashes, available telemetry, and final GPU health could not be verified after SSH failed. No workload was started, so there was no temporary process to clean up.
+
+The exact Q3 run binary/module hashes remain those reported by BH, but BI could not re-verify them remotely. Resume only after authorized SSH access is restored and the runner's own service/process, binary, device, memory, request-hash and replay gates can execute. This report makes no claim about UB64 performance or correctness.
