@@ -1,0 +1,29 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-replay-active-32k-natural-eos-correctness-20261009-al
+status: COMPLETE
+
+The replay-active long-context task 7 pair completed naturally in both arms. Both answers independently match the transaction oracle; generated token streams diverge, but the divergence is not a task-quality failure. This is one sequential pair and does not establish general model accuracy or repeatability.
+
+Fixture and oracle
+- Original task: “Idempotent transaction state machine”, entry 7 (index 6) in `/home/ubuntu/brainbench/tasks_all.json`, file SHA-256 `eacea86d4900d6b5df847e8f4e4231ab3b1ed14222bf975ba337a4b6bca2ffe7`.
+- Final fixture: 31,802 input tokens (+183 from 31,619, within ±300); 20 operative events retained in exact original order, 281 clearly labeled non-operative audit records, delivery/monitoring observations, snapshots after events 4/8/12/16, and one quoted untrusted instruction-like record. The task rules state only the 20 numbered events change transaction state.
+- Before inference, `oracle-validation.py` compared every operative event line against `canonical-operative-events.txt`, replayed transitions independently, checked all four snapshot balances, and recomputed `A=710,B=775,C=615|COMMIT=6|ABORT=2`. Validation passed. Oracle code SHA-256 `0705b849ff3b3fa9ac4b8989d9966c02f8d22802f36e8a693c2fa8927d312830`; canonical events SHA-256 `0a946bacfa1543ad42b5ed1d47fdc0611345144036c6c7e4e41d43ccd7d2b733`; fixture SHA-256 `7b0d96b433598625d4ba22578f2be778f87cbf0f9742267b9380b9388466ac25`.
+- Tokenizer preflight sent no completion. The identical prompt-token SHA-256 was `132fbe9e72bded2723ac26ec16be4af7bfa429edee179691c4bcdabae23ccc75`; identical request-body SHA-256 was `0862829d2b02d4850b9d5fc89e5a928bb04a960a4a00e77996e7de4a357316e4`.
+
+Matched setup and results
+Both arms used the cachematched isolated server `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`, Vulkan library `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`, and Haswell CPU library `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`. `/proc` maps confirmed all core libraries came from that build and the Haswell module was loaded. Same Q4 model path, Q8_0 K/V, context 131072, Vulkan0/1/2 layer split 0.8/1/1, CPU expert layers 5/8/20/35, B8192/UB2048, t/tb14, FA on, TP enabled, self-sync owner-round absent, greedy temp0/top_k1/seed1, cache_prompt=false, ignore_eos=false, n_predict8192. `command.json` confirms identical argv and library hashes; the only relevant environment difference was `ORNITH_TP_PIN_DEVICE_LOCAL` (enabled arm `1`, control absent).
+
+| Arm (order) | Generated tokens / stop | Correct final answer | PP / TG; request wall | Active replay |
+|---|---|---|---|---|
+| Hook enabled (1st) | 2,823; natural EOS, not truncated | `A=710,B=775,C=615|COMMIT=6|ABORT=2` — semantic PASS | 562.63 / 27.757 tok/s; 158.25 s | groups=3, splits=18, saved=3; owner-wave markers; self-sync |
+| Hook disabled (2nd) | 2,226; natural EOS, not truncated | `A=710,B=775,C=615|COMMIT=6|ABORT=2` — semantic PASS | 440.97 / 27.720 tok/s; 152.45 s | groups=3, splits=18, saved=3; owner-wave markers; self-sync |
+
+Both solutions correctly handled duplicate AUTH/COMMIT, aborts, snapshots and final balances/counts. The exact required final-format string appears at the end of each response; both also include explanation and tables, so they are not answer-only. Token IDs differ beginning at generated token 246 (1-based); this is acceptable here because each response independently passes the oracle. Token-array SHA-256: enabled `325c300ee023504151e2a0cf66f06a5fe28acee9f481bc1a14f4ce2b4b9d5116`, disabled `7f908b914bf614d2c52dc02ea1d97261c44ba097decd7eaa5d9807e332b71bce`. Full text and token arrays are saved in each `response.json`.
+
+PP/TG are secondary single-run observations: enabled PP was 27.6% higher while TG was effectively tied (+0.13%). The request wall was 158.25 s enabled and 152.45 s disabled. Different generated lengths and sequential order prevent a robust speed conclusion. Replay markers establish grouped scheduling, not simultaneous shader execution.
+
+Safety and cleanup
+No GPU fault, reset, OOM, runner abort, or matching kernel-journal fault was recorded; both server processes exited with code 0. Minimum free VRAM (enabled and disabled) was GPU 05:00.0 1787.4 MiB, 0c:00.0 324.5 MiB, 0f:00.0 596.5 MiB. The constrained card remained 24.5 MiB above the 300 MiB guard. Passive junction peaks were enabled 65/79/87 C and disabled 64/76/88 C for 05/0c/0f respectively. Raw hwmon `freq1_input` peaks were 1404/1438/1483 MHz across the three cards; `freq2_input` remained 1000 MHz. Temperature was telemetry only; no software thermal cutoff or hardware setting was changed. After both arms, `ornith-server.service` remained inactive, no llama-server remained, GPUs were idle, and VRAM returned to idle use.
+
+Artifacts: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/replay_active_task7_semantic_integrity_20261009_al/`. This includes the fixture, canonical events, oracle and validation transcript, copied runner, tokenizer preflight, exact requests/token IDs, command and mapping gates, full responses/tokens, summaries, replay logs, telemetry, allocator logs, and fault/cleanup diagnostics. Copied runner SHA-256: `1b3524cf3649396f617c76a2cd30c23e0f24ae4e339b1b9158f6655c1cb6dc74`. The original AK/AH evidence and all preserved binaries were left unchanged. No further work was started.
+
