@@ -1,0 +1,22 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-q4-block20-gpu1-reverse-ab-20261009-be
+status: COMPLETE_WITH_CAVEAT
+
+The reverse-order confirmation completed with the block20-GPU candidate first and the original CPU placement second. Both fresh requests used the preserved Q4 build, identical AK transaction prompt/request, and fixed `-ts 1,0.8,1` split. The candidate again improved prefill and decode rates while both answers passed the sealed transaction oracle.
+
+| Arm (order) | CPU expert overrides | TP replay | PP / prompt time | TG / output tokens | min free VRAM MiB (05 / 0c / 0f) | Oracle |
+|---|---|---|---:|---:|---:|---|
+| Candidate (1) | blocks 5, 8, 35; block20 experts default to layer device | groups3 / splits14 / saved2 | 634.391 tok/s / 13.093 s | 31.890 tok/s / 2531 | 683.9 / 1385.9 / 642.6 | PASS |
+| Baseline (2) | blocks 5, 8, 20, 35 on CPU | groups3 / splits18 / saved2 | 611.979 tok/s / 13.572 s | 30.458 tok/s / 2329 | 461.7 / 1748.4 / 642.6 | PASS |
+
+On this reverse-order pair, block20 offload gained 3.66% PP and 4.70% TG. Compared with the original BD order, the direction repeats: BD was 634.386/31.806 candidate versus 612.584/30.735 baseline (+3.56% PP, +3.49% TG). The four observations are encouraging but remain only two paired trials, not a broad repeatability or production claim. HTTP wall times (92.447 s candidate, 90.023 s baseline) are not comparable because the candidate emitted 202 more tokens.
+
+Both generated readable, naturally completed responses with final answer `A=710,B=775,C=615|COMMIT=6|ABORT=2`. The sealed independent replay returned that oracle before each arm and again after the pair. Token streams diverged at zero-based index 7 (the eighth token); candidate and baseline token-array SHA-256 values were respectively `b82f1af413c1c28d676e46d6f68f72f2d1fc96888a63ea5d101b87d6d99e8fae` and `d8574c8482450ef1e684c8fbfa4ea07f490f65790db292b029721ca158c84065`. Both had 8306 input tokens, prompt-token SHA-256 `3efaeafa85d98e762c56cc0f027d99cd825d31a41932d446451ff05552e21e96`, and identical request SHA-256 `689f30c7b249e1fb65dc08558a2895eebe8fa0a39804091f6dd89880caf204a0`.
+
+The candidate replay count is again 14 splits versus the baseline's 18. The changed expert placement is the only effective argv change, but it changes derived replay partitioning; this confirms the end-to-end placement result, not a fixed-partition causal measurement or proof of shader concurrency. `/proc` mapping gates in both arm artifacts show the preserved server, Haswell CPU plugin, Vulkan and core libraries from the same cachematched build; process environment confirms hook `=1` and owner-round absent. The model, server, Vulkan and Haswell hashes match the requested preserved values: `6def24b4ef1436f080403b8c0fa9ca3b593abc080c74e64ef7c72d3d6a7322f1`, `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`, `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`, and `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`.
+
+All minimum VRAM readings remained above the existing 300 MiB guard. Passive peak junction temperatures were candidate 59/67/75 C and baseline 59/67/78 C for BDF 05/0c/0f. No faultwatch matches, aborts, or nonzero server exits occurred. The original thermal policy was preserved; no software temperature cutoff was used. Temporary servers exited, GPUs were idle afterward, and `ornith-server.service` remained inactive.
+
+Evidence directory: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/q4_block20_gpu1_reverse_ab_20261009_be/` (full request, token arrays, responses, commands, maps, summaries, server/allocator logs, telemetry, faults and cleanup diagnostics). The copied runner changed only its output root from the preserved BD runner; its SHA-256 is `979ff1e0236f7a6694fc0b66927678d20dbf22ffc39735973868435ea652bfe6`; original runner SHA-256 remains `2df8713260b03b59861eaee204078df8f0c1df95cb16071f7793c36be5ae7b02`.
+
+Verdict: the reverse-order pair reproduces a modest 3–5% end-to-end gain with correct output and safe measured headroom. Recommend one 32K correctness/headroom validation after supervisor review; do not infer the gain's mechanism beyond the observed placement change and replay regrouping. No further run was started.
