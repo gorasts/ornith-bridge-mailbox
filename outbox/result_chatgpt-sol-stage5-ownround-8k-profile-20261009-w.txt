@@ -1,0 +1,27 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-stage5-ownround-8k-profile-20261009-w
+status: COMPLETE_WITH_INVALID_A_B
+
+The two requested short requests finished safely, but this was not a valid self-sync versus owner-round comparison. The supposed self-sync arm set `ORNITH_TP_OWNER_ROUND=0`; source at `/home/ubuntu/ornith-q4-tp-b10919-port-20261008/ggml/src/ggml-backend.cpp:4795` enables owner-round by environment-variable presence (`getenv(...) != nullptr`), regardless of value. Both server logs therefore say `overlap=owner-round`. I did not launch a third request; the pair budget is spent.
+
+Both arms used the preserved Haswell executable SHA256 `f70750aa840f9bd54064024c2fce6d7e21f3a8e750ec8734df1d1823b20efc0e`, Haswell plugin `03ee0f1ca437ddba38db197b7fc5eded823687c9746b95f6669166f5a0af98c6`, Q4 model, Q8_0 K/V, 131072 context, B8192/UB2048, Vulkan layer split 0.8/1/1, CPU experts 5/8/20/35, greedy 8196-token saved request, 128 generated tokens. The ON replay was active in both: `groups=3 splits=18 saved=2 overlap=owner-round`, with owner-wave records. All mapped ggml/llama libraries came from that build's own `bin` directory. No source or binary was changed.
+
+| Arm as labeled | Actual scheduler | PP | TG | HTTP wall | Output / faults |
+|---|---|---:|---:|---:|---|
+| `self_sync` (OWNER_ROUND=0) | owner-round | 606.993 | 29.908 | 17.768 s | 128 readable tokens; zero faults |
+| `owner_round` (OWNER_ROUND=1) | owner-round | 605.920 | 29.990 | 17.780 s | 128 readable tokens; same 128 token IDs as first arm; zero faults |
+
+The ~0.18% PP difference and ~0.27% TG difference compare two owner-round runs and are noise-level, not a scheduler effect. Their output is readable and not slash-only; this does not establish semantic quality beyond this short generation. Historical unprofiled self-sync from the same 8196/TG128 setup was PP587.745/TG30.391 (report `result_chatgpt-sol-haswell-tp-onoff-8196-tg128-20261009-s.txt`); it is not a matched profiled control and cannot validate owner-round speedup.
+
+Profiling evidence (API-shim intervals during each marked request; summed call times are activity, not a critical-path sum) was effectively identical in both runs:
+
+- Host `backend_wait` summed duration by backend: Vulkan0 1.06 s, Vulkan1 2.19 s, Vulkan2 1.97 s. `get_async` call duration/bytes: Vulkan0 <0.01 s/0.101 GB, Vulkan1 1.72 s/0.071 GB, Vulkan2 1.99 s/0.165 GB (CPU 0.02 s/0.161 GB). Union of backend-wait and get-async intervals was 8.95 s of the 17.8 s request window; this is instrumentation-derived wait exposure, not all recoverable time.
+- `set_async` logged 7.174 GB to Vulkan0 and 0.153 GB each to Vulkan1/2 (7.480 GB total logical transfer requests); enqueue-call time was ~0.05 s total. These are API-requested bytes, not an independent physical PCIe byte counter.
+- `event_wait` elapsed ~0.20 s on Vulkan0; these calls can enqueue GPU dependencies and are not all host blocking. Captured GPU scheduler/fence trace records queue/job residence, not shader-active intervals.
+- Busy/VRAM/temperature sampling was intended at 250 ms, but the saved cadence was ~3.33 s because collection itself took longer. Only five samples landed in each request window; one owner-round sample showed all three GPU busy counters nonzero. This is too coarse to establish sustained overlap. No independent shader-active overlap was proven.
+
+Safety: minimum free VRAM was 1836.9 MiB (GPU 05), 371.0 MiB (0c), 643.1 MiB (0f), above the 300 MiB target. Peak sampled junctions by BDF were self-sync-labeled 45/45/48 C and owner-round 52/61/55 C (05/0c/0f); zero GPU fault lines. Both temporary servers exited, no `llama-server` remained, and `ornith-server.service` remained inactive.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_stage5_ownerround_8196_profile_20261009_w/` contains both commands, env, request/response/token IDs, logs, maps/hashes, API CSV, kernel traces, telemetry, faults, and runner. The API shim SHA256 is `6c464551a44df1a0c9b9c91ca0e8a6f6ee6aa393299be939d27829292730415a`.
+
+Verdict: no valid measured owner-round gain can be claimed. The experiment confirms the owner-round path executed and was safe at this short context, but not that it improved throughput or delivered concurrent shader work. The minimum corrective discriminator is a new, genuinely paired profile where the self-sync arm has `ORNITH_TP_OWNER_ROUND` removed entirely and the owner-round arm sets it to `1`; no follow-up was run here. If that comparison shows no material gain, proceed with the prior report's narrowly scoped per-device host-buffer-hook proof rather than sweeping scheduler knobs. Production was left untouched.
