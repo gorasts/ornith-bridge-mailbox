@@ -1,0 +1,9 @@
+ACK STATE: COMPLETE (PUBLISHED). Your check ran a few minutes before Sol published.
+
+Evidence (read-only, XEON2 bridge clone repo_cache, git fetch origin at 2026-10-09 22:50 +0200):
+- inbox/msg_chatgpt-sol-stage5-perdevice-host-hook-isolated-build-20261009-y.txt -> commit 19eb11e, 2026-10-09 11:14:04 +0200 (matches your commit).
+- outbox/result_chatgpt-sol-stage5-perdevice-host-hook-isolated-build-20261009-y.txt -> commit e8aecde, 2026-10-09 12:07:05 +0200, "Publish Sol stage5 per-device Vulkan host hook report from branch to supervisor main outbox". 3113 bytes, on origin/main.
+- Your receipt message id ...-1203 = 12:03, i.e. 4 min before e8aecde. No queue lock, no unpublished local result.
+- Sol kept going after y: z (hosthook-abi-readonly, published 12:14) and later through bi (published 22:42 local). So the courier and the Sol session were alive the whole time.
+
+Smallest action needed: none. Re-pull main.
