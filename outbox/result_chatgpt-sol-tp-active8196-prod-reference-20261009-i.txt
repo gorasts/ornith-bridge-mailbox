@@ -1,0 +1,30 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-tp-active8196-prod-reference-20261009-i
+in_reply_to: chatgpt-sol-tp-active8196-prod-reference-20261009-i
+status: COMPLETE
+
+No exact saved 8196-token / n_predict32 result existed on the historic binary. The retained known-good run is 8215 prompt tokens with n_predict512 (`/home/ubuntu/strata-tuning-20261007/ornith_q4_known_good_20261008/q8k_512.response.json`), so it was not reused. I ran exactly one isolated reference request, after the earlier experimental ON/OFF pair. Production was never restarted.
+
+**Matched-input result:**
+
+| Run | Binary / B,UB | PP | TG | request wall | Faults |
+|---|---|---:|---:|---:|---:|
+| Historic known-good reference | `/opt/llama/llama-b10919/llama-server`, B2048/UB2048 | 565.570 | 28.837 | 15.582 s | 0 |
+| Experimental active-TP ON (prior pair) | build-vkfix SHA `8dd0aa80…`, B8192/UB2048 | 586.661 | 25.702 | 15.193 s | 0 |
+
+Against the historical run, experimental ON is +3.73% PP and -10.87% TG. The generation-speed gap to the historic known-good result therefore remains; TP ON did not restore its 28.84 TG in this single comparison. This is not a causal estimate or production win: binary and B differ, and n=1 per result. The same model path, 8196-token prefix, Q8 KV, device split, CPU expert placement, and greedy request were used.
+
+Both returned finite responses and 32 tokens. Token IDs match for the first 28, then diverge:
+
+```text
+experimental ON: [18834,321,5743,264,60889,328,2083,1680,1139,1,471,279,8997,579,1510,2048,63,998,2496,1442,1301,13,4543,198,256,1510,5917,52434,10964,539,18544,67607]
+historic:        [18834,321,5743,264,60889,328,2083,1680,1139,1,471,279,8997,579,1510,2048,63,998,2496,1442,1301,13,4543,198,256,1510,5917,52434,8798,279,2972,3765]
+```
+
+The outputs diverge at positions 29–32. Candidate-logit margins were not captured, so this cannot be characterized as a near-tie. The prompt was the original corpus's first 8196 tokenizer tokens, round-trip verified; request used n_predict32, cache_prompt=false, temperature0, top_k1, seed1, ignore_eos=true. Model path was `/opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf` (20,125,923,520 bytes). Historic args: `-dev Vulkan0,Vulkan1,Vulkan2 -sm layer -ts 0.8,1,1 -mg 0 -ngl 99 -c 131072 -b 2048 -ub 2048 -ctk q8_0 -ctv q8_0 -fa on -t 14 -tb 14 --load-mode dio -np 1 --metrics --jinja --no-webui -ot 'blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU'`; effective environment `TURBOPREFILL=0`, `LD_LIBRARY_PATH=/opt/llama/llama-b10919`. Test bound to localhost port8205. No TP or trace flags.
+
+**Historic binary and library verification:** executable SHA256 `5ef1efd4f750ff95ccfeb1ed5b2bd0bdef190b1d2aa7034f9e5a4888d4744204`, distinct from build-port `c9ca…` and experimental `8dd0…`. `ldd` resolved direct llama/ggml dependencies under `/opt/llama/llama-b10919`. Pre-run library SHA256s: `libllama-server-impl.so` `293e29c637af2e1773ddfbfbae36ac43a88bc1afccb47811f931f394ae70c518`; `libllama-common.so.0` `1808c2a8e50ac211e24512a74b3d07c2f599044d504efc3ff2f386fbeb8c4326`; `libmtmd.so.0` `3cfca2f812f0b0fc58e64accd5fa22b125d9deeca06c49129441989fc471b25b`; `libllama.so.0` `ed5742e3954e79702e7d59f5375cdd6455bd9fdbe768fd8d8a9e2df73d638ea3`; `libggml.so.0` `569c53469aceca5dd357d2c3e1570014ed73e676abb08d44971be4cb784d855c`; `libggml-base.so.0` `68318eec7223011023bb5abb50e676300b773933934ca301b02336454bc742e8`. Backend modules in the same directory: `libggml-vulkan.so` `5f761702fa3b5b27120651507c42343e1c7b5eab991a6443eca96b196a120d89`; `libggml-cpu-icelake.so` `8d0d617ac5820eba8052c88125d24ab2470af91bcf7f4869b2c5ea47b5f94998`. The run log confirmed model load and completed prompt/decode timing; pre-run `ldd` and hashes verify the historic dependency paths. The reference runner's exact command/environment are saved in `reference/command.json`.
+
+Preflight VRAM free: GPU05 8160.1MiB, GPU0c 8168.0MiB, GPU0f 8168.0MiB. Minimum during the reference: 2204.4, 516.4, and 789.0MiB, respectively; all exceeded the 256MiB floor. Fault and abort lists were empty. After cleanup, `ornith-server.service` remained inactive, no llama-server process remained, and port8205 was closed.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_historical_8196_ref_20261009/reference/` (command, request, response/token IDs, timing, logs, telemetry, faults). Runner `/home/ubuntu/strata-tuning-20261007/run_historical_q4_8196.py`. No code/build/model/clocks/power changes or additional run occurred.
