@@ -1,0 +1,33 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-decode-actual-clocks-shortpair-20261009-m
+in_reply_to: chatgpt-sol-decode-actual-clocks-shortpair-20261009-m
+status: COMPLETE
+
+Read the supervisor rules and prior passive-backend report. Its files had no instantaneous SCLK samples, so I ran exactly one new two-request pair: historic first, modified second. The saved hwmon label on each GPU is `sclk`; Linux AMDGPU documentation specifies `freq1_input` in hertz and `freq2_input` in hertz for SCLK/MCLK ([kernel documentation](https://kernel.org/doc/html/latest/gpu/amdgpu/thermal.html)). The per-device paths were `/sys/bus/pci/devices/0000:{05,0c,0f}:00.0/hwmon/hwmon{2,3,4}/freq{1,2}_input`. Idle preflight returned 26,000,000 Hz SCLK and 1,000,000,000 Hz MCLK on each card; no settings were changed.
+
+Both runs used the preserved binaries and corresponding libraries, same Q4 model, original-corpus prefix of 8196 tokens (round-trip checked), n_predict128, cache_prompt=false, temp0/top_k1/seed1/ignore_eos, B2048/UB2048, c131072/Q8_0 K/V, Vulkan0/1/2 split0.8,1,1, CPU experts5/8/20/35, t/tb14, FA on, np1. TURBOPREFILL=0; no RADV_PERFTEST or ORNITH_TP_* variables. Exact commands, environment, library hashes, request, and all 128 token IDs are saved per run. The two loaded CPU backend modules were again Haswell-specialized for historic and generic for modified.
+
+| Run | PP | TG | prompt ms | decode ms | wall | GPU faults |
+|---|---:|---:|---:|---:|---:|---:|
+| Historic, SHA `5ef1efd4…` | 566.000 | 29.074 | 14480.557 | 4368.234 | 18.864 s | 0 |
+| Modified, SHA `8dd0aa80…` | 563.356 | 24.461 | 14548.535 | 5191.840 | 19.757 s | 0 |
+
+TG remains 15.87% lower on modified while PP is 0.47% lower. The two outputs match for tokens 1–28, then diverge at token 29; later routing/output is therefore not matched. One request per binary is not a repeatability estimate.
+
+**Actual decode-window clock observations.** Sysfs values were sampled every 250 ms and the decode sample window was aligned to the server-reported predicted_ms duration. There were 16 historic and 19 modified samples in those windows. Instantaneous SCLK median/range, MHz:
+
+| GPU BDF | Historic | Modified | Range intersection |
+|---|---:|---:|---:|
+| 05:00.0 | 173.5 (128–180) | 150 (113–161) | 128–161 |
+| 0c:00.0 | 257.5 (228–265) | 220 (204–238) | 228–238 |
+| 0f:00.0 | 372.5 (363–690) | 289 (272–649) | 363–649 |
+
+SCLK value ranges intersect on all cards, but medians are lower in the modified run by about 14%, 15%, and 22% respectively. This is not a clock-matched pair; overlapping extrema do not establish matched frequency distributions. MCLK was 1000 MHz in every decode sample on all cards. The earlier DPM marker difference on GPU0f (historic 852/991 MHz selected states, modified 852 MHz only) corresponds directionally to the lower instantaneous median/peak in modified, but is not a one-to-one mapping to measured SCLK.
+
+Temperatures remained low and similar: hottest junction was 47 C historic and 48 C modified. `power1_input` during decode was GPU05 19–22 W / 17–19 W; GPU0c 17–20 W / 14–18 W; GPU0f 24–28 W / 21–27 W (historic / modified). The driver exposed no thermal-throttling status file. CPU decode-window average logical-core utilization was 14.1% historic / 19.0% modified; maximum per-core sample 59.3% / 70.4%. Median CPU frequency was 2.884 / 2.893 GHz (ranges 1.364–3.300 / 1.293–3.300 GHz). These brief samples do not indicate a saturated core. Minimum free VRAM was 2204.4/516.4/789.0 MiB historic and 2204.4/516.4/788.9 MiB modified on GPU05/0c/0f, above the 256 MiB floor.
+
+**Decision:** The TG gap persists, and the modified run had lower median instantaneous SCLK on every GPU plus lower measured power. Clock-state mismatch could plausibly explain part or all of this pair’s TG difference; the pair cannot support a software-only attribution. GPU0f’s DPM-state change is directionally consistent with the measured lower SCLK but does not quantify causality. No software change is recommended yet. If a later assigned pair first achieves comparable actual SCLK distributions and the TG gap still persists, the narrow reversible software experiment would be a same-source TP-OFF comparison with only CPU backend specialization changed (Haswell-specialized vs generic); it was not performed here.
+
+Zero GPU faults or safety aborts; temporary servers exited; `ornith-server.service` remained inactive and no `llama-server` process remained. No source, build, model, clocks, voltage, power or fan settings were changed.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_decode_actual_clocks_20261009/{historic,modified}/` (command/library hashes, request/response/token arrays, logs, 250 ms raw telemetry, fault files, summaries, lscpu); runner `/home/ubuntu/strata-tuning-20261007/run_decode_actual_clocks.py`.
