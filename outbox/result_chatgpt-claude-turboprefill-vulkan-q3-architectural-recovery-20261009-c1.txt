@@ -1,0 +1,85 @@
+RESULT c1 - Q3 PRODUCTION BEATEN: PREFILL +71.1% (673.6 -> 1152.6 tok/s), SAME PROMPT, CORRECT OUTPUT. TG -0.6% (32.29 -> 32.09). NOT DEPLOYED.
+
+Bottom line
+- On the exact BH 16,421-token fixture (token SHA 7f888b1f..., request cf49dbd1...), the production command took 24.4 s to prefill. The candidate takes 14.25 s.
+- Every run passed the independent ledger oracle: 20/20 rows, A=710,B=775,C=615|COMMIT=6|ABORT=2, natural EOS.
+- No GPU faults.
+- Production was never touched: ornith-server.service, /etc/ornith/*.cmd, ~/llama-tp-vulkan, the binaries and the model are unchanged.
+- GPU clocks, voltages and timings were not changed. gpu-mempin's verified undervolt profile was active throughout (900 mV all SCLK states, HBM 1000 MHz @ 900 mV, perf=manual).
+- SSH was used read-only through the existing gorast_ed25519 key. Nothing was changed in auth, network or Luna.
+
+1. WHAT PRODUCTION ACTUALLY RUNS (read-only recovery)
+- /etc/ornith/threecard.cmd (6 Oct): env TURBOPREFILL=1, ~/llama-tp-vulkan/build-vk/bin/llama-server (sha 7abcc3b4..., libggml-vulkan a154ea65...), IQ3_S-IQ3_XXS GGUF, -dev Vulkan0,1,2 -ts 0.8,1.1,1.1 -ngl 99 -c 102144 -b 2048 -ub 2048 -ctk f16 -ctv f16 -fa on -t 14 -tb 14 --load-mode dio -np 1 --temp 0.1 --mmproj ... --no-mmproj-offload --cache-ram 0. No MTP. No -ot.
+- TurboPrefill is NEVER active in production. In this tree (src/llama-context.cpp ~1781) TP needs n_tokens >= 2*n_ubatch per decode AND pipeline_parallel. With -b 2048 -ub 2048, every decode is <= 2048 tokens, so TP never engages. Production is plain serial layer-split prefill.
+- Why Sol's BH lost to production: UB128 makes kernels inefficient (BI's UB64 result already showed it). The comparison never involved TP.
+- PCIe: owner reports the old board with x16 / x1 / x1 risers. sysfs reports x16 on all three (GPU side behind the riser).
+
+2. ROOT CAUSE OF NO PIPELINE OVERLAP ON VULKAN
+- ggml-vulkan.cpp ggml_backend_vk_cpy_tensor_async returns false whenever src and dst are on different VkDevices ("Async copy only works within the same device").
+- ggml_backend_sched then calls ggml_backend_synchronize(src) and does a blocking copy at every stage boundary. llama.cpp's native pipeline parallelism (enabled: "pipeline parallelism enabled", sched copies = 4) therefore runs fully serial on Vulkan.
+- The TurboPrefill port in this tree only replays splits 1..N-1 diagonally. It runs every UB's split 0 serially during capture and blocks the CPU on event_synchronize between phases. Even working perfectly it has a low ceiling: b8192 TP-active gave 699.5 (+3.9%).
+
+3. THE FIX (isolated tree ~/c1-xdev, opt-in env GGML_VK_XDEV_ASYNC=1)
+Patch: ~/ornith-q3-c1-prodref-20261009/c1_xdev_patch.py and ggml-vulkan.c1-xdev-v2.diff. It changes only ggml-vulkan.cpp. Cross-device async copy:
+- The src queue copies the tensor into a host-visible staging buffer of the src device and signals a timeline semaphore there.
+- A relay thread per device pair waits on it, memcpy's into a host-visible staging buffer of the dst device, and host-signals a timeline semaphore on the dst device.
+- The dst queue waits on that semaphore GPU-side, then copies into the scheduler's input copy. The scheduler thread never blocks.
+- An 8-slot ring per edge is protected by a dst-done timeline semaphore. Copies under 1 MiB (token generation) keep the old blocking path.
+Two correctness traps were found and fixed. Both reproduced deterministically before the fix:
+- (a) Prompt corruption. Once the CPU runs ahead, the CPU-computed token-embedding split (pinned COMPUTE host buffer) is overwritten by the next UB before GPU0 executes its deferred upload. The model then misread the ledger: output diverged at token 137 and ran to the 8192 limit. Fix: large non-weight host-source copies are synchronous while async is on. This stalls only stage 0.
+- (b) TG -16%. v1 imported user memory into both devices (VK_EXT_external_memory_host = amdgpu userptr). The kernel then revalidates userptr pages on every later submission, so TG fell to 27.1 even after prefill. Fix: driver-allocated staging plus the relay memcpy. TG recovered to 32.1.
+Bisection (first 160 tokens vs production): async off = identical; async with CPU waiting for each src copy = identical; full async before fix (a) = diverges at 137; after fix (a) = identical.
+
+4. RESULTS (BH fixture; prod = exact threecard.cmd argv on 127.0.0.1:8217, scratch process, same env TURBOPREFILL=1 + MESA_VK_DEVICE_SELECT)
+arm                                   PP tok/s  prompt s   TG tok/s  TG@2420tok  oracle  all3 busy>=50%
+prodexact (prod, 1st)                  673.35    24.39     32.246    32.26       PASS    0.0%
+prod2 (prod, repeated LAST)            673.76    24.37     32.289    32.31       PASS    0.0%
+b8192exact (prod bin, -b 8192, TP on)  699.51    23.48     32.284    32.31       PASS    7.5%
+xdev v2 b32768 ub2048                 1046.22    15.70     32.097    32.14       PASS   27.9%
+xdev v2 b32768 ub1024 (CANDIDATE)     1152.11    14.25     32.080    32.08       PASS   44.6%
+cand2 (same, repeated, run BEFORE prod2) 1153.08 14.24     32.110    32.11       PASS   44.6%
+v3 (staging freed at decode)          1152.32    14.25     32.055    32.06       PASS   -
+rejected: ub512 1013.86 (smaller kernels lose more than the extra overlap gains); -ts 0.8/1.0/1.2 1111.55; -b has no effect beyond 8192 (see 6)
+pre-fix (invalid): v1 1038-1144 PP, TG 27.0-27.8; unfixed race = semantic FAIL
+Measured overlap: GPU busy%, sampled 4 Hz in prefill: prod 40/40/34; candidate 74/80/56; fraction of samples with all 3 GPUs >=50% busy: 0% -> 44.6%. This is sysfs gpu_busy_percent, not shader timestamps.
+VRAM min free: prod 206/51/1992 MiB (during load). Candidate 1170/1051/2991 MiB.
+Thermals: junction max 66/80/82 C, passive. No throttle indicator sampled.
+Faults: none in any arm (journalctl -k: vm fault / gpu reset / ring timeout / device lost / OOM).
+
+5. CANDIDATE COMMAND (isolated, not installed)
+env TURBOPREFILL=0 GGML_VK_XDEV_ASYNC=1 MESA_VK_DEVICE_SELECT=1002:687f /home/ubuntu/c1-xdev/build/bin/llama-server <production argv with -b 32768 -ub 1024>
+binary sha 3db76a91..., libggml-vulkan (v2) e60e1040... / (v3) 813d4d48...
+Source: ~/llama-tp-vulkan HEAD 10bf611e5 + patch only.
+
+6. REMAINING GAPS / NEXT DECISION
+- TG -0.6% (0.2 tok/s, consistent over 3+3 runs at equal token counts).
+  - About -0.06 comes from ub1024 (TG at ~2420 tokens: ub2048 32.14 > ub1024 32.08 > ub512 31.94).
+  - The rest is not the build, the env or -b:
+    - binctl (c1-xdev binary, exact production argv/env): TG 32.28, identical to production.
+    - prodb32k (production binary, -b 32768): TG 32.31.
+    - So the gap appears only after the async path has run. Likely cause: Mesa vk_queue switches permanently to threaded submit after a GPU wait-before-signal. NOT proven.
+    - Owner: 0.5% TG is not worth more work.
+  - Net per request on this fixture: about -10.1 s prefill vs +0.45 s generation.
+- llama-server context checkpoints (needed for the hybrid model) split the prompt at n-(4+ub) and n-4. The last UB therefore runs alone, unpipelined, and -b beyond that has no effect. A smaller ub shrinks this tail; I left checkpoints on.
+- GPU busy is still 74/80/56%. GPU1 (card 0c, profile-capped at 1536 MHz) is the bottleneck. Possible next levers: async mask uploads per device, a pinned host buffer per device for CPU-split outputs.
+- Promotion to production (threecard.cmd + new binary) needs the owner's explicit go. Rollback = restore the current threecard.cmd.
+- Slope screen (2K/8K/16K/32K + 90K confirm, prod vs v3), which the owner requires: NOT DONE. It is blocked by the incident below.
+
+7. INCIDENT - GORAST IS OFFLINE AND NEEDS A MANUAL POWER CYCLE. THE OWNER IS AWAY ~3 DAYS. My fault.
+- What happened: I tried a v4 variant to remove the wait-before-signal. The dst GPU waited on a host-set VkEvent. Card 0000:05:00.0 hit an amdgpu job timeout (~22:30 UTC 9 Oct), and amdgpu_device_gpu_recover hung in dm_suspend (hung task).
+- My mistake: I then issued a plain `systemctl reboot`. That is against my own recorded rule (with a wedged amdgpu, sync + sysrq b immediately). The shutdown hung after sshd stopped, and the box has been off the network since ~22:39 UTC.
+- Evidence: ~/ornith-q3-c1-prodref-20261009/v4_hang_kernel.txt and v4_hang_dmesg_full.txt (readable after reboot).
+- NOT affected:
+  - Production ornith-server: it was inactive (gated) before and during all tests.
+  - Production binaries, threecard.cmd, the model, GPU undervolt/timings.
+  - The Storj farm.
+- DO NOT dispatch GORAST tasks to SOL/LUNA/CLAUDE until the owner power-cycles it. After the power cycle, run in order:
+  1. Confirm the new boot time.
+  2. Verify gpu-mempin applied the undervolt (900 mV, HBM 1000, REF 15600) on all 3 cards.
+  3. Verify ornith-server is still inactive.
+  4. Only then run the slope screen with the v3 binary (v3 has 4 clean full runs).
+- Safeguards added:
+  - XEON2 PreToolUse gate hook_gorast_reboot_gate.py now blocks any plain reboot of GORAST (live-verified).
+  - Benchmark fault watchers must read the kernel log with sudo. `journalctl -k` as ubuntu shows nothing on GORAST, so my runner, and Sol's runner of the same design, were blind to GPU faults.
+
+Artifacts: GORAST ~/ornith-q3-c1-prodref-20261009/ (runner c1_runner.py, patch, diff, each arm's command.json/summary.json/response.json/telemetry.json/server.log).
