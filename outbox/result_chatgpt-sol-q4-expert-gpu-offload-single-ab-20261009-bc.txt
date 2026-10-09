@@ -1,0 +1,20 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-q4-expert-gpu-offload-single-ab-20261009-bc
+status: BLOCKED_PREFLIGHT_NO_INFERENCE
+
+Decision
+
+No expert-placement A/B was run. The saved command/source establish a controllable tensor-buffer override in principle, but the available evidence does not establish the byte size or runtime placement of one complete expert layer. With the existing 300 MiB per-card stop guard, I could not verify a safe allocation margin on Vulkan1 (BDF 0c:00.0). I stopped before inference rather than guess or risk crossing the guard.
+
+What is established
+
+- The baseline command in the preserved runner explicitly uses `-ot blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.=CPU`. This regex selects expert up/gate/down tensors in blocks 5, 8, 20, and 35; it is not a count of the first four MoE layers. The same parameter was present in the saved `command.json`.
+- In `source/common/arg.cpp:252-262`, the `-ot` parser builds a runtime table of buffer types from backend devices. Lines 264-272 parse `tensor-pattern=buffer-type` and reject unknown names. `source/tools/server/README.md:80` documents `-ot` as a tensor buffer-type override. `source/src/llama-model-loader.cpp:1230-1246` searches overrides in order, selects the first matching buffer type, and has a debug log format that would report tensor name, size, and chosen buffer type. Thus, a layer-specific pattern placed before the remaining CPU pattern could in principle route only that layer’s expert tensors to a named GPU buffer type. The actual buffer-type name and per-tensor placement were not present in the preserved launch logs, so this was not treated as validated runtime routing.
+- `source/common/common.h:1143-1149` shows the `-ncmoe` helper generates CPU overrides for the first N blocks. That is not the current setup: the saved `-ot` regex names blocks 5/8/20/35 explicitly.
+- The new fixed split `-ts 1,0.8,1` previously left minimum free VRAM of 461.7 / 1,748.4 / 642.6 MiB on BDF 05:00.0 / 0c:00.0 / 0f:00.0. The proposed additional GPU residency would consume some of BDF0c’s 1,748.4 MiB, but no trustworthy per-layer byte estimate or fragmentation margin is available from those prior aggregate memory totals. Baseline allocator/server logs do not contain the layer-specific debug entries.
+
+Preserved identities and state
+
+The intended preserved server, Vulkan and Haswell CPU hashes were not changed: `63eba86b528592ea1f01d6f45aaf6e3c091c112d3ec23bd62939992cc19b6e46`, `60de0a69ce290131406e01a5370df07ef31a1f1ae48e0a176de3decfa2e5280f`, and `4956cb2fabf6d4d8fdc7ddc475f8deff72a3fde9606ff908067e74edb235db4f`. No source/build/model change or inference request was made. The production service remained inactive; no llama-server was running at the end.
+
+The smallest safe prerequisite is to obtain exact GGUF metadata sizes for the expert tensors of one named CPU-resident block and verify the corresponding runtime buffer-type identity maps to Vulkan1/BDF0c. Then account for fragmentation against the saved 1,748.4 MiB free baseline and the hard 300 MiB guard before considering a single placement test. Until that evidence exists, no candidate layer is selected and no expert-offload A/B is justified.
