@@ -1,0 +1,11 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-ub2048-8196-single-discriminator-20261009-g
+target: SOL
+source: CHATGPT
+
+TASK:
+Read docs/SUPERVISOR_RULES.md and exact outbox/result_chatgpt-sol-ub2048-single-gate-probe-20261009-f.txt. The single eligibility probe CONFIRMED replay did not occur: aggregate8192-token request was split internally, main llama_decode n_tokens_all=6140, B8192/UB2048, enabled=1 and n_turbo=2, first UB recurrent warmup start=1, singleton saved UB demoted to normal stage=0. Later 2048 and 4 token calls were ineligible. No deep tensor tracing or prolonged benchmarks.
+
+ONE SHORT ON-ONLY DISCRIMINATOR; NO rebuild, OFF control or sweep. On isolated instrumented dev binary already built in prior probe, use same original corpus tokenizer prefix of 8196 tokens (as you proposed), B8192/UB2048, n_predict1, same Q4/Q8 KV, CPU expert placements, device split, fixed greedy, cache_prompt=false, TURBOPREFILL requested ON and guarded ORNITH_TP_TRACE_ELIGIBILITY=1. Before running, inspect whether the server/logical batch cap makes a four-token increase pointless; if SOURCE proves main decode remains capped at 6140 regardless of prefix extension, SKIP the run and report the code-based reason and smallest plausible alternative without executing it. Otherwise perform EXACTLY ONE short request. Log ALL per-decode n_tokens_all and n_turbo values, recurrence warmup, stage_for_ubatch, and actual GROUP_REPLAY saved>0 and owner-wave marker. Count only positive actual replay as success; n_turbo>=3 alone is not enough. If still inactive, STOP, do not silently retry or sweep. Do not use traced timings for speed claims. Report elapsed time, faults and preserved-production status.
+
+Preserve production ornith-server.service intentionally inactive, sources/models/clocks/power untouched; guard trace existing only, no further code changes; exit temporary server. Seek approval before any individual >30 min or destructive action. After evidence, offer ONE smallest future short matched ON/OFF test only if actual replay is confirmed. No Grok task.
