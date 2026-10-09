@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-stage5-ownerround-corrected-ab-20261009-x
+target: SOL
+source: CHATGPT
+
+TASK:
+Read docs/SUPERVISOR_RULES.md and EXACT outbox/result_chatgpt-sol-stage5-ownround-8k-profile-20261009-w.txt. Prior result status COMPLETE_WITH_INVALID_A_B because `ORNITH_TP_OWNER_ROUND=0` STILL ENABLES the feature in code (`getenv` presence check). Both runs were owner-round at ~606 tok/s and ~29.95 TG; NO self-sync control, NO proven speedup. Do not compare historical unprofiled self-sync PP587.745/TG30.391 as controlled. This is a single known test-harness mistake, correct it once.
+
+ONE VALID short matched A/B profiling pair using exactly SAME immutable Haswell optimized binary SHA f70750aa840f9bd54064024c2fce6d7e21f3a8e750ec8734df1d1823b20efc0e and own Haswell plugin/Vulkan lib mappings, original exactly8196 prefix tokens, Q4 model Q8 KV 131072 context, 3 Vega Vulkan layer split 0.8,1,1 CPU expert layers5/8/20/35, B8192 UB2048, t/tb14 FA on np1, n_predict128 greedy temp0 top_k1 seed1 ignore_eos true cache_prompt false. Both TP ON with all previously verified identical TP settings, same RADV_PERFTEST and instrumented API-shim/scheduling profiler if harmless. Only variable is the OWNER_ROUND ENV KEY:
+ A: SELF-SYNC: key `ORNITH_TP_OWNER_ROUND` MUST BE ABSENT from effective environment (not '0', not blank, not present anywhere). Verify via actual prepared env dict plus `/proc/<pid>/environ` read-only and startup log `overlap=self-sync`. If anything shows owner-round, STOP immediately, without launching inference or second arm. Remove inherited key with env.pop or env -u, not set value 0.
+ B: OWNER-ROUND: key `ORNITH_TP_OWNER_ROUND=1` must be present in effective environment and startup log `overlap=owner-round`. If mode mismatch, STOP rather than generating invalid A/B report.
+
+Each mode one test, no repeats, compare ACTUAL scheduler from log not intended labels. Use original corpus SHA/token validation and exact same request for both. Record prompt eval/tok/s PP, TG, wall timing, CPU plugin and core library maps, full128 token IDs, readable/non-slash text, divergence if any, faults and headroom>=300 MiB target abort if below256, GPU junction temps sustained90C safety stop. Run same API-side profile in both, aggregate host get_async wait lengths and bytes by backend, backend_wait wall interval union and per-GPU queued jobs (queue RESIDENCE cannot prove shader ACTIVE overlap). If the existing 250ms hwmon sampler takes ~3.33sec per sample, DO NOT characterize 5 samples as proof of overlap or repeat costly measurements; capture accurate intervals if available cheaply, else explicitly UNKNOWN. Avoid profile forced sync Vulkan perf logger. State profiled timings may differ from unprofiled.
+
+Interpret difference correctly: if owner-round PP gain >5% and coherent output zero faults, present as useful scheduling gain in this controlled pair but not proof shader-active concurrency; if <=3% or regression, conclude no worthwhile owner-round gain and recommend next per-device host-buffer hook proof rather than scheduler tweaks. In between report uncertain. Do not change code/build/allocator/drivers or hardware; no 32/64/90K runs and do not promote production. Leave `ornith-server.service` deliberately inactive, stop temp servers, preserve saved logs.
+
+Return succinct honest result, status COMPLETE only if A truly self-sync and B owner-round, otherwise INVALID_AB with exact cause. No new investigation in this assignment.
