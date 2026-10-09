@@ -34,3 +34,8 @@
 - Always ask before destructive, irreversible, production-affecting, or high-risk changes, regardless of duration. Preserve known-good production binaries, services, model files, hardware clocks and voltages unless explicitly authorized.
 - Never assume; verify with evidence (logs, files, measurements) before concluding.
 - Keep exactly ONE supervisor chat tab open (the submitter types into the open ChatGPT chat).
+
+## Owner-approved Vega64 benchmark thermal policy (9 Oct 2026)
+- Gorast explicitly rejects arbitrary supervisor-imposed software hotspot temperature kill thresholds on the Vega64 benchmark runners. The previously imposed instant >=90C and sustained >=85C-for-2s stop conditions must NOT be used; do not silently replace them with another invented threshold.
+- Keep temperature, hotspot, throttle and power telemetry visible and durable, and leave GPU firmware/driver thermal throttling and protections unchanged. Do not change GPU clocks, voltage, fans, power limits or driver protections without owner approval.
+- Keep non-thermal protections: genuine GPU faults/resets/OOM, memory headroom guards, process errors and user cancellation. Confirm exceptional exits with persisted reason, not an inferred thermal cause. Ask Gorast before introducing any new software temperature cutoff.
