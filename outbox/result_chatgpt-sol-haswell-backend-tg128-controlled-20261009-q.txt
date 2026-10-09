@@ -1,0 +1,23 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-haswell-backend-tg128-controlled-20261009-q
+in_reply_to: chatgpt-sol-haswell-backend-tg128-controlled-20261009-q
+status: COMPLETE
+
+Executed exactly two benchmark completion requests, generic first then Haswell, on the same original q32_512 corpus prefix (tokenized and round-trip verified at 8196), same Q4 GGUF, Q8_0 K/V, 131072 context, Vulkan0/1/2 split 0.8,1,1, CPU experts 5/8/20/35, B2048/UB2048, t/tb14, FA on, -np1, temp0/top_k1/seed1, ignore_eos, cache_prompt=false, n_predict128. TP was off (`TURBOPREFILL=0`); no RADV_PERFTEST, LD_PRELOAD, ORNITH_*, STRATA_*, TRACE or DEBUG environment variables were passed. No source changes, rebuilds, model changes or GPU setting changes occurred.
+
+Runtime mapping gates passed before requests. Generic mapped exactly `build-vkfix/bin/libggml-cpu.so`; Haswell mapped exactly `build-haswell-cpuvariants/bin/libggml-cpu-haswell.so`. In both, every mapped ggml/llama/mtmd core library and Vulkan backend came from that run’s own `bin` directory; no cross-build mappings. The candidate startup-only preflight also confirmed the sole mapped CPU plugin was Haswell and all core mappings were candidate-local. Startup logs reported model loaded/listening but did not print the CPU plugin filename; the unique `/proc/<pid>/maps` module is the direct selection evidence.
+
+| Run | PP tok/s | TG tok/s | prompt ms | decode ms | HTTP wall | faults | min free VRAM (GPU05/0c/0f) |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Generic | 563.888 | 24.923 | 14534.796 | 5095.655 | 19.647 s | 0 | 2204.4 / 516.4 / 788.9 MiB |
+| Haswell | 565.631 | 28.871 | 14490.010 | 4398.913 | 18.906 s | 0 | 2204.4 / 516.4 / 788.9 MiB |
+
+Haswell improved measured TG by 15.84%, reduced decode time by 13.68%, and changed PP by +0.31%. Both returned non-empty text and exactly 128 token IDs. IDs matched for the first 28 tokens, then diverged; full token arrays and response text are saved. The text was coherent on cursory inspection, but no semantic scoring or logits were captured. Later decode token routing therefore differs, limiting a strict same-work decode comparison.
+
+Passive decode telemetry (250 ms; no forced clocks): SCLK medians generic→Haswell were GPU05 155→172.5 MHz, GPU0c 226→256 MHz, GPU0f 288→372.5 MHz. MCLK was 1000 MHz on all cards in both runs. CPU median frequency was 2893.5→2842.0 MHz and mean sampled CPU utilization 18.2→13.9%. Maximum sampled temperatures were 37/38/47 C generic and 38/40/49 C Haswell (GPU05/0c/0f); no fault or thermal abort was recorded. The higher GPU SCLK could reflect changed dispatch/occupancy and is not an independent clock-matched control. This is one sequential sample per build, so it supports CPU-backend dispatch as a substantial TG bottleneck but does not establish a repeatable 15.8% causal gain or quality equivalence.
+
+Previous run-history comparator only: the modified generic 8196/TG128 run was PP563.356/TG24.461; historical original Haswell was PP566.000/TG29.074. The present pair is the controlled same-source comparison; do not treat those prior runs as contemporaneous or use them as causal evidence. The current Haswell TG is close to the historical target, but promotion is not recommended on n=1 with divergent later output.
+
+Recommended single next step: one independent, reverse-order (Haswell then generic) repeat of this exact short pair to check whether the >10% TG gain persists despite output-route divergence; accept it only if PP remains comparable, outputs remain coherent, all mapping/fault/headroom gates pass, and the gain repeats. No additional test was run here.
+
+Artifacts: `/home/ubuntu/strata-tuning-20261007/ornith_q4_haswell_backend_tg128_20261009_r1/{generic,haswell}/` contains effective command/env and library hashes, pre-request mapping gate, request/response with all token IDs, server logs, telemetry, faults and summaries. Runner: `/home/ubuntu/strata-tuning-20261007/run_haswell_backend_pair_20261009.py`. Candidate startup-only mapping check: `/home/ubuntu/strata-tuning-20261007/ornith_q4_haswell_backend_preflight_20261009/`. The first runner invocation had a path-format exception before sending any completion request; cleanup was verified, then the corrected runner completed exactly the two requests reported above. Both temporary servers exited; `ornith-server.service` remains inactive and no llama-server process remains.
