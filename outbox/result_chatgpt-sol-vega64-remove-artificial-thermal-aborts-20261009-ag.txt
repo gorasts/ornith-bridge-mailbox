@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-vega64-remove-artificial-thermal-aborts-20261009-ag
+status: COMPLETE_OFFLINE_VALIDATED
+
+Applied Gorast's correction to a separate new runner copy. No inference, server launch, GPU allocation/API call, benchmark, build, production/model change, or hardware adjustment occurred. The earlier `ae` exit remains UNRESOLVED; its exact abort reason is not recoverable. Any prior report or copy retaining software temperature aborts is superseded for future runs by this owner-directed copy.
+
+New files on GORAST (originals preserved):
+- Runner: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/owner_thermal_telemetry_20261009_ag/runner-thermal-telemetry.py`, SHA-256 `93e794f08cff148b446e80694fb649f136beef92d651f6c78ba8b464d6cb206a`.
+- Mock tests: `test-runner-thermal-telemetry-offline.py`, SHA-256 `54023ea65ef7202de0567b229a998bace0f4773a52ab6fbf3425c35b81137a41`.
+- `selftest.stdout.txt` and `SHA256SUMS` are beside those files. The untouched original runner still hashes to `91fb3848a6ef9717e22b9f8b7a6dad5cfd472dcd4453504fefe2e4323dcc795a`; the earlier `offline_hardening_20261009_af` copy is also preserved separately.
+
+The copied runner's only behavioral change from the fail-safe AF copy is temperature policy: hotspot readings are stored as timestamped raw millidegrees, BDF, and paired passive clock readings, with no software temperature abort or temperature-triggered SIGTERM at any value. It does not disable firmware/driver thermal management. The runner records `throttling_assessment=UNKNOWN` because it has no explicit throttle indicator; clock/temperature telemetry is available for review without claiming causality. Run output is redirected to a new AF-independent artifact root. Existing VRAM `<300 MiB` and genuine faultwatch guards remain, with durable event-before-termination behavior; request exceptions, process exit/signal, log tail and journal/cgroup visibility remain in final diagnostics. Benchmark arguments/settings in this copy are otherwise unchanged.
+
+GORAST syntax checks and offline mock tests passed. Synthetic 85, 89, 90, 105, 110 and 115°C samples were recorded with no abort or terminate callback. The `<300 MiB` VRAM guard and synthetic GPU fault still persisted their event before mocked termination; abort-record write failure still terminates fail-closed; incomplete-request exception/child-signal persistence also passed. The mocked callback never invokes OS signaling, and tests used no real PID, GPU, server, or backend.
+
+Next gate: obtain the owner's explicit approval before any new thermally uncertain 31.6K/TG512 run. Review this corrected telemetry-only runner and its memory/fault safeguards first. This offline validation does not explain the earlier exit and makes no performance claim.
