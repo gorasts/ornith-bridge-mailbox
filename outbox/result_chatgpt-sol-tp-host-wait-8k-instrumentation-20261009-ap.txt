@@ -1,0 +1,52 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-tp-host-wait-8k-instrumentation-20261009-ap
+source: SOL
+target: SUPER
+status: COMPLETE
+
+TP HANDOFF WAIT DIAGNOSTIC — 2026-10-09
+
+Result
+
+One instrumented TP-ON self-sync request completed on the exact AK 8,306-token transaction-audit fixture. Grouped replay was active: `groups=3 splits=18 saved=2 overlap=self-sync`. The final answer naturally ended at EOS and independently matched `A=710,B=775,C=615|COMMIT=6|ABORT=2`; full output and tokens are retained. No GPU fault, OOM, memory abort, request exception or production-service change occurred.
+
+The measured group-boundary backend synchronizations summed to 675,798 µs. This is 11.763% of the instrumented 5,745,303 µs TurboPrefill-series interval and 4.966% of the 13,608,555 µs API prompt-evaluation interval. Vulkan1 had the largest measured sum (354,776 µs). These are elapsed host synchronization-call durations; they may wait for queued device work and do not prove that shader execution was idle or overlapped.
+
+The separate host-copy helper `ggml_backend_sched_tp_copy_via_ram` was called zero times (zero bytes), so this request yielded no `get_async`, producer event/backend wait, or consumer `set_async` samples. Consequently, its Vulkan fallback counter had no scoped call to observe. This means the helper path was not exercised by this workload; it does NOT establish that no other prefill code invoked a Vulkan readback fallback. I cannot claim that host handoff or Vulkan fallback is a generally dominant cost, nor can I conclude their cost is zero outside the measured path. The measured group-boundary waits are too small by themselves to explain the full prompt-processing interval; the remaining prefill work was not decomposed into compute, dispatch, other copies or waits.
+
+Detailed measurements
+
+| Measured call | Backend | Count | Sum | p50 | p95 / max | Share of TP series |
+|---|---|---:|---:|---:|---:|---:|
+| Replay group `ggml_backend_synchronize` | Vulkan0 | 2 | 147,423 µs | 30 µs | 147,393 µs | 2.566% |
+| Replay group `ggml_backend_synchronize` | Vulkan1 | 2 | 354,776 µs | 43 µs | 354,733 µs | 6.175% |
+| Replay group `ggml_backend_synchronize` | Vulkan2 | 2 | 173,599 µs | 53 µs | 173,546 µs | 3.022% |
+| `tp_copy_via_ram`: get / producer wait / set | Not called | 0 | 0 µs | — | — | 0 samples |
+| Vulkan fallback inside scoped get | No scoped get call | 0 observed | — | — | — | Unknown outside scope |
+
+The six replay synchronization intervals had a wall-clock union of 675,798 µs; the instrumentation merged intervals rather than adding nested measurements. Vulkan1 maps to PCI BDF 0c:00.0 in the configured device order; its 355 ms is a backend synchronization wait, not a direct PCIe throughput or transfer measurement. There were no byte counts for the uncalled handoff path. No active shader timeline or device-side timestamps were collected. The runner’s 250 ms busy telemetry spans startup, prefill, decode and teardown, so it cannot be used as prefill-only utilization or concurrency evidence.
+
+Workload and correctness
+
+- Prompt: AK `fixture.prompt.txt`, SHA-256 `ab2f68a9e46edc086f826524d4d5facf5bedd9c38b9a36ac07662c2d512465f2`; 8,306 token IDs, SHA-256 `3efaeafa85d98e762c56cc0f027d99cd825d31a41932d446451ff05552e21e96`.
+- Request body SHA-256: `689f30c7b249e1fb65dc08558a2895eebe8fa0a39804091f6dd89880caf204a0`. Independent pre-run event replay returned the expected balances/counts.
+- Same Q4/Q8_0 KV, c131072, three Vulkan devices with split 0.8/1/1, CPU experts 5/8/20/35, B8192/UB2048, t/tb14, FA on, np1, greedy, natural EOS, hook set to 1 and owner-round absent. Profile gate `ORNITH_TP_PROFILE_HOST_WAITS=1` was the only diagnostic setting.
+- Prompt rate: 610.351 tok/s; generated 2,333 tokens at 30.398 tok/s; request wall 90.342 s. These are secondary, instrumented single-run timings.
+- Token-array SHA-256 `9025cb874ac58644688358ede95c2578a5b02b6ab0d5dda155bb803b3765d8b6`; response-text SHA-256 `9aae46ba2bccde29ce19d4ff45363c0f7a5709cbc2cf87ef598831bfc27f149a`. Final answer was exact and untruncated.
+- Minimum free VRAM (BDF 05/0c/0f): 1836.5/370.5/642.6 MiB. Passive maximum junction temperatures: 57/69/77°C. No temperature cutoff was used. No faults/abort records; temporary server exited normally and `ornith-server.service` remained inactive.
+
+Diagnostic implementation and build
+
+Only a fresh isolated source copy was changed: `ggml/src/ggml-backend.cpp` and `ggml/src/ggml-vulkan/ggml-vulkan.cpp`. Timers wrap the existing get, event/backend wait, set, and replay synchronization calls. The Vulkan telemetry-only proc scope counts the existing fallback only while the measured handoff’s get call runs. It adds no copy, fence, GPU allocation, or scheduler decision. Records are aggregated once per series with count, bytes where applicable, sum, p50, p95 and max; nested fallback time is kept separate from get time. `ggml_time_us()` timestamps are used; the diagnostic union merges recorded host intervals.
+
+- Patch: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/tp-host-wait-8k_20261009_ap/diagnostic.patch`, SHA-256 `f5fb1c5146759678bad8498cbbe7aa66d7040a8c3b66812982e23a335e51d6c6`.
+- New source copy: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/host-wait-diagnostic_20261009_ap-source`; modified backend source SHA `c192b62bd5c9704d88659060f099d9417435a98c9ad5cca3ce7e47cfad2f9c4a`, Vulkan source SHA `add02e21a3a016567ef7fd839dad689ffbacb24d6c9ce0ef083bb740b10cb8d2`. Original source files retained their pre-copy SHA values.
+- Fresh build: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/host-wait-diagnostic_20261009_ap/build`, Release; target `llama-server` compiled successfully. All `GGML_*`/`LLAMA_*` and relevant compiler/build cache values matched the preserved cache; compile commands matched after normalizing source/build paths. The only raw cache-entry difference was `CMAKE_ASM_COMPILER` stored as `FILEPATH` versus `STRING`, both `/usr/bin/cc`.
+- Executable SHA-256 `e42dfc31b19fe57acca4e12a7ff4700a685cb2d88317efbd81934aa8ee075323`; Vulkan SHA `418bc14dea79aa61a1c55ff98c2cf8ed5cc9c78055aa965906bddbe806c62e7c`; Haswell CPU SHA `adf5094007c12085dfd3c651ccf41344fe378d51896b3e551849814e7a08dfd9`.
+- `/proc/<pid>/maps` verified Haswell CPU and every ggml/llama/mtmd core library loaded from this new build’s own `bin/`. Full library manifest and normalized cache/compile-command comparisons are saved beside the patch.
+
+Evidence directory: `/home/ubuntu/ornith-q4-devicehost-hook-20261009-y/evidence/tp-host-wait-8k_20261009_ap/host-wait-diagnostic/`. It contains `command.json`, maps gate, exact request and prompt IDs, full `response.json`, token list, server log (including diagnostic lines), allocator log, telemetry, faults and final diagnostics. Runner SHA-256: `cbf66fce614a1a19d4110b68c694cd24384fd7f4138a17c245343daf7010e2be`.
+
+Verdict and one next step
+
+This active-replay 8K run measured about 0.676 s of replay-boundary synchronization and no invocation of the targeted host-copy helper. Those measured waits are too small alone to account for the 13.61 s prompt evaluation; the true remaining critical path is UNKNOWN. No simultaneous GPU shader overlap was measured. If a follow-up is assigned, the highest-value single diagnostic is timing PREPARE_H2D/COMPUTE/STORE per backend and instrumenting all copy/readback calls actually reached in those phases, on one short active-replay request, without changing synchronization or buffers. No follow-up was run here.
