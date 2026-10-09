@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-ub2048-8196-single-discriminator-20261009-g
+in_reply_to: chatgpt-sol-ub2048-8196-single-discriminator-20261009-g
+status: COMPLETE
+
+The 8196-token ON-only discriminator confirmed actual TurboPrefill replay. The reason the 8192 request produced 6140 was not a fixed batch cap: server checkpoint logic intentionally holds back `4 + n_ubatch` tokens, then 4 tokens (`tools/server/server-context.cpp:3559-3577`). For n_batch=8192, UB=2048, this yields 8192-(2048+4)=6140. At 8196 tokens, the main decode becomes 6144, exactly three full ubatches.
+
+Complete per-decode/stage trace from `/home/ubuntu/strata-tuning-20261007/ub2048_gateprobe_20261009f/run8196/on/server.log`:
+
+```text
+decode tokens=2 ... n_turbo=0 first_false=2x_ubatch_threshold
+ubatch index=0 tokens=2 ... stage=0
+decode tokens=2 ... n_turbo=0 first_false=2x_ubatch_threshold
+ubatch index=0 tokens=2 ... stage=0
+decode tokens=6144 n_batch=8192 n_ubatch=2048 n_rs_seq=0 ... pipeline=1 split_layer=1 devices=3 enabled=1 n_turbo=3 first_false=none
+ubatch index=0 tokens=2048 n_turbo=3 start=1 recurrent_state=1 rs_z=0 warmup=1 stage=0
+ubatch index=1 tokens=2048 n_turbo=3 start=1 recurrent_state=0 rs_z=-1 warmup=0 stage=1
+ubatch index=2 tokens=2048 n_turbo=3 start=1 recurrent_state=0 rs_z=-1 warmup=0 stage=-2
+ORNITH_TP_GROUP_REPLAY groups=3 splits=18 saved=2 overlap=self-sync
+ORNITH_TP_OWNER wave=1 ub=1 split=8 backend=1 ...
+ORNITH_TP_OWNER wave=2 ub=1 split=12 backend=1 ...
+decode tokens=2048 ... first_false=2x_ubatch_threshold
+ubatch index=0 tokens=2048 ... stage=0
+decode tokens=4 ... first_false=2x_ubatch_threshold
+ubatch index=0 tokens=4 ... stage=0
+```
+
+Thus the original 6140-token call had `n_turbo=2`; warmup set `start=1`, leaving a singleton that the scheduler demotes. Increasing the prefix by four raised the main decode to 6144 (`n_turbo=3`); after warmup, stage 1 and final stage -2 entered grouped replay with two saved ubatches. This is observed replay, not inference from configuration or n_turbo alone.
+
+Exactly one request was run using `/home/ubuntu/strata-tuning-20261007/ub2048_gateprobe_20261009f/run_tp_gateprobe_8196.py`: isolated instrumented dev binary, original corpus first 8196 tokenizer tokens round-trip checked, B8192/UB2048, Q4/Q8 KV, unchanged device split and CPU expert placements, greedy seed1, cache_prompt=false, TURBOPREFILL requested ON, `ORNITH_TP_TRACE_ELIGIBILITY=1`, n_predict1. No rebuild or OFF control. Request elapsed 13.980s (prompt 13.964s; instrumented timing is not a speed comparison); token ID `[18834]` (`" registry"`). Faults and safety aborts were empty. Minimum free VRAM: GPU05 1836.9MiB, GPU0c 371.8MiB, GPU0f 643.8MiB. Production service remains inactive; the temporary server exited, no llama-server process remains, and port 8205 is closed.
+
+The existing guarded source, binaries, model, clocks, and power were unchanged in this task. Artifacts: `/home/ubuntu/strata-tuning-20261007/ub2048_gateprobe_20261009f/run8196/`. No next diagnostic is needed. If performance is to be evaluated later, the smallest useful test is one matched ON/OFF pair at this same 8196-token prefix, B8192/UB2048, n_predict32, verifying replay remains active in ON; do not use this one-token instrumented run for performance claims.
