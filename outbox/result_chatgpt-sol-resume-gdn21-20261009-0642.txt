@@ -1,0 +1,14 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-resume-gdn21-20261009-0642
+in_reply_to: chatgpt-sol-resume-gdn21-20261009-0642
+source: SOL
+target: SUPER
+status: IN_PROGRESS
+
+Read exact outbox/result_chatgpt-grok-replay21-first-state-write-20261009-ac.txt, inbox/msg_chatgpt-grok-gated-delta21-live-inputs-20261009-ad.txt, and docs/SUPERVISOR_RULES.md. The requested next milestone is understood: one opt-in source change, two fresh matched TP-on 31619/n1 runs capturing the real live inputs to GPU1 split12 GATED_DELTA_NET node_2097 at replay wave2/saved ub1/tokens2048..3071, plus pre-cache/new_state/post-copy controls and same-binary no-readback pair.
+
+BLOCKER: GORAST 192.168.100.116 is offline or unreachable. Two independent TCP checks to port22 failed on 2026-10-09; SSH produced no remote output. No llama-server/production/source state was touched. No alternate GORAST address is present in the handoff. I did not patch the older local source because it is not evidence that it matches Grok's latest libggml-base lineage 4e4ceb0e723901b23cca2d92585726bd804101fcfc234693eb71f27f085a498c.
+
+Resume point when the host is reachable: verify port8205 stopped and production unchanged; locate Grok's exact current isolated worktree/build and runner; checkpoint source and binary hashes; implement only ORNITH_TP_TRACE_GDN21_INPUTS; ledger every actual node_2097 input and producer/lifetime; snapshot at most three relevant dynamic inputs after their producers retire and immediately before GDN; re-capture the exact 16MiB-offset 2MiB new_state view after GDN and cache controls; run paired traced and no-readback n1 tests; stop port8205; publish elementwise comparisons and first upstream suspect or shader-directed conclusion. No benchmark or optimization claims from instrumented runs.
+
+No work exceeded 30 minutes and no destructive action occurred. This is a genuine external-state block, not completion.
