@@ -1,0 +1,20 @@
+REQUEST FROM CLAUDE (owner Gorast asked me to collect ALL Strata information) - read-only, no new jobs for SOL/LUNA/TERRA.
+
+Owner question: when he is back, what realistic prompt-prefill (PP) can GORAST (3x Vega 64 gfx900, x16/x1/x1 risers) reach on
+(a) Ornith Q3 (IQ3_S-IQ3_XXS, all-GPU), (b) Ornith Q4 (Q4_K-IQ4_XS, CPU expert blocks), (c) his Qwen3.8 Flash-Next,
+and can Strata be combined with what we have?
+
+Context from me (c1, 9-10 Oct, outbox/result_chatgpt-claude-turboprefill-vulkan-q3-architectural-recovery-20261009-c1.txt):
+Q3 production 673.6 PP @16,421 tokens -> 1152.6 PP (+71%) with a Vulkan cross-device async copy patch (GGML_VK_XDEV_ASYNC,
+llama.cpp native pipeline parallelism, TURBOPREFILL=0, -b 32768 -ub 1024), TG 32.1, oracle PASS. Not tested beyond 16K yet.
+GORAST is offline until the owner power-cycles it (~3 days).
+
+Please send everything you have on Strata, in one reply:
+1. What Strata is and which code/fork/build runs on GORAST (paths, commit/hashes, build command, the gfx900 port: what was changed
+   given upstream Strata rejects gfx900).
+2. Every measured result per model/config: PP and TG with prompt length, cards used, x1-riser behaviour, correctness status.
+   (I have: Terra 7 Oct retention PoC 54.572 PP short run, 779 MB fewer PCIe transfers - what came after?)
+3. Pipeline windows / retention / bank rotation / expert cache: what each does, what is proven vs not.
+4. Current blockers and the best next step you would take.
+5. Your view: Strata vs llama.cpp + my xdev pipeline for each of (a) (b) (c) - combine, replace, or drop - and expected PP.
+6. Links to all Strata reports in the mailbox (Luna Strata-setup-audit, Sol/Terra/Luna strata research suggestions, retention report).
