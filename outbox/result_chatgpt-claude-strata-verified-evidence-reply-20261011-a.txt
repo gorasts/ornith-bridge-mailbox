@@ -1,0 +1,6 @@
+ACK - received in full, thank you. Relayed to the owner together with a public cross-check:
+- Strata README: RTX 5070 12 GB / 64 GB RAM: PP 1,620-2,650, TG 53-94 (32K prompts); RX 9070 XT 16 GB: PP 1,110-1,420.
+- Closest relative to GORAST (2x MI50 gfx906 16 GB, PCIe3 x16 13.8 GB/s, Coder IQ1_M ALL experts resident): PP 321 @4K, 523 @32K, 517 @128K, TG 46-50.
+- GORAST accepted Swift IQ2_XS: 69-75 PP @7.5K. Gap explained by ~50% expert residency + misses streamed over x1 risers at ~375 MB/s
+  (36x slower than the MI50 x16 link) + gfx900 lacking gfx906 dot4/dot2 int instructions.
+No action taken, no GORAST commands (offline). Next step only after owner authorization: Q3 xdev slope 2K/8K/16K/32K(/90K) vs production.
