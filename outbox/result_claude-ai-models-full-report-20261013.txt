@@ -1,0 +1,148 @@
+CLAUDE (XEON2) -> SUPERVISOR: FULL AI-MODEL REPORT, GORAST, 13 Oct 2026 ~12:00 UTC
+Requested by Gorast: "everything you did, best configurations and plans, all of it".
+
+=== 0. HARDWARE + SAFETY CONTEXT ===
+- GORAST (Ubuntu, 192.168.100.116): 3x Vega 64 8 GB (gfx900). PCI 05 = PCIe3 x16 (main card); 0c and 0f = chipset PCIe2 x1
+  risers (0.24-0.40 GB/s). All undervolted at boot (900 mV, HBM 1000 MHz pinned, REF 15600; gpu-mempin --verify). Operator: cards
+  are fine up to 110 C junction (they throttle). RAM 80 GB (2x32 + 2x8, 4-way channel interleave, ~52 GB/s copy). CPU E5-2680 v4
+  14C AVX2. GTT raised to 68 GB.
+- Device order: Vulkan (MESA_VK_DEVICE_SELECT=1002:687f) Vulkan0 = 0f, Vulkan1 = 05 (x16), Vulkan2 = 0c. ROCm/HIP 6.3.4: device 0 = 05.
+- Ordered, not installed: MR9A X99 board + E5-2690 v4 + 96 GB -> risers get real CPU PCIe lanes.
+- Safety: a wedged GPU => /usr/local/sbin/gorast_safe_reboot.sh (dmesg, sync, sysrq b), then confirm the boot time changed. Never a plain
+  reboot (hook-gated). After ANY GPU reset: systemctl restart gpu-mempin + --verify (a reset drops the HBM pin and REF).
+
+=== 1. ORNITH 1.5 35B-A3B Q3 (production model) - NEW PRODUCTION CONFIG "v3mx2" ===
+Promoted 13 Oct ~11:30 with the operator's go. ornith-server is STOPPED by operator choice (enabled = starts on boot); it is restarted
+only when Gorast says.
+What it is: llama.cpp Vulkan + three changes of mine:
+ a) xdev v3 cross-device async copy (GGML_VK_XDEV_ASYNC=1): the source GPU copies to host-visible staging + timeline semaphore, a relay
+    thread memcpys to the destination staging and host-signals its timeline, and the destination waits GPU-side. This gives real
+    pipeline parallelism across the 3 cards (run with TURBOPREFILL=0, -b 32768 -ub 1024). Root cause it fixes:
+    ggml_backend_vk_cpy_tensor_async returned false across devices, so the scheduler blocked. The old TurboPrefill was never active
+    in production (it needs n_tokens >= 2*ub per decode AND pipeline_parallel).
+ b) v3m async readback arena (GGML_VK_ASYNC_READBACK=1): the MTP draft reads t_h_nextn from the last GPU every ubatch, but
+    ggml-vulkan registers pinned host memory on devices[0] only. The non-pinned fallback forced a full ggml_vk_synchronize per
+    ubatch (proved with gdb). Fix: a per-backend host readback arena, with the memcpy deferred to synchronize.
+ c) MTP draft shisa12k-mtp-standalone.gguf (1.57 GB) on the x16 card (-devd Vulkan1), layer split -ts 1.05,0.85,1.1 (operator's
+    idea: shift layers so the x16 card runs the MTP head; over x1 the draft's serial mask upload was the cost).
+Command (/etc/ornith/threecard.cmd):
+ /usr/bin/env TURBOPREFILL=0 GGML_VK_XDEV_ASYNC=1 GGML_VK_ASYNC_READBACK=1 MESA_VK_DEVICE_SELECT=1002:687f
+ LD_LIBRARY_PATH=/opt/llama/llama-c1-v3mx2-20261013 /opt/llama/llama-c1-v3mx2-20261013/llama-server
+ -m /opt/testmodels/models/Ornith-1.5-35B-A3B-AD-IQ3_S-IQ3_XXS.gguf -dev Vulkan0,Vulkan1,Vulkan2 -ts 1.05,0.85,1.1 -ngl 99 -c 102144
+ -b 32768 -ub 1024 -ctk f16 -ctv f16 -fa on -t 14 -tb 14 --load-mode dio -np 1 --temp 0.1 --jinja --no-webui
+ --mmproj /opt/testmodels/models/mmproj-Ornith-1.5-35B-A3B-f16.gguf --no-mmproj-offload --host 0.0.0.0 --port 8099 --cache-ram 0
+ -md /opt/ornith-models/shisa12k-mtp-standalone.gguf -devd Vulkan1 -ngld 99 --spec-draft-n-max 1 --spec-draft-n-min 1
+ Rollback: cp /etc/ornith/threecard.cmd.pre-v3mx2-20261013 /etc/ornith/threecard.cmd. Source + MANIFEST in the binary dir.
+Results (PP / TG tok/s, 1 Oct ladder prompts, cache off):
+ | context | old production | v3mx2       | gain        |
+ | 16K     | 674 / 32.5     | 966 / 41.2  | +43% / +27% | (oracle-identical tokens)
+ | 32K     | 609 / 31.1     | 858 / 36.4  | +41% / +17% |
+ | 88K     | 383 / 26.8     | 533 / 30.2  | +39% / +12% |
+ MTP acceptance 81-96%. VRAM free 05 1.27 / 0c 1.03 / 0f 1.38 GB. 0f junction 94 C @32K, 102 C @88K.
+OPEN RISK: a rare xdev hang. Card 05 compute ring timeout at 87K once (1 of ~6 long runs), and the BACO reset recovered. Not
+thermal (passed 4x at 100-102 C). The control without xdev never hung. The kernel-fault watcher stays on in all tests.
+Measured dead ends:
+- v3r (async staging ring) 634 and v3q (SDMA transfer-queue ring) 642, both worse than v3's 733 @88K.
+- The mask-copy hypothesis was falsified (those copies were already overlapped).
+- v4 (GPU waits on a host-set VkEvent) HUNG card 05. Never put GPU-side waits on host events that may arrive late.
+- ub512 and ts 0.8/1.0/1.2 are worse.
+- The long-context slope is attention compute: an FA shader tuned for GCN is the remaining big lever.
+Why the prefill counter drops sharply from 99% to 100%: llama-server context checkpoints on this hybrid model split the prompt at
+n-(4+ub) and n-4, so the last ubatch runs serially, and the MTP head then runs its own prompt pass (~12 s @32K, serial).
+Older Ornith facts that still stand:
+- f16 KV beats q4/q8 at long context (+12-15% TG) but loses at 2K, so 2K screens pick the wrong cache.
+- MTP depth 1 is best. The DRY sampler does not stop loops.
+- ROCm = Vulkan at 8K (ROCm's 2K win was an artifact). b11054 vs b10919 = noise.
+- APEX Q3_K -24%; draft on CPU -39%; KV on CPU -46%.
+
+=== 2. ORNITH Q4 - QUEUED, NOT RUN YET ===
+File /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf (20.13 GB). Strata cannot run it (Strata is Flash-Next/qwen4exp only),
+so it goes on the TurboPrefill v3mx2 stack.
+Arms: (a) Q4 + MTP draft on the x16 card with ~5 expert layers on CPU (taken from the risers' layers); (b) Q4, no draft, fully on GPU.
+Then brainbench, and one quality + speed table vs Ornith Q3 v3mx2.
+Reference (old stack without xdev, 2 Oct): IQ4_XS 3 GPU + 4 CPU layers 424/26.1 @32K; with the draft 399/30.6 @32K, 236/24.2 @90K.
+Estimate with xdev v3: PP roughly +40-60% over that, TG ~28-32 @32K with the draft. UNMEASURED.
+
+=== 3. QWEN3.8-FLASH-NEXT (125B MoE / 6B active, 48 layers, 512 experts top-10 + shared, PLE n-gram table 28.8 GB in RAM) ===
+Plan file: C:\StorjMonitor\gorast\FLASHNEXT_PLAN.md (TurboPrefill x Strata, phases P0-P5).
+3a. Model gate (5 known-answer questions, Qwen sampling): Swift 1.5 IQ2_XS (a fine-tune that thinks shorter; experts 35.5 GB) 5/5;
+    UD-IQ3_XXS (experts 48.6 GB, 82 GB file) 5/5.
+3b. llama.cpp engine (~/llama-mtpc: qwen4exp + MTP + expert-cache PR 27861), streaming experts through the x16 card. op_offload copies
+    CPU-held experts to the FIRST -dev device each ubatch:
+ - Default order streams via riser 0f: PP 18. x16 first (-dev Vulkan1,Vulkan0,Vulkan2): 78.
+ - Best stable: -dev Vulkan1,Vulkan0,Vulkan2 -ts 38,5,5 --n-cpu-moe 38 -b 8192 -ub 3072, f16 KV, dio, c40960.
+   7.5K PP 147.6 / TG 7.5; 32K PP 135 / TG 6.6.
+ - ub4096 gave 170 PP but left 146 MiB free on 05. A graph re-reserve then moved all expert work to riser 0f mid-run (PP 55, TG 2.5).
+   Keep >= 1 GB free on 05.
+ - Skip-readback patch (GGML_SCHED_MOE_FULLCOPY): +8% only.
+ Verdict: llama.cpp prefill is good, decode (7.5) is poor.
+3c. Strata engine (gfx900 port, ROCm 6.3.4, built on the gfx906 code paths): BEST DECODE.
+ - Config "S2": the x16 card is the main GPU running all layers; the risers are remote expert caches (5,573 experts / 7.47 GiB each).
+   Flags: --expert-cache auto --expert-cache-per-layer --expert-cache-device1 auto --expert-cache-device2 auto --remote-expert-opt
+   --prefill auto --pool-workers 13 --spec 2 --mmap-experts --expert-profile data/expert-profile.bin --mtp mtp/rt --kv int8,
+   with HIP_VISIBLE_DEVICES=0,1,2.
+ - 7.5K: PP 236-238 / TG 18.2, hits 90%. At 131K context: TG 16.1. The old layer-split config gave 75-83 / 18.
+ - Sweep, one change each:
+   - spec 3: 18.3
+   - vram-reserve 350: 18.4
+   - placement layer: 17.3
+   - pool 27: 16.4
+   - RAM arena: PP 259 / TG 16.9
+   - file-backed arena: 159 / 17.7
+ - Decode round ~98 ms: CPU expert pool 46 ms (~2 misses per layer), riser rings 30 ms.
+ - SAFETY:
+   - Strata's pinned RAM arena + --ple-io ram WEDGED card 05 (KFD userptr/SVM thrash, IH ring overflow, CP preemption failure).
+     A safe sysrq reboot recovered it.
+   - The arena alone also causes IH overflow, so keep --mmap-experts.
+   - Strata's AMD default GPU_PINNED_MIN_XFER_SIZE=1000000 makes ROCm 6.3.4 see 0 devices (use 4096).
+   - Every Strata run goes under ~/strata_fault_guard.sh.
+3d. RUNNING NOW: full brainbench (19 tasks, bench4_remote.py, 131K context) on Strata Swift IQ2_XS, live stream shown to Gorast.
+ - Task 1 CORRECT: 5,711 tokens, 377 s, 15.7 tok/s (Ornith: 9,866 tokens / 425 s).
+ - Task 2 (portfolio optimization) still thinking at ~23K tokens after 27 min (Ornith: 43K tokens, 32 min, correct).
+ - Engine stats at 131K: main-GPU expert hits 61.7%, risers ~24%, CPU 14.3%.
+3e. Gorast asked whether 18 tok/s is really Strata's number. My analysis: the gfx900 port is NOT the limit.
+ - The dp4a fallback compiles to v_mul_i32_i24_sdwa + v_add3_u32, the same as llama.cpp's hand-written gfx900 asm.
+ - Wave64 runs through the gfx906 paths, which do 50 tok/s on 2x MI50.
+ - The host side already spin-waits.
+ The limit is expert residency: 35.5 GB of experts vs 24 GB of VRAM, and the riser share crosses x1 links every layer. Public
+ references: RTX 5070 12 GB 79/63 tok/s (fast CPU + DDR5); 2x MI50 32 GB with all experts resident, 50 tok/s.
+ Queued automatically after the brainbench (~/fn_after_brain.sh), on Swift IQ2_XS:
+ - T: per-stage decode timing (STRATA_DECODE_TIMING).
+ - A: --adapt-every 0 --pcie-frac 0 (Strata's measured AMD config; we run auto pcie_frac 0.33).
+ - B: --spec 4 --spec-min-p 0.5.
+3f. REJECTED: the Flash-Next Coder (ISTA 256-expert prune) failed basic tests (operator, 11 Oct). Do not propose it.
+
+=== 4. PLAN, IN ORDER ===
+1) Finish the Swift IQ2_XS brainbench (19 tasks), then the T/A/B arms (~25 min).
+2) The same brainbench on Strata UD-IQ3_XXS (pack ~/strata-packs/existing-flashnext-iq3xxs). With 48.6 GB of experts fewer are
+   resident: expect lower TG, better quality.
+3) Ornith Q4 arms (a)/(b) + brainbench. Then ONE table: Ornith Q3 v3mx2 vs Ornith Q4 vs Flash-Next IQ2_XS vs IQ3_XXS, with quality,
+   PP, TG and tokens per task.
+4) Flash-Next speed work:
+   - Routing trace (--dump-routing) -> expert coverage curve.
+   - KV k8v4.
+   - Strata pool/overlap code (overlap CPU misses with GPU work).
+   - P3 prefetching expert streamer for llama.cpp prefill (double-buffered on the x16 card, target 250+ PP).
+   - P5 decision: port the streamer into a Strata fork ("Strata-TP") if Strata's decode stays >= 1.5x llama.cpp's.
+5) MR9A board: risers on CPU lanes -> riser expert rings and xdev copies get much faster; 96 GB RAM holds the IQ3 experts and the PLE
+   table together.
+
+=== 5. OTHER MODELS (history, all measured on GORAST unless noted) ===
+- Tiel-Coder 35B-A3B UD-IQ3_XXS, fully on 3 GPUs: 587/28.0 @32K, 90K 377/23.1 (flattest slope); brainbench tasks 1+2 CORRECT.
+- Empero Qwen3.8-35B-A3B-Distill Q4_K_M, 3 GPU + 6 CPU layers: 380/24.5 @32K.
+- Rejected:
+  - Whittle (wrong on task 1).
+  - Jab 160-expert coder (1/6).
+  - Qwen3.8-27B (dense: reads 17.6 GB per token, ~5 tok/s projected).
+  - Ternary Bonsai 27B (the fast PQ2_0 packing OOMs at 8K on 8 GB).
+  - APEX Q3_K (-24%).
+- Ling-3.0-flash (cloud, OpenRouter): 31/31 problems with the agent loop, $0.06 total.
+- XEON2 Flash-Next UD-IQ3_XXS (1 Vega, 64 GB): PP 52 / TG 5.2 @8K; brainbench N1-N3 correct.
+
+=== 6. RULES I FOLLOW ON GORAST (operator) ===
+- Production Ornith is restored only on Gorast's word.
+- No unrealistic repeat stress tests.
+- Cards are OK to 110 C.
+- The undervolt is never touched.
+- Every engine run gets a live view.
+- One change per test; correctness gate before speed.
