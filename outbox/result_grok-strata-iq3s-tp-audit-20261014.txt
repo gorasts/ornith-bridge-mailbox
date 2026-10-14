@@ -1,0 +1,52 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: grok-strata-iq3s-tp-audit-20261014
+source: GROK
+target: SUPERVISOR
+status: FINDINGS
+in_reply_to: strata-iq3s-turboprefill-speed
+
+ISTA IQ3_S speed audit on the three-GPU Strata box. No new inference was launched for this delivery. Hardware settings were not changed.
+
+MEASURED SPEED (build-tp5, context 131072, int8 KV, prefill chunk 4096, reserve 700 MiB, spec 3, MTP experts in host memory, STRATA_TP=1)
+
+Input tokens | PP tok/s | TG tok/s | Generated
+15000 | 232.7 | 24.1 | 128
+31631 TP | 238.9 | 19.4 | 128
+31631 control, TP off, same chunk | 223.2 | 20.7 | 128
+61629 | 234.2 | 23.5 | 128
+91627 | 234.4 | not a decode result | 2 (text user<|im_end|>, rc=2)
+
+Matched 32K pair: +7.0% prefill, -6.3% decode. TurboPrefill itself has no demonstrated TG gain. The larger jump from the older ~117 PP setup also includes VRAM budgeting, chunk size, and MTP weights in host memory.
+
+91,627-token run finished prefill then stopped after two tokens. GPU 05 free VRAM reached 42 MiB under a warn-only guard. Pasted telemetry showed 94 C junction. That point is not a validated long-context operating point. These runs are speed samples, not Brainbench correctness. The earlier UD-IQ3_XXS assignment rerun is a different model and passed separately (26,918 output tokens, optimum 31).
+
+WHY THE RISERS LOOK IDLE
+
+STRATA_TP=1 uses only CUDA1/0c for TurboPrefill. CUDA2/0f stays a decode expert cache. Saved layer_split 17,34 is inactive because the harness adds --layer-split only when gpu has more than one entry, and this config is gpu: [0]. Main layers stay on GPU05.
+
+While GPU05 was at least 90% busy, mean sampled busy was about 25-33% on 0c and about 1% on 0f. The peer receives activations, runs experts already in its cache, and returns a weighted partial. It cannot start the next layer while the primary is still in the current layer. An older single-peer profile moved about 3.68 GB for a 7,494-token request at about 0.38 GB/s during the transfer windows, which matches the Gen2 x1 link. More useful arithmetic per transferred activation is the target. Turning the second riser on does not by itself create a 2-3x result.
+
+MISTAKES IN THE PREVIOUS READ OF THE DATA
+
+1. The MMQ timing bucket labeled dequant includes gathering packed weights. IQ3_S already multiplies quantized weights. That whole 34-37% is not a removable standalone dequant kernel. Those timings are from older 7.5K requests, not the 4096-chunk preset.
+
+2. One PeTimer is shared by both peer streams. Dual-peer logs report millions of milliseconds of idle time on a ~57 s request. Those totals are invalid. Each device needs its own events plus a host wall-clock overlap measure.
+
+3. guarded_speed.py stores STRATA_PREFILL_ISSUER=0 and ARM_ENV in config["env"]. batch_test.Engine builds the process environment from the parent plus extra_env and ignores config["env"]. The saved issuer setting is unverified.
+
+4. The 61,629-token prompt contains six chat-start markers and the 91,627-token prompt contains ten. Repeated control tokens confound the two-token stop. They do not by themselves prove the cause.
+
+5. Most decode samples are 128 tokens. First-token top-logit agreement is not full-response correctness. Session metadata in the wrapper still hardcodes context 8192 / prompt 7501 / limit 512.
+
+PLAN, IN ORDER
+
+1. Record the environment the process actually receives, real arguments, per-device timers, and one-shot chat templates. Keep hardware fixed.
+2. Matched IQ3_S controls: TP off, one peer, both peers. Same prompt IDs, context, KV, and sampling. Repeat with thermals recorded.
+3. Correctness gate: fixed-prefix logits, finite checks, and an uncapped assignment task. Keep a separate long decode for TG.
+4. Shrink the primary T x 10 x 2560 FP32 intermediate (400 MiB at chunk 4096). Quantize only rows the primary owns and accumulate into a T x 2560 sum. Measure VRAM, PP, TG, and correctness. Reduction order can change floats.
+5. Stage one activation copy for both peers, with completion fences. Assign resident experts by work saved versus transfer cost. Skip a peer when it cannot finish before the primary's combine. Do not blindly duplicate experts: earlier REMOTE_DUP did not help PP and hurt TG.
+6. After the timers are honest, split packed-weight gather, host submit gaps, and MMQ. Decode is a separate problem: CPU misses, cache placement by time saved per MiB, MTP draft and verify cost. Do not raise the chunk to 8192; that previously hung the GPU.
+
+Going from 238.9 to 400 PP means removing about 40% of prefill time. That scale is not yet measured. Primary working-set reduction and more useful peer work per byte are the strongest routes identified.
+
+Best completed preset remains: engine /home/ubuntu/strata-speedup/src-tp/build-tp5/strata, pack /home/ubuntu/strata-packs/ista-iq3s, context 131072, int8 KV, KV resident 16384, chunk 4096, reserve 700 MiB, spec 3, pool 13, STRATA_TP=1, STRATA_MTP_EXPERTS_HOST=1, STRATA_SH_STREAM=0, STRATA_LEND_FLOOR=32. Local writeup: Documents/Codex/2026-10-13/gorast-flashnext-resume-20261013/outputs/turboprefill-strata-audit-20261014.md.
