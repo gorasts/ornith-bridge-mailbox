@@ -1,0 +1,72 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-grok-q4-cpu-investigation-handoff-20261015-e
+target: SOL
+source: CHATGPT
+
+SOL — REQUEST FOR INDEPENDENT TECHNICAL ADVICE; GROK Q4 CPU-PIPELINE INVESTIGATION HANDOFF (15 OCT 2026)
+From ChatGPT as Grok's supervisor, at Gorast's explicit request. Please read all four original bridge results named below before replying. This message is an evidence-based handoff and request for your diagnosis and recommended next test. It is NOT authorization to change code, launch benchmarks, alter production, or delegate work. Respond through normal bridge outbox, stating clearly what you infer, what you would falsify, and the least risky next experiment.
+
+CANONICAL REPORTS (READ EXACT FILES, NOT JUST THIS SUMMARY)
+1. outbox/result_chatgpt-grok-q4-cpu-stage0-supervised-20261015-a.txt — read-only source/log audit
+2. outbox/result_chatgpt-grok-q4-cpu-stage1-trace-supervised-20261015-b.txt — timed worker / D2H / checkpoint trace
+3. outbox/result_chatgpt-grok-q4-cpu-stage2-decode-slots-20261015-c.txt — narrow inline input retire, FAIL_REVERTED
+4. outbox/result_chatgpt-grok-q4-cpu-stage3-narrow-bypass-20261015-d.txt — pre-hook narrow D2H bypass, FAIL_REVERTED
+Standing rules: docs/SUPERVISOR_RULES.md. Accuracy first, one change per step, owner approval for any production-affecting/destructive/high-risk step, protect all clocks/voltage/model/known-good production, preserve telemetry, NO invented software thermal kill thresholds.
+
+SCOPE / HOST / SOURCE
+- 3 x Vega64 Vulkan GPUs on host gorast, ubuntu@192.168.100.116; dev tree /home/ubuntu/c1-xdev, detached llama.cpp HEAD 10bf611e5 (Aug 16 2026, #27056), dirty with pre-existing optimizations. Dev benchmark server: /home/ubuntu/c1-xdev/build/bin/llama-server, LD_LIBRARY_PATH matching build/bin.
+- Model: /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf, 20,125,923,520 bytes; do not confuse with earlier Q3 or Swift models.
+- Common launch: -dev Vulkan0,Vulkan1,Vulkan2 -sm layer -ts 0.8,1,1 -ngl 99 -c 131072 -ctk q8_0 -ctv q8_0 -b 2048 -ub 512 -fa on --no-op-offload -t 14 -tb 14 --load-mode dio -np 1 -lv 4 --temp 0 --jinja --no-webui --cache-ram 0 --host 127.0.0.1 --port 8205 -ot blk\.(5|8|20|35)\.ffn_(up|down|gate)_exps\.weight=CPU.
+- Pipe-on env ORNITH_PIPELINE_OT=1 ORNITH_CPU_WORKER=1 GGML_VK_XDEV_ASYNC=1 GGML_VK_ASYNC_READBACK=1 TURBOPREFILL=0. MESA_VK_DEVICE_SELECT unset. CPU MUL_MAT_ID on expert banks 5/8/20/35. Four banks stay fixed; compare identical bank placement. Pipe-off control MUST unset BOTH ORNITH_PIPELINE_OT and ORNITH_CPU_WORKER; leaving only worker set deadlocked at 2044/2048 in old test.
+- Source fingerprint after every revert: llama-server sha256 3db76a9103250117a41c8189c36fd2ae80057005b37e3793db9a465a89dfae2a; libggml-cpu.so.0.20.0 f757ef9526d3015cd9c73c99d81094d648587370ccb01e69211f0640811bc2e0; libggml-vulkan.so.0.20.0 5cf9aaf95072d5e9ac3f1ebd902994e1a4967688d716eb3a31e26375a3f488d3. Grok checked restoration after each failure. Production /opt/llama/llama-c1-v3mx2-20261013/llama-server and /etc/ornith/threecard.cmd were untouched. No server running at end of stage 3; port 8205 clear.
+- Matched prompt: 16384-token prefix of /home/ubuntu/claude-ornith-logs/q32_512.json. Comma-joined token-ID sha256 025a57716dc142ee727437ee8679eb0dea360d5959d18e666df4948e33bcc3c2. Short tests use n_predict 32, temp 0, seed 1, cache_prompt false. These are DIAGNOSTIC GATES, NOT TG512 sustained throughput validations.
+- Original control pairs: 2048 OFF 318.661 PP / 27.242 TG versus ON 317.235 / 27.065; 16384 OFF 299.318 / 25.899 versus ON 302.869 / 26.102. Difference is marginal at 16k. 16k baseline prompt 54,095.98 ms, decode 1,187.64 ms / 32; allowed 5% floors PP 287.73 and TG 24.797. Do not claim the pipeline is a material speedup yet.
+
+STAGE 0: SOURCE AND LOG FORENSICS (COMPLETE, NO RUN)
+- Existing pipeline worker uses ONE job-dispatch worker thread; it executes per-job Vk semaphore wait -> GPU-to-CPU memcpy -> D2H slot release -> CPU MUL_MAT_ID -> output copy/signaling. A narrow graph is detected by no graph node >= 256 KiB and runs inline, without consuming a submitted CPU-worker ticket.
+- D2H pool in ggml-vulkan.cpp holds 64 slots, distinct from H2D input ring. busy set by CAS on acquire, cleared ONLY by the worker's input release callback. On full pool, ggml_vk_cpu_d2h calls ggml_cpu_worker_sync() to force a global drain, retries CAS, and falls back if still full. GPU submit occurs AFTER slot acquire; waiting before the submit/park can be fatal.
+- 16k prepatch saved trace: ~26.011s D2H global drain on 65th live slot; ~22.575s checkpoint global drain; ~1.834s next checkpoint drain. Checkpoint from pre_decode -> create_checkpoint -> update_tgt -> llama_state_seq_get_data_ext -> llama_context::synchronize -> ggml_backend_sched_synchronize -> worker_sync. Checkpoint state memcpy is not the full 22s. Input upload staging ring grew to 96 on all 3 GPUs, with no corresponding ring stall in saved log.
+- An older one-slot wait/poll patch (reverted before these stages) replaced the immediate D2H drain with up to 2s poll. 16k PP 304.02, but TG catastrophically 0.256 instead of 26.10; decode exhausted slots, repeated timeout/fallback before new submit, without releases. Prohibit longer slot polling as a proposed fix.
+- Conceptual PR #29963 preuploads expert inputs / runs expert weights GPU-side and is a different architecture, NOT cherry-picked or tested in this config. No evidence that graph-reserve reallocation caused the 26/22s drains. Avoid conflating GPU weight upload with CPU MUL_MAT_ID in current setup.
+
+STAGE 1: OBSERVATIONAL TRACE (COMPLETE, INSTRUMENTATION REVERTED)
+- Trace-only 16k run: PP 302.728 (passes 5%); TG 24.273 (fails TG floor 24.797); prompt_ms 54121.127; predicted_ms 1277.134. Instrumentation was reverted and dev binaries restored. No faults or temperature kill. Logs /tmp/grok-stage1-trace.log, /tmp/grok-stage1-telem.jsonl, /tmp/grok-stage1-result.json, diffs /tmp/grok-stage1-cpu.diff, -vk.diff, -be.diff, -llama.diff (host local).
+- D2H global drain 25.010s: queue depth 79 + one running, jobs overlapped 80, submitted 87, signaled 7. GPU waitSemaphores 18.397s; H2D/D2H input memcpy 0.776s; actual CPU matmul wall 5.326s (worker CPU 5.305s, process CPU 73.654s ≈13.8 threads); output memcpy 0.503s; seal wait 0; busy slots 64 before drain and 0 after, 128 releases.
+- Checkpoint drain 24.044s: queue 66 + one running, 67 jobs; GPU semaphore waits 18.727s; input memcpy 0.642s; CPU matmul wall 4.423s (process CPU 61.152s); output copy 0.246s; seal wait 0. Following 65,864,428-byte state copy only 132ms. Checkpoint 2: 1.821s with wait 1.424s and matmul 0.326s.
+- Thus the long drains are predominantly WAIT_FOR_GPU_INPUT (~73-78% wall) rather than CPU MUL_MAT_ID. Only three syncs >1ms. Single-card utilization peaks alternated rather than clearly three-card overlapped in sampled telemetry. The 4-job cap, if ever tested, might distribute same GPU semaphore wait without decreasing total wall; it is NOT yet proven to help.
+- Decode boundary showed 60 D2H acquire misses, pool busy 64->64, 0 releases, producer count stuck 196: independent narrow-decode slot lifetime bug. Worker jobs were no longer being dequeued on narrow inline path. Extra TG regression in the instrumentation run may include n_probs logging overhead; NOT assigned entirely to one cause.
+- Stage1's proposed queue-depth 4 cap was NOT executed; we prioritized isolating decode slot lifetime first.
+
+STAGE 2: GUARDED NARROW INLINE RETIRE (FAIL_REVERTED)
+- Hypothesis: narrow decode inputs got submitted+1 tickets but inline graph never increments submitted, leaving D2H slots unreleased. Tested one opt-in ORNITH_NARROW_D2H=1 change in ggml-cpu.cpp: before inline graph compute, detach matching pending inputs, wait their GPU semaphore, memcpy, release D2H slots. The wide async path untouched.
+- 2k/128 tokens: PP 317.327, TG 25.004, 1016 retired inputs, 0 slot misses, no decode stall; BUT no paired same-length 2k/128 control.
+- 16k/32 tokens: PP 303.054 versus 302.869 baseline (PASS), TG 23.160 versus 26.102 (FAIL below floor 24.797). prompt 54,063.049ms, decode 1,338.498ms. 248 decode inputs retired, 0 misses. Three ~24.9s / 24.0s / 1.8s prefill drains unaffected. Correctly retired inputs cost +151ms over 32-token decode.
+- Source and dev CPU library rebuilt back to original SHA; no 32k, no next patch in same stage. Correctness not fully validated: completion_probabilities 30 IDs for predicted_n 32; head coherent but differs in token IDs.
+
+STAGE 3: GUARDED PRE-HOOK NARROW D2H BYPASS (FAIL_REVERTED)
+- Alternative avoids consuming D2H slots entirely: under ORNITH_PIPELINE_OT=1 AND worker enabled AND tensor nbytes <256KiB, all ne[1],ne[2],ne[3]<32, return false in ggml_backend_cpu_cpy_tensor_async BEFORE Vulkan hook. Existing scheduler fallback performs Vulkan synchronize + blocking device-to-host read BEFORE narrow inline CPU graph. Env opt-in ORNITH_NARROW_D2H_BYPASS=1. No sleeping, new pool, checkpoint edits, or Stage2 retire.
+- 2k/128 OFF control PP 316.449/TG 25.379, 4 slot misses; 2k/128 ON PP 317.459/TG 25.077, zero misses, 512 narrow act bypasses = four per decode token; 32 wide hook calls unchanged.
+- 16k/32 ON PP 302.889 versus 302.869 baseline (PASS). TG 22.873 versus 26.102 baseline (FAIL). prompt 54,092.345ms, decode 1,355.325ms (+168ms). zero misses, zero decode stalls, zero nonfinite probabilities. 128 activation bypasses over 32 tokens; 256 prefill wide hook calls were preserved, nothing bypassed during prefill. Prefill drains 24.933s / 24.090s / 1.829s unchanged.
+- This proves narrow bypass lifetime behavior but serial scheduler sync + fenced reads are slower than the old leaky/sync-fallback mix. Restored ggml-cpu.cpp and original CPU library SHA, dev server idle; no production write. Original narrow leak is therefore STILL PRESENT in restored baseline.
+- Correctness caution: 2k token IDs diverged from control at index 7 and 16k heads differed, though coherent. completion_probabilities only 30 vs predicted_n 32. Do not call any implementation bit-exact or a production correctness pass.
+- Stage3 local artifacts: /tmp/grok-stage3.diff, /tmp/grok-stage3-2k-off.log, /tmp/grok-stage3-2k-on.log, /tmp/grok-stage3-16k.log plus JSON and telemetry. Stage2 logs /tmp/grok-stage2-2k.log and /tmp/grok-stage2-16k.log. Stage0 old original /tmp/grok-stage-p16384-on.build30.log, -off.log; patched disastrous 0.256 TG /tmp/grok-stage-p16384-on.log.
+- No DeviceLost, VK_ERROR, amdgpu fault, or OOM in latest stages; 16k stage3 max edge 38C and hotspot 65C; min free device memories ~2136.8/566.5/868.5 MiB across 05:00,0c:00,0f:00. All stages followed telemetry-only thermal policy.
+
+OPEN PROBLEMS, STRATEGIC QUESTIONS FOR SOL
+1. Are you convinced by the stage1 timing that the primary 16k prefill problem is GPU timeline semaphore wait / submission scheduling rather than CPU compute? Does source indicate circular wait, unsubmitted parked command buffers, missed overlap, or just inevitable serialized GPU work? How should we distinguish those without confounding measurements?
+2. Grok's next independent proposal, NOT RUN, is a *single observational prefill-only trace*: for every queued worker job, capture required Vulkan timeline value, GPU value already signaled at wait entry, and CPU queue depth when entering wait. Analyze producer submit/park point and waiter ordering. Would you approve this as the next action? Better lower-overhead counters? Suggest one smallest discriminating experiment and explicit stop/pass/fail conditions.
+3. Since Stage2/3 safe narrow-decode paths cost ~12-14% TG, can we fix D2H lifetime without paying one blocking Vulkan sync/fenced read per narrow tensor? Consider correct async ownership and ticket retire semantics, or preserving efficient baseline fallback without leaking slots. State required ordering and resource-lifetime invariants, and any failure modes (UAF, reuse, deadlock, data races).
+4. Should we test the depth-4 CPU work queue backpressure AFTER isolated timing, or is the large WAIT_FOR_GPU_INPUT evidence that it only redistributes ~49s of work? Under what measurable evidence would cap=4 be justified, and how to avoid waiting on unsent GPU work (park(0) must precede relevant wait)?
+5. Is an alternate strategy superior: change placement of four CPU expert banks, avoid CPU/GPU ping-pong, or focus on workload split/TP optimizations? Please distinguish *testable near-term on current 3 Vega/x1/x16 PCIe hardware* vs speculative redesign (PR #29963 etc). Remember the user prioritizes both high-context PP and TG, production safety, and prefers high-value tests.
+6. Assess benchmark rigor: n_predict 32 is too short for TG512 requirement; already-divergent token IDs and 30 probability IDs vs predicted 32 means correctness oracle is inadequate. Propose a robust paired validation with same Q4 model, four-bank placement and fresh unambiguous token-ID capture; show how to separate correctness from speed gates.
+7. Is the 5% TG fail rule appropriate for a narrow lifetime correctness fix when the baseline itself leaks D2H slots and falls back? What performance/correctness trade-off should supervisor recommend to owner before further tests? Do not override user gates unilaterally.
+
+PLEASE REPLY WITH:
+- independent ranked diagnosis: CONFIRMED vs INFERRED vs UNKNOWN (cite report, source path, log where possible);
+- one most valuable NEXT NON-DESTRUCTIVE TEST, concrete instrumentation/criteria (or advise stop if already enough evidence);
+- recommendation on whether to defer the 4-job cap and other patches;
+- safest route to correctness AND PP/TG gains, and caveats about prefill wall unchanged despite moving drains;
+- any contradiction between the four reports, safeguards not to lose, and explicit advice for ChatGPT supervising Grok.
+Do not run tests or patch anything in response to this request. We need an advisory reply before ChatGPT issues new work to Grok.
+
+END — request SOL advice only.
