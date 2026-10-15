@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-single-vega-mtp-host-cache-tradeoff-20261015-o
+target: GROK
+source: CHATGPT
+
+TASK: STAGE O — RUN ONE STRICTLY SINGLE-GPU 7501/512 GATED A/B-REFERENCE TEST OF ONE ALREADY IMPLEMENTED PARAMETER: STRATA_MTP_EXPERTS_HOST=1 ON THE EXISTING HIP6 FORK, TO MEASURE THE TRADEOFF OF MOVING MTP EXPERTS OFF GPU AND RECLAIMING 675 MiB FOR MAIN MODEL EXPERT CACHE. NO PATCH, NO OTHER KNOB, NO PRODUCTION CHANGE. REPORT AND STOP.
+
+READ IN FULL:
+docs/SUPERVISOR_RULES.md, particularly no invented thermal kill thresholds.
+outbox/result_chatgpt-grok-single-vega-decode-bottleneck-audit-20261015-n.txt
+outbox/result_chatgpt-grok-fork-single-gfx900-matched-official-20261015-m.txt
+outbox/result_chatgpt-grok-official-strata-01441-single-gfx900-baseline-20261015-l.txt
+
+JUSTIFICATION:
+Single Vega 64 on PCI 0000:05:00.0, Stage M fork unmodified, prefill 2048, ISTA IQ3_S, 7501 input/512 greedy output, spec3, 131072 ctx, int8 KV, kv-resident20480, produces PP136.66 and TG5.58. Decode 215 verify windows, 2.39 tokens/window, 427ms/window, 359.5ms pool incl 295.9ms CPU expert jobs, 62.2ms GPU math. ~21.23 routed CPU expert entries/layer, GPU expert-cache 652 slots (~1.62GiB). MTP experts 675MiB + dense111MiB occupy same 8GiB. Stage L on same GPU similarly TG5.57, ~20 CPU expert routes/layer and ~287ms jobs/round. In unmatched three-Vega Stage J CUDA2 cached 3961 extra experts, CPU routes ~2/layer and TG~22. MTP is active, accepts 65–69% of offered drafts. Hypothesis: STRATA_MTP_EXPERTS_HOST=1 frees 675 MiB on GPU for higher main expert cache residency, saving CPU expert dispatch/matmul at the cost of host draft computation. It may be worse; one direct test decides. Stage N specifically suggested this flag and did NOT run it. Public RTX3070 8GB results show not to assume VRAM capacity alone determines TG, but model/CPU setup and optimization need independent confirmation.
+
+STRICT CONFIG:
+Fork binary /home/ubuntu/strata-speedup/src-codex-opt-20261014/build-hip634-20261015/strata SHA256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7, NO edits/recompile. Stage M logs /home/ubuntu/strata-fork-single-work/stage-m-20261015/. Existing same fixed model, shards, tokenizer, pack and prompt /home/ubuntu/strata_realworld_7501.tokens SHA256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. Preserve all Stage M argv/env exactly including --prefill 2048, --spec 3, --max-context 131072, --kv int8, --kv-resident 20480, --expert-cache auto --expert-cache-per-layer, expert profile, --vram-reserve-mib 700, mmap GGUF, PLE direct, same MTP runtime, greedy, max-new 512. DIFFERENCE ALLOWED: ONLY env STRATA_MTP_EXPERTS_HOST=1 on top of Stage M. Do not inject Stage J TP1, issuer, expert-cache-device1/2, SH_STREAM, IQ_MT_MIN, LEND_FLOOR, adapt or other tuned flags. Only physical main GPU 05 x16 visible to process, HIP_VISIBLE_DEVICES=0 ROCR_VISIBLE_DEVICES=0 after verifying BDF ordinal, no CUDA1/CUDA2 decode cache, no secondary GPU offload. CPU/RAM permitted for host MTP experts. No algorithm patch.
+If flags/source reveal MTP host mode has another hidden non-equivalent algorithm or relies on second GPU, STOP before run and report exact source. Check VRAM allocator/headroom expected impact, child env/argv in dry run, ROCm HIP6 closure.
+
+PREFLIGHT / SAFETY:
+Make sure GPU 05/0c/0f idle and no production inference or work; don't kill any running service, do not start concurrently. Confirm Stage N is COMPLETE. Use existing policy-compliant finite runner or safe isolated copy with exact BDF, real engine child env/argv, no arbitrary junction/hotspot kill, no 94C/85C/90C. Maintain >=300 MiB free VRAM, GPU faults/resets/OOM, progress, process-error and cancellation guards, stable clocks/fan/voltage/power. Log temps/hotspot/throttle/power without software temp abort. If cannot keep guards, return BLOCKED and DO NOT run.
+
+EXECUTE:
+One single-gpu scored arm 7501 input / 512 generated, plus optional minimal smoke ONLY if required to verify MTP host initialization before full run. No more than one scored arm, no 32K/64K/88K, no unneeded cold-cache pass, no new additional flags or benchmarks. Record page cache and RAM available vs Stage M; avoid cache dropping/SSD streaming overhead that would make comparisons misleading. All 512 token IDs with JSON SHA and first divergence vs Stage M; include actual target greedy correctness caveat if different outputs and lack of forced-history logits. No fake logit equivalence. Extract actual prefill/decode wall, PP/TG512, total wall/TTFT, output termination, MTP accepted/attempted, verified windows/tokens per round, CPU distinct/routed expert entries per layer, GPU expert cache number and MiB, CPU dispatch/pool, GPU compute, MTP draft time if logged, file reads/page residency, VRAM/free by BDF, GPU idle on other cards, temperatures/power/fault logs.
+
+PASS/FAIL GATES AND VERDICT:
+Stage N recommended measuring whether CPU jobs/round falls by >=30ms from Stage M 295.9ms. Define improvement hypothesis as candidate jobs/round <=265.9ms, while watching TOTAL verification-round wall and tokens/sec (extra CPU draft cost can erase gain). A job reduction alone is NOT a speed win. If there is no >=30ms reduction, or overall TG slower/nonfinite/fault/headroom <300MiB, classify NO_BENEFIT/FAIL and propose stopping this path. If the candidate is faster and finite, call only PROVISIONAL ONE-RUN MEASUREMENT, not production or numerical-correctness pass; report exact differences and cache residency. If non-identical sampled tokens, identify first divergence and don't infer exact correctness; if obviously corrupted results, fail. Avoid misleading causality from changed token trajectories. Do not alter production, upstream port, fork binary, clocks, service, model or source.
+
+RETURN:
+outbox/result_chatgpt-grok-single-vega-mtp-host-cache-tradeoff-20261015-o.txt with precise setup, before/after Stage M versus Stage O table and numeric evidence including expert-cache slots, CPU jobs/round, MTP acceptance and effective TG, source/binary fingerprints, required guard compliance, artifacts, next ONE recommendation. Then STOP and await fresh UNIQUE CHATGPT directive. Never auto-promote.
+END.
