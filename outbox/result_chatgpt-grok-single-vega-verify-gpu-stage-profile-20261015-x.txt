@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-verify-gpu-stage-profile-20261015-x
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-verify-gpu-stage-profile-20261015-x
+
+verdict: PROFILE_UNRELIABLE
+profiler_usable: NO
+output: IDENTICAL
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+One Vega, original binary, no source change, one instrumented run. The launcher required binary sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7, first GPU 0000:05:00.0, no other strata process, all three cards busy 0, and ornith-server not active. It then ran. Stage W A environment had STRATA_MTP_EXPERTS_HOST=1 and no STRATA_DECODE_TIMING and no STRATA_LOOKAHEAD. This run added STRATA_VERIFY_PROFILE=1 and STRATA_DECODE_TIMING=1. Those two flags are instrumentation. STRATA_LOOKAHEAD stayed unset. Clocks recorded before and after compared equal on 05, 0c, and 0f: sclk table unchanged with level 0 at 852 MHz starred, mclk level 3 at 1000 MHz starred, performance level manual. Swap stayed 0. No thermal kill.
+
+GATE A
+Passed. Same Stage S/T/W A argv: --resident-cpu-experts, --mmap-experts, static profile, --spec 3, 13 pool workers plus the host thread, 7501/512, prefill 2048, KV int8 resident 20480, max-context 131072. PCI 0000:05:00.0 only. Prompt sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. The child environment file contains the three STRATA variables above and no LOOKAHEAD.
+
+RUN
+rc 0, 175.5 s. Prefetch line present. Predictor 35.3 ms/round, 0 experts warmed, 0 layers skipped, file reads 0. Speculation: 215 rounds of 5, accepted 299 of 430 (0.695), 2.39 tokens/round. Suffix: 6 windows, 10 of 14. Accepted per round 0:46 1:40 2:128 3:1 4:0. Prefill 7500 in 56035.2 ms, 133.84 tok/s, TTFT 119598.3 ms. Decode 512 in 30216.8 ms, 16.94 tok/s. Host verify window: wait for rings 40.122, pool 63.011, host 0.014, commit 0.086 ms/round. CPU experts 15.39 distinct / 19.50 routed per layer. Pool multi: gate/up 44.570, quantize 0.424, down 16.811 ms/round, 24.5 GB/s, CPU pool call 62.974. Dispatch: jobs 0.092, run 61.821. Draft 10.086 ms/round, 159 MiB VRAM. Resident 46.12 GiB, 2263 exchanged, 0 file blob reads. Output sha256 1109d0d7ba2e87c8a9bd7ff28c19b5c09d539dc9ee635fab6061234cf73b2de1, the reference. Min free VRAM 368 MiB. MemAvailable min 25.81 GiB. RssAnon max 50.44 GiB. Junction max 62 C on 05. 0c and 0f busy 0, used stayed about 8.0 MiB. The 300 MiB VRAM stop did not trip.
+
+PROFILE
+The GPU-stage report was not printed. stdout and stderr contain no "strata decode GPU stages" line and no "strata decode timing:" line. The flags were set. This is not a command typo. generate.cpp calls profile_report only at lines 6070, 6188, and 7237. The "strata decode timing:" fprintf is at line 7228, inside the serve/request function whose STRATA_DECODE_TIMING gate is at line 7084. The one-shot 7501/512 path that this argv uses prints the host "verify window" line at line 8158 and does not call profile_report. Stamps collected inside the verifier, if any, were not emitted. sh_fork is off while STRATA_VERIFY_PROFILE is set, so 16.94 tok/s is not a speed claim and cannot be turned into a percent against the 17.85 reference. The 512 ids matched the reference. Logits stay NOT_PROVED.
+
+Missing counters, every profile_report category, none printed: hc-read0, q8+qkv/q-idx gemv, conv, ab, z, rec, q8+kv-idx, k/v+norm-rope, kv+idx append, q+q-idx, scores+topk, kv-resolve, attention, gate, out-proj, hc-read1+router, shared+quant, waitA, VRAM hits, waitB, PCIe grp, waitCPU, copy+combine, gap, head, hc0 norm, hc0 down, hc0 up. Also missing: the profile window count, the GDN versus QSA split, and any sum against GPU event elapsed. The printed host ring wait 40.122 ms and pool 63.011 ms are sequential host intervals. They are not GPU-stage shares. They were not added. No GPU bottleneck is ranked. No next kernel is selected.
+
+NEXT
+The report function is not wired to this one-shot path. Do not add a print. Do not rerun. Do not switch to --serve. Do not start a second arm. Stop. Do not start three-card work.
+
+Evidence: /home/ubuntu/strata-fork-single-work/stage-x-20261015/bench_prof/stdout.txt, stderr.txt, environ.txt, result.json, samples.json, clocks-before.json, clocks-after.json. Stopped.
+END.
