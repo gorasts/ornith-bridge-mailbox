@@ -1,0 +1,34 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-strata-upstream-stager-sleep-fix-20261015-q
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-strata-upstream-stager-sleep-fix-20261015-q
+
+verdict: NO_MEANINGFUL_WIN
+gate_a: APPLICABLE
+gate_b: BUILT
+gate_c: MEASURED
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+Gate A. V1 Stager::work yield-spins on issued, then cudaEventSynchronize on dma_done events created with cudaEventDisableTiming only. The HIP shim had no cudaEventBlockingSync mapping. mmap-experts is the live path: the GGUF is staged in place, transient experts are Stager copy_blob jobs, and any transient expert sets 32 threads. Stage K telemetry.jsonl stores utc, gpus, and meminfo, so process affinity there is unmeasured. g++ 13 and AMD clang 18 provide C++20 atomic wait/notify. hipEventBlockingSync is 0x1 in ROCm 6.3.4 and hipEventSynchronize blocks. One wait backport applies. No API gap.
+
+Gate B. Isolated tree /home/ubuntu/strata-speedup/src-codex-q-stager-20261015. Binary build-hip634-20261015/strata sha256 02bb9446d9d14240958f30e221dbfb46d48c7803cd0dd61657a730dd3fcb78b8. With LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib, ldd resolves libamdhip64.so.6, libhipblas.so.2, and libhipblaslt.so.0. --help rc 0. After both arms, V1 prefill.cpp is still f564ed03fb8ad2f2a33d39703929bca694ecf31b51ca92c756a503173f85f251 and the V1 binary is still 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7. Upstream wait is PR 1057, Linux default in v0.1.40.2, maintainer commit 2a8cded. The pinned read-only reference was local v0.1.44.1. This fork kept V1's one-job claim. STRATA_STAGER_SLEEP unset stays on the yield path. Both measured arms set it.
+
+The edit is stager_sleep(); dma_done uses cudaEventDisableTiming | cudaEventBlockingSync when sleep is on; the ring wait is issued.wait; issued_one and finish call notify_all after the store. The HIP shim adds one define, cudaEventBlockingSync to hipEventBlockingSync. The ready-byte wait() loop is the original yield loop.
+
+Gate C. One binary. Stage K OFF argv: ISTA IQ3_S, --mmap-experts, --prefill 4096, --max-new 512, --spec 3, issuer 0, STRATA_TP=1, STRATA_MTP_EXPERTS_HOST=1, STRATA_IQ_MT_MIN=1, STRATA_SH_STREAM=0, STRATA_LEND_FLOOR=32, STRATA_DECODE_TIMING=1, HIP_VISIBLE_DEVICES=0,1,2, --expert-cache-device1 3700, --expert-cache-device2 auto. STRATA_PREFILL_TIMING, STRATA_PREFILL_COMPACT, and STRATA_GATHER_SDMA were unset. Prompt sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. Guard was fault, RAM floor, and a 300 MiB free-VRAM stop. No software thermal cutoff. Clocks, fans, voltage, and power were not written. Hardware settings compared equal. Power cap stayed 220000000 on PCI 05, 0c, and 0f. ornith-server stayed inactive. threecard.cmd sha256 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23.
+
+SLEEP=0, utc 2026-10-15T18:27:48Z, rc 0, finish length. DONE 512 7501 36723.5 23321.3. PP 204.256 tok/s. TG 21.954 tok/s. 512 ids sha256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046. Min free VRAM 375 / 567 / 420 MiB. Busy max 100 / 99 / 20. Junction max 63 C / 41 C / 34 C.
+
+SLEEP=1, utc 2026-10-15T18:29:44Z, rc 0, finish length. DONE 512 7501 36331.1 23339.3. PP 206.462 tok/s. TG 21.937 tok/s. Same 512-id sha256. Min free VRAM 375 / 567 / 420 MiB. Busy max 100 / 99 / 18. Junction max 67 C / 43 C / 35 C.
+
+PP +1.080% (392.4 ms off a 36723.5 ms wall). TG -0.077%. Stage K OFF on the previous binary was 36635.0 ms, PP 204.750, TG 21.990, same sha. Group launch count is unavailable because STRATA_PREFILL_TIMING stayed unset.
+
+The pin is present. Both arms hold 35 to 36 strata threads on CPU 0 through the prefill window. The process starts with Cpus_allowed_list 0-27. The exclusive CPU 0 mask appears with the Stager threads, so they inherited the session pin. On SLEEP=0 that CPU 0 group had 414288 nonvoluntary switches and 492 voluntary switches at the first prefill sample. On SLEEP=1 it had 6591 nonvoluntary and 27231 voluntary. Process utime+stime across the 18.1 s client prefill window was 1.07 cores on both arms. PCI 05 and 0c stayed at 100 and 99 percent busy. Decode accounting stayed level: 99.24 ms/window versus 99.32, draft 9.18 ms both, 8.95 cores versus 9.07.
+
+The sleep replaced the yield storm with futex waits. Prefill throughput stayed inside 1.1% of the matched arm, under the 3% bar, with TG flat and the token ids identical. Two arms only. SLEEP=1 ran second, so cache warmth can only enlarge this delta. The prefill wall on this three-Vega path is still elsewhere. This knob stops. Do not promote. Do not start gather coalescing or another flag from this result.
+
+END.
