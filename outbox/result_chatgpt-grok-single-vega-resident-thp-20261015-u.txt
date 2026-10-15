@@ -1,0 +1,35 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-resident-thp-20261015-u
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-resident-thp-20261015-u
+
+verdict: NOT_CORRECTNESS_PROVEN
+output: SAME_MODEL_OUTPUT_NOT_IDENTICAL
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+Single Vega only. One isolated opt-in madvise, default off. No sysctl, no hugepage pool, no NUMA, no clocks, no three-GPU work. Original binary sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7 before and after. Original prefill.cpp sha256 f564ed03fb8ad2f2a33d39703929bca694ecf31b51ca92c756a503173f85f251. ornith-server stayed inactive. threecard.cmd sha256 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23. Clocks compared equal. Swap stayed 0.
+
+GATE 1
+Host is one Xeon E5-2680 v4, 14 cores, one NUMA node. THP enabled is always [madvise] never. Defrag is always defer defer+madvise [madvise] never. hpage_pmd_size is 2097152. MemAvailable was about 76 GiB and SwapTotal is 0, so the 46.12 GiB complement fits with the 8 GiB floor. The pageable path in FileExpertSource::pin_cache_complement is std::malloc with no MADV_HUGEPAGE. A 32 MiB unadvised malloc stayed on 4 KiB pages. Advising its page-aligned interior returned rc 0 and AnonHugePages 30720 kB of 32764 kB. The change is applicable. Policy was left as found.
+
+GATE 2
+Isolated tree /home/ubuntu/strata-speedup/src-codex-u-thp-20261015. After the pageable malloc succeeds, and only when pin is false and STRATA_RESIDENT_THP is set and not 0, madvise(MADV_HUGEPAGE) runs on the page-aligned interior. Unset prints nothing and keeps the original malloc. No MADV_COLLAPSE and no MAP_HUGETLB. New binary sha256 8390601ab1cdc9ab575a467ea81f451b984234c4a732c18ab47ab1f017b9569b. --help rc 0. ldd resolves libamdhip64.so.6 from /opt/rocm-6.3.4/lib. The original source has no STRATA_RESIDENT_THP.
+
+ARMS
+PCI 0000:05:00.0 only. A is the original binary and the Stage S A argv: --spec 3, --resident-cpu-experts, default 13 pool workers plus the host thread. B is the new binary with the same argv and only STRATA_RESIDENT_THP=1 added. Child env: HIP_VISIBLE_DEVICES=0, ROCR_VISIBLE_DEVICES=0, CUDA_DEVICE_ORDER=PCI_BUS_ID, LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib, STRATA_MTP_EXPERTS_HOST=1. Prompt sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. No thermal kill. Stops were free VRAM under 300 MiB after 30 s, another card busy or up 64 MiB, a 900 s stall, or a 1800 s wall. No reverse arm. The per-VMA smaps parse did not keep field lines, because those lines are not indented. Backing is taken from the global AnonHugePages counter sampled every 2 s against RssAnon.
+
+A, rc 0, 173.6 s. No madvise line. Printed 13 expert-pool workers. Speculation: 215 rounds of 5, accepted 299 of 430 (0.695), 2.39 tokens/round. Suffix: 5 windows, 7 of 12. Accepted per round 0:46 1:39 2:130 3:0 4:0. Prefill 7500 in 55086.1 ms, 136.15 tok/s, TTFT 118242.2 ms. Decode 512 in 30921.8 ms, 16.56 tok/s. Ring wait 39.750. Pool 62.589. Jobs 0.089. GPU run 61.406. CPU experts 15.39 distinct / 19.51 routed per layer. Pool 24.7 GB/s. Draft 9.910 ms/round. PLE 339.9 ms. Resident 46.12 GiB, file reads 0. While RssAnon was 50.44 GiB, AnonHugePages peaked at 2.87 GiB, the same band it held before the complement filled. Output sha256 1109d0d7ba2e87c8a9bd7ff28c19b5c09d539dc9ee635fab6061234cf73b2de1, no divergence from the Stage S A ids. Min free VRAM 372 MiB. MemAvailable min 25.79 GiB. Junction max 62 C. 0c and 0f busy 0. Major faults 374 to 5359.
+
+B, rc 0, 234.8 s. Printed: FileExpertSource: STRATA_RESIDENT_THP madvise accepted rc 0 errno 0 bytes 49518690304. Printed 13 expert-pool workers. Speculation: 218 rounds of 5, accepted 295 of 446 (0.661), 2.35 tokens/round. Suffix: 17 windows, 34 of 46. Accepted per round 0:48 1:49 2:117 3:4 4:0. Prefill 7500 in 55288.5 ms, 135.65 tok/s, TTFT 177077.6 ms. Decode 512 in 32371.5 ms, 15.82 tok/s. Ring wait 39.995. Pool 64.207. Jobs 0.097. GPU run 62.976. CPU experts 15.58 distinct / 19.81 routed per layer. Pool 24.4 GB/s. Draft 9.918 ms/round. PLE 1378.7 ms. Resident 46.12 GiB, file reads 0. AnonHugePages rose with the complement copy and peaked at 24.75 GiB while RssAnon was 50.38 GiB. That is 21.88 GiB above A's peak, about 47% of the 46.12 GiB complement. The rest of the arena stayed outside AnonHugePages. Output sha256 b7e406da9a81529955714b1ef83cef65446318ef475b57afeac93b85dc731be0. First difference at index 329: A token 1189, B token 668. Min free VRAM 372 MiB. MemAvailable min 25.78 GiB. Junction max 62 C. 0c and 0f busy 0. Major faults 440 to 15658.
+
+TG is 15.82/16.56 = 0.955 of A, -4.5%. PP is 99.6% of A. The fill before prefill grew by about 59 s, which is the TTFT gap. The row rate stayed 24.4 GB/s against 24.7. Ring wait stayed 40 ms. Advice was accepted and about half the complement became transparent huge pages, so this is not NO_EFFECT. The ids differ, so the rate is NOT_CORRECTNESS_PROVEN and is not a promotion case. The TG move is below 10% and is in the wrong direction, so the speed class is NO_MATERIAL_GAIN. This knob stops. Do not add MADV_COLLAPSE, do not change the THP sysctl, and do not put STRATA_RESIDENT_THP on a later default.
+
+NEXT
+On the matching spec-3 path the round is still about 40 ms of ver.ms_wait plus 63 ms of CPU expert pool. Partial huge pages did not raise the 24.7 GB/s row rate. A later single-Vega stage, if asked, should stay on the original binary and --spec 3 and attribute that 40 ms GPU-reach wait. Do not repeat the THP arm. Do not start three-card work from this result.
+
+Evidence: /home/ubuntu/strata-fork-single-work/stage-u-20261015/summary.json, bench_a and bench_b samples. Stopped.
+END.
