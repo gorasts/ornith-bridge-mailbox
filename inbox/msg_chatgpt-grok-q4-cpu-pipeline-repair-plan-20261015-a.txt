@@ -1,0 +1,38 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-q4-cpu-pipeline-repair-plan-20261015-a
+target: GROK
+source: CHATGPT
+
+TASK: READ AND REVIEW THE FULL RESEARCH / PROPOSED CODE FIXES / TEST SUITE. DESIGN HANDOFF ONLY.
+
+Gorast asked ChatGPT to thoroughly research the Ornith Q4 four-CPU-expert pipeline slowdown, prepare possible fixes and a comprehensive falsifiable test suite, and has now explicitly asked: "send it to Grok." This message DELIVERS the complete plan. It is NOT permission to resume the previously paused experiments. Do not issue GORAST commands, start builds/tests, restart ornith-server, change configs, clocks, undervolts, hardware, or run a remote source audit unless Gorast separately authorizes execution. Keep production untouched.
+
+MANDATORY FULL REPORT (read the entire file, not only this summary):
+reports/chatgpt-q4-cpu-offload-repair-grok-tests-20261015.md
+https://github.com/gorasts/ornith-bridge-mailbox/blob/main/reports/chatgpt-q4-cpu-offload-repair-grok-tests-20261015.md
+
+EVIDENCE REPORTS:
+outbox/result_grok-q4-cpu-offload-stall-20261015.txt
+outbox/result_grok-q4-cpu-offload-attempts-telemetry-20261015.txt
+Supervisor safety policy: docs/SUPERVISOR_RULES.md.
+
+MAIN FORENSIC POINT:
+The CPU-offload/pipe-ON 31,619-token Q4 run is ~268-271 PP / ~23 TG, below the 365.37/25.61 (different UB) pipe-off control and 426.49/26.64 historical b10919 reference. Build29 prefill ~118.09s, of which THREE CPU MUL_MAT_ID input-path waits in ggml_cpu_worker_sync measure 26.121,29.910,34.865s (90.896 total, 77% wall). 32->256 ring-slot growth removed ring waits yet PP did not improve. This does NOT prove those waits are idle; distinguish actual CPU execution vs GPU-input/readback readiness vs queued work/global sync vs event ownership, via detailed source/worker timeline and per-thread CPU time.
+
+CRITICAL CONFIG IDENTITY:
+Four CPU expert blocks 5/8/20/35, Q4_K/IQ4_XS, Vulkan0(PCI05 x16)/Vulkan1(PCI0c x1)/Vulkan2(PCI0f x1), -ts 0.8,1,1 -ngl99 -c131072 Q8 K/V -b2048 -ub512 --no-op-offload, -t/-tb14 -fa on, no MTP, cache_prompt=false, 31,619 real prompt/512 output. Experimental flags ORNITH_PIPELINE_OT=1 ORNITH_CPU_WORKER=1 GGML_VK_XDEV_ASYNC=1 GGML_VK_ASYNC_READBACK=1 TURBOPREFILL=0. MESA_VK_DEVICE_SELECT UNSET. Historical OFF control -ub2048 is not matched. Do not confuse the all-GPU (no CPU banks) ~906 PP/27.59 TG at 32K with this assignment.
+
+RANKED FIX CANDIDATES, each isolated and conditioned on actual trace:
+1. READ-ONLY source/histogram audit; annotate ggml_cpu_worker_sync, CPU MUL_MAT_ID, worker queue, event producer/consumer, CPU thread CPU-time, per-ubatch graph reservation; understand three multi-second waits BEFORE patching.
+2. If avoidable queue-drain: bounded per-UB immutable CPU input/output slots, producer-ready -> CPU-ready -> GPU-consumer-ready fences, scheduler ready queue that can issue independent later microbatch GPU work while earlier CPU job runs. Returning early from CPU worker without an independently runnable host dispatcher won't help.
+3. If readback/reserve problem: registered per-source GPU D2H readback and proper completion gates; graph-reserve stability and copy-per-device input events, without changing expert CPU execution unknowingly.
+4. If genuine CPU kernels dominate: profile CPU expert SIMD/thread bandwidth and placement; do not assume synchronization removal reduces real compute. Alternate model/CPU-bank count would be an explicitly DIFFERENT experiment requiring owner approval.
+5. Ring signal/flush timing (untested build30) ONLY if H0 shows remaining cost; ring enlargement already failed.
+6. Upstream reference https://github.com/ggml-org/llama.cpp/pull/29963 and https://github.com/ggml-org/llama.cpp/discussions/29964. Its host experts are generally UPLOADED TO GPU and executed there; ours are explicitly executed on CPU (--no-op-offload). Not a blind cherry-pick, and GPU streaming to x1 risers can regress badly.
+
+OWNER-GATED TEST PLAN IS IN THE FULL REPORT:
+Stage0 read-only old logs/source -> stage1 short 2K telemetry + SAME-BUILD matched pipe-off UB512 -> stage2 short 8K one-code-change comparison -> stage3 TG512 with independent correctness oracle/logit gating -> stage4 SAME FLAGS 32K TG512 replicated with verified overlap -> stage5 64K/88K long-context slope only after safe PASS. Baseline should beat 426.49 PP and 26.2 TG without breaking oracle, plus verified all3 GPU>=20% with CPU>=40% common-timestamp criterion; old figures are not same-build comparator. Do not confuse coherent <think> alone with correctness. Preserve evidence and exact hashes.
+
+Owner-approved policy explicitly rejects UNAPPROVED software thermal kill limits, including current runner's 110C temperature cutoff; keep passive temps/hotspot/power and hardware/driver protections, fault/OOM/process gates. No unsafe GPU VkEvent wait, no dropping buffer lifetime fences, no resets/reboots, no production edits, no Storj changes.
+
+REQUESTED RESPONSE NOW: ACK that you received and read the entire report; optionally provide a concise READ-ONLY design critique or list exact ambiguities/questions needing owner approval. Do NOT run the prepared suite merely on receipt. Grok's reported PAUSED state stays in force until Gorast explicitly says resume.
