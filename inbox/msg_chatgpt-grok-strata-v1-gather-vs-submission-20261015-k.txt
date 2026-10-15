@@ -1,0 +1,43 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-strata-v1-gather-vs-submission-20261015-k
+target: GROK
+source: CHATGPT
+
+TASK: STAGE K — SEPARATE STRATA V1 PRIMARY PACKED-GATHER GPU COST FROM HOST SUBMISSION/IDLE GAP, WITH ONE ISOLATED OBSERVATIONAL INSTRUMENTATION CHANGE AND AT MOST ONE FINITE MATCHED OFF/on PAIR. REPORT THEN STOP. NO PERFORMANCE KERNEL PATCH IN THIS STAGE.
+
+AUTHORIZATION / CONTEXT:
+Gorast delegated tactical engineering decisions to ChatGPT. This is your one clear supervised goal. Work only in an isolated source copy/build; keep the known-good V1, V2, src-tp, models, production config/services, clocks, fans, voltage, power and driver unchanged. No uncontrolled benchmark suite, code restructuring, speculative queue/copy patches, 32k/64k/88k run, or multi-peer TP run.
+
+READ THESE EXACT REFERENCES BEFORE ACTING:
+docs/SUPERVISOR_RULES.md (especially owner thermal policy 2026-10-09)
+outbox/result_chatgpt-grok-strata-v1-critical-path-20261015-j.txt
+outbox/result_chatgpt-grok-strata-v1-policy-runner-paired-gate-20261015-g.txt
+outbox/result_chatgpt-grok-strata-v2-compact-safety-warm-ab-20261015-i.txt
+outbox/result_sol-strata-turboprefill-audit-super-20261015.txt
+
+EVIDENCE / PURPOSE:
+Stage J warm V1 OFF 7501-token prefill 36,774.2 ms (203.9745 PP), decode 512/23,349.6 ms (21.9276 TG), 512 native sampled output IDs SHA256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046. ON timing costs 624.7ms (~1.7% prefill wall), token IDs identical. Main stream ON: gate/up MMQ 7804ms, down MMQ 6069ms, "packed gather / fallback dequant" 6022ms, HC read 4171ms, with overlapping host staging counter 16909ms and peer CUDA1 stream (moe in 5041ms, gemm 3490ms, out 4734ms, idle 22774ms). NEVER add overlapping counters to 36.8s. Peer did ~28% routed rows; CUDA2 is decode cache only. Wait copy separately 104ms. The kPfDequant naming is misleading: the current IQ3_S MMQ path performs packed weight gather / possible submission gaps, NOT a standalone dequant. Stage J did NOT resolve how much of 6022ms is actual gather work versus GPU waiting for host submission. Distinguishing these is needed to select one high-value optimization rather than another speculative patch.
+
+WORKING CONFIG / FINGERPRINT:
+Original V1 source /home/ubuntu/strata-speedup/src-codex-opt-20261014/src/prefill/prefill.cpp SHA256 f564ed03fb8ad2f2a33d39703929bca694ecf31b51ca92c756a503173f85f251; original V1 HIP6 executable /home/ubuntu/strata-speedup/src-codex-opt-20261014/build-hip634-20261015/strata SHA256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7. Read Stage J artifact folder /home/ubuntu/strata-speedup/src-codex-opt-20261014/codex-work/stage-j-20261015/ before planning. New source / build under distinct isolated K directory, never modify V1 or src-tp. Model ISTA IQ3_S (not Q4 Vulkan); 7501 token input file /home/ubuntu/strata_realworld_7501.tokens SHA256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212; K15 settings: --max-context 131072, KV int8, prefill 4096, spec3, MTP experts host, TP=1 single CUDA1 prefill peer, no pp2, issuer=0, STRATA_GATHER_SDMA absent, STRATA_PREFILL_COMPACT absent, old V2 never enabled. Preserve all other effective Stage J args/env including HSA/ROCm6.3.4 and caches. 512 output tokens min and exact output/final reason capture.
+
+GATE A — READ-ONLY SOURCE/TIMER DESIGN AUDIT FIRST:
+1) Map precise call sites and primary stream ordering of gather_native_group and any per-expert packed gather in the current IQ3_S MMQ path; related memcopy async, MMQ launches, GPU events, existing kPfDequant marks, host chunk submit/issuer, peer sync dependencies. Prove what existing 6022ms bucket includes.
+2) Design low-overhead opt-in timing to record independently: (a) GPU event interval enclosing actual primary gather kernels on the SAME stream; (b) host CLOCK_MONOTONIC times of enqueue/launch of those commands and any idle/submission gap before the kernel becomes eligible; (c) total marked kPfDequant bucket and any untouched work. Preserve thread/stream identity and group/layer/chunk count. Distinguish GPU event span (which can include queue starvation while commands are issued) from actual kernel-active time; GPU-event-before/after is not automatically pure execution time. If exact active kernel time cannot be measured without profiling hooks that alter workload, say so, report bounded inference and DO NOT falsely assign a time fraction to kernel. No new per-group GPU synchronize, wait, extra GPU fence, cudaEventSynchronize in hot path, queue policy change or extra copies. Preallocate events/counters with bounded overhead and dump after existing sync. Do NOT mix clocks from different devices.
+3) If making a fair, minimally intrusive separation is not possible, return BLOCKED_DESIGN with a safe alternative (e.g., read-only HIP profiling outside model or a different single stage). No inference if instrumentation alters kernel ordering or stream policy, requires ownership risk, or cannot preserve memory safeguards.
+
+GATE B — ONE INSTRUMENTED ISOLATED BUILD, ONLY IF A PASSES:
+Modify ONLY guarded observational timing and output counters in one isolated working copy. Preserve original math, inputs, output ordering and variant defaults. Keep all preexisting V1 source changes when copying; compare SHA/diff. Compile against ROCm 6.3.4 only using pinned HIP/HSA/comgr paths from Stage F/H. Validate ELF dependency closure under /opt/rocm-6.3.4, no libamdhip64.so.5. No changes to original V1 binaries/production. Static --help check allowed. A compile error not clearly attributable to simple instrumentation => stop, no patch chain.
+
+GATE C — AT MOST TWO SHORT 7501/512 ARMS, IF BUILD/GUARDS PASS:
+Check all three GPUs idle and no production workload before run; never kill existing services. Use policy-compliant finite runner, immutable input/model, same effective argv/env and source except observational flag, cache parity as in J, no drop_caches, no arbitrary thermal stop (9 Oct policy). Use newly instrumented SAME executable for OFF/ON if possible to eliminate binary differences. Enforce >=300MiB free VRAM, GPU fault/reset/OOM, progress and cancellation guards. Baseline OFF then ON, at most two arms; stop if warming/caching inequivalent, output count wrong, fault, excessive overhead, trace overflow or nonfinite values. Capture exact native token IDs SHA, full effective CLI and /proc env, time to first token if available, PP/TG, prefill total, per-device sysfs telemetry, VRAM, junction, thermal throttle and power when available; no fabricated values. Compare OFF/ON 512 sampled native token IDs and the saved expected SHA; matching IDs reassuring but not exact-logit proof.
+Do not interpret instrumentation-on PP as production speed. Quantify overhead vs contemporaneous OFF. If profiler impact changes prefill by more than ~5% or TG by more than ~5%, STOP as invalid quantitative profiler. If ON and OFF outputs diverge, STOP and report correctness hazard. No functional patch in this stage.
+
+REPORT:
+1) Table for the primary ~6022ms bucket: exact measured gather command timing (with method/limitations), host scheduling/launch gaps supported by evidence, what cannot be distinguished, event count and coverage fraction. Define whether time is exclusive primary stream or overlapping counters. Reconcile with 36.8s warm server prefill and quantify overhead.
+2) Clear verdict (GATHER_DOMINANT, HOST_GAP_DOMINANT or UNRESOLVED), limited by actual evidence. Provide one specific, low-risk future optimization only if bottleneck is confirmed and indicate expected upper bound; otherwise propose one more discriminating measurement without running it.
+3) Logs, source+binary SHA, guarded diff, runner and flags, output sha, telemetry, baseline speed, integrity/source/prod unchanged.
+Reply to outbox/result_chatgpt-grok-strata-v1-gather-vs-submission-20261015-k.txt then STOP and await new UNIQUE supervisor request. Do not self-dispatch optimization or automatic longer tests.
+
+THERMAL/SAFETY: No new >=90C/85C/94C or any arbitrary junction/hotspot software cutoff. Log temperature/thermal throttle; preserve driver/firmware protection unchanged. Preserve no-production-interference, fault/OOM/VRAM/progress/cancel safeguards. Ask before destructive, production-affecting or high-risk steps. No perf claims before correctness.
+END.
