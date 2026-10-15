@@ -1,0 +1,49 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-strata-upstream-stager-sleep-fix-20261015-q
+target: GROK
+source: CHATGPT
+
+TASK: STAGE Q — INVESTIGATE AND, ONLY IF APPLICABLE, BACKPORT AN ACTUAL ALREADY-REPORTED UPSTREAM STRATA LINUX PREFILL FIX (#1056/#1057, v0.1.40.2) TO OUR ISOLATED v0.1.39 HIP6 gfx900 THREE-VEGA FORK; RUN A SMALL FAIR 7501/512 BEFORE/AFTER SPEED GATE. DO NOT REWRITE THE GATHER RING. REPORT THEN STOP.
+
+OWNER DIRECTIVE/PRIORITY:
+Gorast explicitly wants engineering SOLUTIONS, not an expanding list of investigations. We have identified a specific upstream fix with measured real-world impact, and want to try it carefully on the actual critical path. This is a code-fix+benchmark task conditional on source proof, not permission for another exploratory tuning suite. Stage P is completed BLOCKED_DESIGN because naive defer-flush corrupts/wedges the 96-slot ring. Do not attempt Stage P unsafe group coalescing or invent new slot ownership while evaluating this already-proven upstream remedy.
+
+MUST READ:
+docs/SUPERVISOR_RULES.md, especially the owner's 9 Oct thermal guard policy.
+outbox/result_chatgpt-grok-strata-three-vega-gather-batching-speed-gate-20261015-p.txt
+outbox/result_chatgpt-grok-strata-v1-gather-vs-submission-20261015-k.txt
+outbox/result_chatgpt-grok-strata-v1-critical-path-20261015-j.txt
+Official upstream Strata https://github.com/Niko1221/Strata/issues/1056
+Actual upstream PR https://github.com/Niko1221/Strata/pull/1057 and source implementation in v0.1.40.2+ (the maintainer confirms Linux default and STRATA_STAGER_SLEEP=1/0 override). Verify exact upstream code/commit/diff and its architecture/portability before applying; do not trust just a summary or use moving HEAD as patch source. Reuse local pinned upstream v0.1.44.1 as a reference if needed, but do not touch it.
+
+UPSTREAM ROOT CAUSE TO VERIFY, NOT PRESUME:
+Strata's old Prefill::Stager uses std::this_thread::yield() loop waiting for issued, plus default cudaEventSynchronize on dma_done (busy spin with default scheduler); ~32 stagers with --mmap-experts inherit one-core host pin from SessionLoopScratch::init. DGX Spark IQ3_S Linux prefill improved from ~91 to ~1222 tok/s when ring wait became C++20 atomic::wait()/notify_all() and cudaEventBlockingSync was used for dma_done (HIP shim maps it to hipEventBlockingSync). Upstream says this became default on Linux in v0.1.40.2, Windows not. THIS IS NOT MEASURED ON gfx900 HIP and not a guaranteed win.
+On OUR Stage K HIP v0.1.39 three Vega: primary PCI05 x16, CUDA1 PCI0c x1 TP prefill, CUDA2 PCI0f x1 decode cache. 7501/512 warm baseline OFF PP=204.7496 TG=21.9905, output token JSON SHA256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046. Stage K timing 7085 gather launches, 629.8ms same-stream gather spans but 5739.3ms outside gather kernel. That GPU stream gap is not itself proof of the Linux stager problem; lack of host thread scheduling is a hypothesis. Stage J phase host grouping 95ms could be something different. This stage MUST establish real evidence before a patch.
+
+SOURCE/BINARY REFERENCE:
+V1 existing source /home/ubuntu/strata-speedup/src-codex-opt-20261014, prefill.cpp SHA256 f564ed03fb8ad2f2a33d39703929bca694ecf31b51ca92c756a503173f85f251, binary /home/ubuntu/strata-speedup/src-codex-opt-20261014/build-hip634-20261015/strata SHA256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7.
+Immutable prompt /home/ubuntu/strata_realworld_7501.tokens SHA256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212.
+Use exact Stage K OFF config ISTA IQ3_S, 131072 context, KV int8, chunk4096, spec3, STRATA_MTP_EXPERTS_HOST=1, STRATA_TP=1, STRATA_PREFILL_ISSUER=0, CUDA1 prefill TP peer, CUDA2 decode cache, same GPU clocks/voltages, same pack/profile/shards/pool; no compact, no gather SDMA, no extra optimization flags. Keep gfx900 HIP6.3.4 loader chain, no ROCm5. Do not make fork/production edits or change other model/machine jobs.
+
+GATE A — READ ONLY PRECONDITIONS (NO GPU):
+1) Check Stage P COMPLETE/no active competing inferencers, GPU idle, production inactive (do not kill if active).
+2) Inspect source: actual Stager::work() wait, issued()/finish(), dma_done event create/synchronize, STAGER_THREADS environment, how threads inherit pin_current_thread(), and HIP shim cudaEventBlockingSync availability. Compare exact code with upstream fix. Verify whether our existing source already has equivalent sleeping waits. If it DOES, stop ALREADY_FIXED, no work.
+3) Prove --mmap-experts and transient() select stagers in our live configuration, number of threads actually configured, and pinned thread affinity source. Check Stage K telemetry for process/thread CPU affinity or saved process CPU usage; if no live evidence, say unmeasured. Explicitly determine whether missing upstream wait fix CAN apply and whether it would touch same execution path. If not, STOP NOT_APPLICABLE; don't patch.
+4) Validate C++20 atomic::wait/notify_all correctness across shutdown/cancel, issued_one() sequence and finish(), risk of lost wakeups; verify event blocking sync in HIP6.3.4. If there's an API or semantic gap, return BLOCKED_DESIGN. No speculative portability hacks.
+
+GATE B — ISOLATED *EXACT UPSTREAM* SMALL BACKPORT:
+1) Copy existing V1 source to a NEW isolated Q working copy & build dir preserving original's edits/hashes. Backport ONLY upstream wait implementation (ring issued wait atomic wait+notify_all; dma_done events cudaEventBlockingSync with matching HIP shim mapping if actually needed). Preserve dataflow, GPU kernel, prefill group/ring semantics, CPU expert decode, TP split, model and token math. Maintain shutdown/cancellation wakeups and no thread spin. Prefer use an opt-in STRATA_STAGER_SLEEP=1 switch if upstream supports it so the same executable can run OFF/ON A/B; default behavior of all original files unchanged. If porting the exact upstream change conflicts with the current version or requires > one logical change, STOP and report precise blocker, do not improvise.
+2) Compile one isolated ROCm 6.3.4 gfx900 binary with pinned lib paths (F/H recipes). SHA/diff provenance from upstream, ldd no HIP5/so.5, --help smoke. No production link/port/service changes.
+
+GATE C — ACTUAL PROVISIONAL SPEED GATE:
+Before run confirm policy-compliant 300MiB free VRAM/fault-reset/OOM/progress/cancel guards; no new software thermal temperature cutoff; telemetry GPU edge/junction/throttle/power where available; no clock/fan/voltage/power changes. Match input, settings, hardware and warm caches, preserve stage K baseline. Finite one baseline and one candidate 7501/512 (or same rebuilt executable with sleep OFF vs ON if proper opt-in, to isolate one variable); max 3 arms including one reverse baseline only if needed for warm/cold control. Do NOT run 32/64/88K or multi-run sweeps. Native IDs must be EXACT at all 512 positions versus known hash; numerical logits still unproven. Record source/sha, effective flags, PP/TG, CPU usage during PREFILL, host thread affinity if accessible, stager yield/context switch rate if available without intrusive profiler, PCI5/0c/0f telemetry, memory/free/stop reasons.
+Successful solution classification PROVISIONAL_MEASURED_GAIN requires:
+- identical 512 native token IDs, no fault, no corruption, memory guard,
+- PP speedup >=3% vs matched warm baseline,
+- TG regression <=3%,
+- decreased stager spin or scheduling starvation when measurable.
+If no such gain, report NO_MEANINGFUL_WIN and STOP; don't immediately chain other changes or blame hardware. If there is >=3% PP, report actual absolute tok/s and confidence from sample; never call it production approved from one pair. If perf gain absent, report whether upstream fix had no effect because ours lacked pinned-thread pathology or the performance bottleneck remains elsewhere.
+
+DELIVERABLE:
+outbox/result_chatgpt-grok-strata-upstream-stager-sleep-fix-20261015-q.txt concise source proof, upstream patch provenance, test branch isolated path, results and exact token hash, before/after PP/TG, telemetry, group launch count if available, measured CPU/affinity, safety proof and single next recommendation. If blocked say no benchmark was performed and why. DO NOT auto-promote or self-dispatch more. STOP.
+END.
