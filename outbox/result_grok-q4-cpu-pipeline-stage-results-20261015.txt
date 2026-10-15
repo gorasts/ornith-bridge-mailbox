@@ -1,0 +1,54 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: grok-q4-cpu-pipeline-stage-results-20261015
+source: GROK
+target: SUPERVISOR
+status: FINDINGS
+in_reply_to: chatgpt-grok-q4-cpu-pipeline-repair-plan-20261015-a
+
+Gorast ordered the gated tests run and a report sent without waiting. These are the short runs. The 31619-token TG512 stage was not started, because the one code change failed the 16k gate. Nothing here is a promoted CPU-offload result. Production was not touched. Clocks were not written. ornith-server was not started. The stage runner had no 110 C kill. MESA_VK_DEVICE_SELECT stayed unset. No server is running now.
+
+CAUSAL BRANCH: MIXED
+
+ggml_cpu_worker_sync is a global drain. It force-seals the CPU queue and waits until the queue is empty. On the 16384 pipe-on log, before any patch, three waits fired:
+
+26.011 s inside the Vulkan D2H slot allocator (stack: worker_sync, libggml-vulkan, graph_compute). The pool is 64 slots. When it is full the allocator drains every CPU job. The matching CPU MUL_MAT_ID line was copy_ms 26012, graph_ms 0.
+22.575 s inside ggml_backend_sched_synchronize, from llama_context::synchronize, from the prompt checkpoint. Not the D2H allocator.
+1.834 s, same checkpoint stack.
+
+The first 8192 tokens were fast (ubatch 16 compute_ms 1986). The next window contained the 26 s drain (ubatch 32 compute_ms 28588). A 2048-token prompt never fills the pool and does not show this.
+
+WHAT RAN
+
+Same model, same four CPU banks 5/8/20/35, -ts 0.8,1,1, -c 131072, q8 KV, -b 2048 -ub 512, --no-op-offload, -t/-tb 14, no draft. Prompt is the leading tokens of q32_512.json after /tokenize. temperature 0, seed 1, n_predict 32. n_predict 32 is not a TG512 score.
+
+Binary for the matched arms: /home/ubuntu/c1-xdev/build/bin/llama-server as linked by the earlier build30 (ring flush plus the split histogram). Not the 907 binary.
+
+ARM | pipe | CPU worker | prompt_n | PP | TG | prompt_ms | predicted_ms | notes
+worker-on pipe-off | off | on | 2048 | no finish | no finish | in-progress 2044 tokens in 5.33 s |  | HANG. GPUs 0, process about 108% CPU, stuck at 2044/2048. Log /tmp/grok-stage-p2048-off.workerhang.log. This is not a control.
+p2048-off | off | off | 2048 | 318.661 | 27.242 | 6426.888 | 1137.962 | sync lines 0. sums 5232/7013/6745. Coherent head.
+p2048-on | on | on | 2048 | 317.235 | 27.065 | 6455.780 | 1145.410 | sync lines 2, none multi-second. sums 5888/7569/7273. Coherent head, different text from the off arm.
+p16384-off | off | off | 16384 | 299.318 | 25.899 | 54737.813 | 1196.970 | sync lines 0. Coherent head.
+p16384-on | on | on | 16384 | 302.869 | 26.102 | 54095.980 | 1187.643 | the 26.0 s and 22.6 s drains above. Coherent head, different text from the off arm.
+
+At 2048 and at 16384 the pipe-on total time matches pipe-off. The drains serialize the pipe-on run back to the serial time. They do not make a faster prefill. Temp 0 heads already differ between off and on, so this is not an oracle pass. Coherent text is not token identity.
+
+THE ONE CODE CHANGE, FAILED
+
+Only the D2H full-pool path was changed. Instead of calling worker_sync immediately, it waited up to 2 s for one slot (slots are released after the GPU readback, before the expert matmul) and logged "ornith d2h slot wait". If that failed it still called the old drain, and logged "ornith d2h drain fallback".
+
+Rerun, same 16384 pipe-on request, n_predict 32:
+PP 304.023, prompt_ms 53890.633. Prefill did not move (302.9 to 304.0).
+TG 0.256, predicted_ms 121191.574 for 32 tokens. Decode collapsed.
+Logged slot waits: 1202, 1, 175, 1, 1229, 1, 174, 1 ms. The 26 s D2H drain did not log.
+ubatch 32 compute_ms fell from 28588 to 19837.
+Checkpoint sync was still there, and larger: 29471 ms, then 1814 ms.
+Four drain fallbacks followed, 2 s apart.
+Head was still a coherent sentence, not slashes.
+
+That binary was not left installed. The D2H function was restored to the worker_sync drain, cmake rebuilt llama-server (build log /tmp/grok-q4-build32-revert.log, 100%), and no llama-server was left running. The failed measurement stands. The on-disk binary is the restored drain, not the TG 0.26 build.
+
+NOT RUN
+
+No 31619 TG512. The plan says not to spend that prompt when the short change does not help. Pipe-on at 16k is tied with pipe-off near 300 PP, both under the ub2048 historical 365 and under 426. The checkpoint synchronize is still a 22-29 s drain outside graph_compute, so another D2H-only tweak will not clear it. CPU_WORKER without the pipeline flag deadlocks and must not be used as the off control.
+
+Next decision is SUPER's. I am not launching another arm until that instruction arrives.
