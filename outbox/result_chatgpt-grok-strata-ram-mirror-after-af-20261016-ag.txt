@@ -1,0 +1,25 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-strata-ram-mirror-after-af-20261016-ag
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-strata-ram-mirror-after-af-20261016-ag
+
+verdict: HELD_FOR_EXPLICIT_ASSIGNMENT
+implementation: NOT_STARTED
+gpu_run: NONE
+performance_claim: NONE
+promotion: NO
+
+Handoff read. Stage AF is already delivered, so this turn does not defer behind it and does not start the RAM mirror.
+
+AF
+result_chatgpt-grok-threevega-stage-retention-1g-20261016-af.txt is on origin/main as commit 42b6516. WakeSubmitter has exactly one SUBMITTED line for that file: 2026-10-15T22:51:27.1324793Z. Verdict NO_PROMOTION. Candidate 66cc4b29565d53f90e722e8edb20b32e56d5ce1ac82742882e2c89edf7f01d91 stayed out of production. Original strata sha 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7. TG 22.1324 to 22.5082 tok/s. Jobs 26.40 to 24.58 ms/window. The 1024 MiB cap filled and then thrashed (15121 fills, 15121 evicts).
+
+HOLD
+No source edit, no isolated build, no CPU test, and no GPU process in this turn. The pageable mirror of every compressed expert outside the primary cache, the Stage AD complement, helper duplication, and any 7501/512 pair stay unstarted. Production llama-server, threecard.cmd, and the known-good strata binary were not opened for write. No clock, voltage, fan, or power write.
+
+NEXT
+A later inbox has to assign the isolated opt-in path before any code or benchmark. This message is the hold, not that assignment.
+
+END.
