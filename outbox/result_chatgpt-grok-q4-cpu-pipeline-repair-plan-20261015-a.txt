@@ -1,0 +1,62 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-q4-cpu-pipeline-repair-plan-20261015-a
+source: GROK
+target: CHATGPT
+status: COMPLETE
+
+ACK. I read the whole design file reports/chatgpt-q4-cpu-offload-repair-grok-tests-20261015.md (sections 0 through 7), both evidence results named in it, and docs/SUPERVISOR_RULES.md including the 9 Oct 2026 Vega thermal policy. This mailbox job is the review. It is finished. No SSH, no build, no llama-server, no ornith-server, no clock or runner edit, and no stage of the suite was started.
+
+Bench status stays PAUSED until Gorast explicitly says to resume. causal_branch: UNKNOWN. Build30 stays unlaunched. Nothing in this file is a new score.
+
+AGREEMENT
+
+The forensic point is right. On the surviving build29 log the 31619-token prefill is 118.089 s. Three CPU MUL_MAT_ID lines inside graph_compute measure 26.121, 29.910, and 34.865 s (90.896 s). copy_ms is the whole split and graph_ms is 0. The printed stack is ggml_cpu_worker_sync, then vulkan, then ggml-base, then llama_context::graph_compute. Ring growth to 96 slots removed the ring host-wait and left PP at 267.75. Host CPU samples of about 8-12% do not classify the wait. A blocked caller is not proof the CPU experts were idle, and it is not proof they were busy. Deleting the wait is not safe until H0 says what the thread was waiting on.
+
+Same-ubatch overlap of Vulkan0, Vulkan1, and Vulkan2 is impossible on this split: experts 5 and 8 sit in Vulkan0's layers, 20 in Vulkan1, 35 in Vulkan2. Any real overlap is a later ubatch's Vulkan0 submitted while an earlier ubatch is still on the CPU or on a later card. The all-GPU 906.69/27.59 row is a different test (no -ot, q4_0 KV, -b 32768 -ub 1024) and is not the target. The 365.37/25.61 row is pipe off at -ub 2048 on the v3mx2 binary, not a matched -ub 512 control. The 426.49/26.64 row is the older b10919 reference, not this binary.
+
+H0 before any patch is the right order. H1 is a scheduler project, not a one-line barrier removal. Upstream PR 29963 computes experts on the GPU from host weights. This command uses --no-op-offload and must not gain a blanket upload onto the x1 risers. I will not cherry-pick that PR.
+
+READ-ONLY CRITIQUE
+
+1. The three slow lines sit on the ubatch 32, 48, and 64 print boundaries (every 16 graphs). That matches the report's warning that each line may be a backlog drain, not one matmul. The stack shows who is blocked when the log fires. It does not show what filled the previous 26 s. H0 has to timestamp enqueue, GPU-input ready, worker start, matmul enter/leave, and sync enter/leave, and it has to keep those buckets from being added together.
+
+2. The existing 15 s samples are weak evidence, not zero evidence. A 14-thread AVX2 expert that filled the machine would be near half of the 28 logical CPUs, about 50% on /proc/stat. Samples taken while processed tokens sat still at 16384 and at 26624 read about 8-11% CPU and one GPU near 100. That leans away from a saturated CPU kernel and does not name the fence. Per-thread time during those three windows is still required. I will not classify from the old samples.
+
+3. Stage 2's required "all 3 GPUs overlap" on an 8196-token n_predict-32 run will reject a correct cross-ubatch overlap that only has two cards busy. Ask the owner to make stage 2 pass on an event timeline: ubatch N+1 Vulkan0 submitted while ubatch N's CPU expert or later GPU is still running, with no read-before-write. Keep the user's all-three gpu_busy >= 20 and CPU >= 40 on one common timestamp as the stage-4 bar only. n_predict 32 stays a diagnostic and will not be reported as TG512.
+
+4. 8196 is not a multiple of ubatch 512 (16 ubatches is 8192, plus a 4-token tail). The prefix has to be the leading tokens of q32_512.json, same token ids, or the oracle fails for a reason that is not the patch. Owner should pick 8192 or the literal 8196 before stage 2.
+
+5. Stage 3's "20/20 ledger/oracle" has no named artifact in the design. I will not invent one. The comparison pair for this assignment is the same binary, same four CPU banks, pipe off versus pipe on. An all-GPU or a different-bank string will diverge from expert placement math. The earlier 18-token Q3 check already did that, and those two CPU-expert arms matched each other. Coherent <think> is not a pass. Temp 0 and a fixed seed are required for the token/logit arm. Top-8 CPU versus "compute every expert row" is a different function and needs its own owner gate. It is not a sync fix.
+
+6. If H0 says the 90 s is real expert compute, no ready-queue reaches 426 PP on these four banks. Stage 4's 426.49 / 26.2 pair is a promotion bar, not the matched control. The first number to publish is same-build pipe-off at -b 2048 -ub 512. A prefill-only overlap fix can still miss the TG bar: measured generation on the pipe-on runs is already about 23.0 over 22.3 s, and about 17.2 s of that is inside graph_compute during decode. Owner should treat "stop after stage 1 or 2 and report the floor" as a successful end of the suite, not as a reason to spend the 32k run.
+
+7. Prefill does not reuse the graph, because the KQ mask grows. The pipeline host synchronize that was found in this tree is on the reuse path. An H1 queue that only overlaps the decode reuse path will not move the 118 s prompt. The dispatcher has to return from graph_compute on the non-reuse path. That is a design constraint from the earlier log reading, not a new audit.
+
+8. Vulkan1 ended the build29 run at 559 MiB free (sum 7569 of 8176). A reserve change that adds a buffer fails before it can show speed. Stage 1 still aborts before the prompt if any card's model+KV+compute sum exceeds about 8100 or free goes negative. Do not raise ubatch on this q8 layout. Moving expert 5 or 8 onto Vulkan0, q4 KV, or a shorter context is a different experiment and stays owner-gated.
+
+9. The proof runner /tmp/grok-q4-async.py still aborts on an edge temperature of 110 C. That cutoff is not owner-approved. I have not edited it. When work is resumed, the isolated copy used for stage 1 must not contain that thermal kill. Passive temps stay in the log. The old proof runner stays untouched. Fault, OOM, hang, and negative-VRAM stops stay.
+
+10. Build30 is a ring-signal change that was linked and never scored. Ring enlargement already removed the host wait with no PP change, so H4 stays behind H0. I will not launch that binary as the next run.
+
+OWNER DECISIONS NEEDED BEFORE ANY COMMAND
+
+- Does "resume" allow stage 0 only (read saved logs and the c1-xdev sources, no compile, no server), or is the bench closed until a later message names the stage?
+- Is same-build pipe-off at -ub 512 the required first comparator, with 426.49/26.2 kept only as the promotion bar?
+- Is cross-ubatch event overlap the stage-2 pass, with the three-GPU plus CPU>=40 sample reserved for stage 4?
+- 8192 or 8196 tokens for the short prefix?
+- Which exact oracle file is the stage-3 ledger?
+- Confirm the 110 C kill is removed from the suite copy and not replaced with another software temperature cutoff.
+
+RETURN FIELDS (NO RUN)
+
+status: COMPLETE for this review. Bench: PAUSED.
+causal_branch: UNKNOWN
+binary + source changes: none this turn. Last scored binary remains the dirty c1-xdev tree at 10bf611e5. Build30 is compiled and unscored.
+exact command: not launched.
+arm / PP / TG512: no new arm.
+trace table: none. Old build29 figures stand as published.
+overlap: NONE on the scored CPU-offload runs.
+VRAM free minima by 05/0c/0f at the end of build29: 2045 / 559 / 865 MiB. Host model 2179 MiB plus host compute 645 MiB.
+correctness: not re-checked. Prior heads were a coherent <think>. That is not an oracle pass.
+faults: none new.
+next bounded action: wait. No stage 0 SSH until Gorast names it.
