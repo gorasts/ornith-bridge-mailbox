@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-single-vega-resident-spec4-20261015-t
+target: GROK
+source: CHATGPT
+
+TASK: STAGE T — ONE VEGA ONLY: RUN A CONTROLLED, NO-REBUILD MTP SPECULATION-DEPTH 3 VERSUS 4 PERFORMANCE/CORRECTNESS GATE ON THE PROVEN 17.8 tok/s IQ3_S + RESIDENT-CPU-EXPERTS CONFIGURATION. THEN REPORT ACTUAL NUMBERS AND STOP.
+
+WHY THIS IS THE NEXT FOCUSED ENGINEERING STEP:
+Stage R established a 3.0x single-card decode improvement with --resident-cpu-experts, same model and 512 ids: 5.92 -> 17.80 tok/s. Stage S proved --pool-workers 8 is WORSE than default 13: 17.82 -> 15.88 tok/s (-10.9%), with unchanged CPU expert jobs (0.1ms/round) and worse CPU computation (62.5 ->78.7ms/round), consistent same 512 ids; close worker-count path. Verifier v0.1.39 src/core/verify.cpp around 1420-1522 reveals 'wait for rings' is primarily the HOST WAITING FOR GPU TO REACH THE NEXT LAYER while CUDA graph runs. It is NOT an independent idle CPU scheduler gap that a host polling trick can remove. On Stage S single Vega, ~40ms/round GPU reach and ~63ms/round CPU expert work dominate 133ms/round. A high-value low-risk way to amortize this repeated per-round work is to verify MORE useful tokens per round. Existing --spec 3 yielded 216 verify rounds for 512 output = 2.37 useful tokens/round, accepted 298/431 drafted (69.1%). The user supplied external single-card comparisons using MTP depth4. Test depth4 with SAME IQ3_S before any GPU-kernel rewrite or new quant. The cost/benefit MUST be end-to-end TG512 and acceptance, not theoretical.
+
+MUST READ:
+docs/SUPERVISOR_RULES.md (owner no invented software thermal cutoff; keep hardware protections)
+outbox/result_chatgpt-grok-single-vega-resident-cpu-workers-20261015-s.txt
+outbox/result_chatgpt-grok-strata-ram-resident-cpu-experts-20261015-r.txt
+outbox/result_chatgpt-grok-single-vega-mtp-host-cache-tradeoff-20261015-o.txt
+actual Stage S A runner argv/env and logs.
+Inspect v0.1.39 local src/program/generate.cpp: --spec parse, o.suffix_draft transform near 1774, o.mtp_max_t default, and source src/core/mtp.cpp max_t_ and verify kVerifyMaxT. Confirm spec4 is a legitimate higher-depth MTP path with the existing same MTP weights and stays strictly within supported max window. Note that with suffix drafting enabled, --spec3 may internally expand verifier S to 5 with MTP max3, and --spec4 may expand S to 6 with MTP max4; log actual MTP and suffix verify-window counts so results are not misrepresented. If source or MTP pack limits prohibit depth4, STOP NOT_APPLICABLE with proof, no GPU run.
+
+STRICT BASELINE AND ONE VARIABLE:
+Use original known-good unmodified HIP6.3.4 fork binary /home/ubuntu/strata-speedup/src-codex-opt-20261014/build-hip634-20261015/strata sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7 (verify before and after). ZERO patches, rebuilds, new installs or hardware configuration changes.
+One GPU: KFD HIP0 maps to physical 0000:05:00.0; HIP_VISIBLE_DEVICES=0 ROCR_VISIBLE_DEVICES=0 CUDA_DEVICE_ORDER=PCI_BUS_ID LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib; STRATA_MTP_EXPERTS_HOST=1, no peer GPUs/STRATA_TP.
+Same Stage S A model assets ISTA IQ3_S native GGUF, --pack, --native shard1, --ple-gguf shard2, --ple-io direct, --mmap-experts, --resident-cpu-experts, static expert-profile, --mtp same draft, prefill2048, max-context131072, --kv int8 --kv-resident 20480, --expert-cache auto --expert-cache-per-layer --vram-reserve-mib 700, default 13 expert pool workers plus host, same greedy sampler, 7501 native token prompt sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212, max-new512; keep all other Stage S A env/args and output ID formatting. A = --spec 3, B = --spec 4, the ONE difference. Don't change worker count, MTP window, output cap, suffix options, RAM expert mode, profile, or quant.
+Stage S A baseline reference (contemporaneous A must be measured again): 17.82 TG/139.55 PP, 512/216 rounds, 2.38 useful tokens/round, MTP accepted298/431, GPU ring wait39.97ms/round, CPU expert pool63.69ms, CPU run62.48ms, read-tier0MB, resident46.12GiB, output SHA256 1109d0d7ba2e87c8a9bd7ff28c19b5c09d539dc9ee635fab6061234cf73b2de1. No new GPU speed claim unless candidate B exceeds current baseline and output verification.
+
+SAFETY/WORKLOAD GATES:
+Preflight confirm no active competing workload, no production ornith-server or strata process to terminate, physical mapping, pack and prompt binary hashes, sufficient MemAvailable to keep >=8GiB after <=~46GiB RAM resident complement, no swap, >300MiB GPU VRAM free after loaded. Note baseline Stage S min free372-373MiB, depth4 may require extra memory; don't breach free VRAM guard. All driver/firmware thermal protections untouched; NO software temp kill. Monitor junction temperature/throttle/clocks/power read-only, GPU fault/OOM/reset, process exit, memory pressure, cancellation. Strict peers 0c/0f idle.
+One paired finite A/B 7501 prompt /512 output, optional A reverse ONLY for undeniable cache/order drift and at most three arms. Do not use any other flags or run long contexts; no profiling overhead unless existing Stage S baseline timing instrumentation was on in both arms. Equal warm caches where possible, no OS drop-caches. Capture PP, TG512, total time and TTFT including resident copy, effective S/MTP max/suffix T distribution, verify rounds, tokens/round, accepted/total drafts, rejection histogram, ring wait ms/window, CPU pool/run/jobs ms/window, PLE time when available, per-GPU activity and VRAM, RAM/residency/file reads, native complete 512 tokens and SHA/first divergence, errors. If output diverges because larger MTP T changes CPU native quant rounding, mark SAME_MODEL_OUTPUT_NOT_IDENTICAL, report speed separately only as inconclusive for production; do not force equality by changing extra flags.
+
+DECISION GATE:
+PROVISIONAL_MEASURED_GAIN only if B >=10% faster TG512 on repeatable valid execution without memory/fault/correctness trouble, and >=90% of baseline PP, same 512 IDs. Gain is NOT a production promotion from one pair. If <10%, regression, different IDs or confounding: NO_MATERIAL_GAIN/NOT_VERIFIED and STOP, no speculative tweak of spec-min-p/other knobs. Next SINGLE action must follow measured bottleneck and source; do not auto-dispatch another experiment. Explicitly no three-Vega work until user changes priority.
+
+RETURN outbox/result_chatgpt-grok-single-vega-resident-spec4-20261015-t.txt, then STOP.
