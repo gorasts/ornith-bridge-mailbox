@@ -1,0 +1,48 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-hot-expert-cache-feasibility-20261015-ab
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-hot-expert-cache-feasibility-20261015-ab
+
+verdict: NO_GO_BANDWIDTH
+histogram_task: NOT_JUSTIFIED
+implementation: NOT_AUTHORIZED
+output: NOT_RUN
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+trust: HIGH on bytes and the DRAM ceiling. NONE on hit rate.
+
+No source edit, no build, no allocation, no GPU run. A 2/4/8 GiB cache of codebook-preserving expanded gate/up weights does not have a credible path to 10 ms off the 46 ms gate/up phase. A routing histogram would not change that.
+
+PROFILE
+File /home/ubuntu/speedup/profile_iq3s.bin, 196632 bytes, magic STRP. Header uint32s: version 1, n_layers 48, n_expert 512, slots field 24576, n_ranked 24576. Then 24576 little-endian (uint16 layer, uint16 expert) pairs, every pair in the catalog exactly once. Then 24576 int32s. Those ints are a permutation of 0..24575, one per pair, zero negatives. That is the ordinal rank, not a count. read_expert_profile in src/core/expert_cache.cpp reads the pairs and the slots field, then fclose, and does not return the table. write_expert_profile stores table[layer, expert] = rank index, or -1 if absent. The header comment that calls the table a frequency table is not what this writer emits and not what this file holds. Rank order cannot be turned into a hit percentage.
+
+No per-pair routing histogram from the measured 7501/512 runs is on disk under /home/ubuntu/strata-fork-single-work. --expert-profile-save is a serve path and was not in the one-shot argv. Stage Z's "5179 experts swapped" is a swap count, not a histogram. The hit rate of any CPU subset is unknown. It is not estimated here.
+
+BYTES
+Gate plus up only, n_embd 2560, FF 640, two matrices. Stage Y row sizes: IQ2_S 820, IQ3_XXS 980, IQ3_S 1100, IQ4_XS 1360. Those match block_iq2_s (82 B, 10 blocks), block_iq3_xxs (98 B), and the same row math for the other two. Compressed gate+up per expert: 1,049,600 / 1,254,400 / 1,408,000 / 1,740,800 bytes. Layer mix 20/17/10/1 gives a mean of 1,211,200 bytes.
+
+The smallest form that keeps the IQ codebook outputs is the signed int8 after the grid and the sign, plus the original superblock d and the original scales. Raw int8 payload is 2560*640*2 = 3,276,800 bytes per expert. Keeping IQ2_S's fp16 d and 8 scale bytes per 256-wide block raises that to 3,404,800. That is 3.24x the IQ2_S compressed expert and 2.71x the mix-average compressed expert. A second quantization into Q8_K or a plain float would not be the same values. FP16 gate+up is 6,553,600 bytes and moves about twice the int8 payload. FP32 is twice that again. Down is a separate 16.9 ms of IQ4_NL and Q2_0. Adding it increases traffic. It is left out of the budgets below.
+
+Budgets at the 3,404,800-byte preserving size: 2 GiB holds 630 experts, 4 GiB holds 1261, 8 GiB holds 2523. The catalog is 24576. The GPU tier held 918. The CPU complement is 23658 experts and 46.12 GiB. Those three budgets are 2.7%, 5.3%, and 10.7% of the CPU expert count, and 4.3%, 8.7%, and 17.3% of 46.12 GiB as extra RAM, not as the same bytes. Spread across 48 layers that is about 13, 26, and 53 experts per layer, out of about 493 CPU experts per layer.
+
+RAM
+Stage Z MemAvailable minimum was 25.82 GiB with the 46.12 GiB complement resident. A 12 GiB reserve leaves 13.82 GiB, so an 8 GiB increment fits that nominal cap. MemTotal is 78.37 GiB. SwapTotal is 0. This audit allocated nothing. L3 is 35 MiB and holds 11 of these expanded experts. L2 is 256 KiB, smaller than one expert. An expanded expert is a DRAM object.
+
+BANDWIDTH
+Stage Z CPU pool: 15.53 distinct experts per layer, gate/up 46.025 ms, down 16.945, quantize 0.432, pool 64.618. One round of compressed gate/up is 15.53*48*1,211,200 = 0.903 GB in 46.025 ms, which is 19.6 GB/s. That is the codebook kernel, not a full DRAM stream. Stage Y's one-thread IQ2_S rate was 2.59 GB/s.
+
+The same experts as preserving int8 are 2.443 GB per round. Expansion is slower than today unless that copy exceeds 53.1 GB/s. Saving 10 ms of the 46.025 ms, at full coverage, needs 67.8 GB/s. Saving 12 ms needs 71.8 GB/s. Carrying the scale bytes moves the 12 ms figure to about 74.6 GB/s. This CPU's DDR4-2400 four-channel ceiling is 76.8 GB/s, and the installed DIMM speed was not read. At that ceiling and at 100% coverage the save is 14.2 ms on the int8 payload, before scales, before the down phase, and before anything else touching memory. A partial hit fraction scales that save down. At 60 GB/s the full-coverage save is 5.3 ms, under both 10 ms and 12 ms, so no hit rate works.
+
+The 10% TG bar is the unprofiled Stage T A decode, 28675.6 ms over 216 rounds at 17.85 tok/s. A 10% TG cut is 2607 ms, 12.1 ms/round. The profiled Stage Z rate is not that baseline. Reaching 12 ms with a 2x hot kernel would need 52% of the 46 ms in the cache. Reaching it with a 3x kernel would need 39%. The expanded form is not a 2x or 3x kernel once it leaves L3. The L3-sized set is 11 experts, 1.5% of the ~745 CPU expert jobs in a round. Their share of gate/up time is unknown and is not inferred from rank.
+
+GO / NO-GO
+No implementation. The 2/4/8 GiB proposal fails as a bandwidth problem before the missing hit rate matters. A read-only routing histogram would still leave a full-coverage int8 copy short of 10 ms at any DRAM rate this CPU can sustain with the down phase in the same pool. That histogram task is not justified. One-card gate/up expansion stops. Three-card work was not started.
+
+NEXT
+Leave the resident IQ weights as they are. Do not allocate an expanded expert cache. Do not add histogram instrumentation for this hypothesis unless the owner explicitly asks for a measurement that this audit already shows cannot clear 10 ms. Do not start three-card work from this result.
+
+Evidence: profile_iq3s.bin header as parsed, expert_cache.cpp read_expert_profile and write_expert_profile, ggml-common.h block_iq2_s and block_iq3_xxs, Stage Y row sizes, Stage Z pool line, Stage T A decode line. Stopped.
+END.
