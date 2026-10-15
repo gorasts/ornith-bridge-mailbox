@@ -1,0 +1,87 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-strata-full-ram-mirror-3vega-20261016-ah
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-strata-full-ram-mirror-3vega-20261016-ah
+
+verdict: GAIN_ISOLATED
+implementation: BUILT
+gpu_run: ONE_AB
+performance_claim: TG_PLUS_25.93_PCT
+promotion: NO
+logits: NOT_PROVED
+
+LIFETIME
+exchange_cache_complement only moves one offset integer. commit_exchanges writes the evicted expert into that slot after the primary H2D event has landed. RemoteExpertOpt::adapt copies with fill_slot and cudaStreamSynchronize before replace. Primary adapt skips an expert a helper already owns. The call still passes additional_gpu_pairs empty, so helper experts stay in the complement and lend stays enabled. GGUF bytes are not written. This is not the Stage AD exclusion list. No hard race, so the gate was built.
+
+ISOLATED TREE
+/home/ubuntu/strata-speedup/src-codex-ah-mirror-20261016
+diff: codex-work/stage-ah-20261016/ah.diff
+diff sha256: 66cb3b74b91f74e0439efcb9abcc61896bc38c3cc47fb0b6e38a4db3583b39b6
+include/strata/core/expert_source.hpp orig 713501039fcabcbc025105b30e079f5cd74691d4cfa8a32eb4d5911c6aaad474 ah 692a382e40ccb87ebf42e6741eb0a9d075aa66f4d9e56e8659f0d288c82c4060
+src/program/generate.cpp orig cef9ebccc12a7ab4ec4932920d6fd1ac6b7b7dde15868d331977ee890b67c3e6 ah eb172702e2b4bffc317cbdb1e7e2ca8fc3e4183209d6bb1d6af3759bfd3cfbf7
+Gate: STRATA_REMOTE_RAM_MIRROR nonzero permits --resident-cpu-experts with remote caches, forces pageable full mirror, pin off, soft off, budget 0, headroom at least 8 GiB. Layer split still returns 2. Env absent or 0 keeps the original refuse string and return 2. Original tree, AF tree, production llama-server, and threecard.cmd were not written.
+
+BUILD
+binary: build-ah/strata
+sha256: d0e0764210abd4ba53a09f6a2c68166e234dcf03ddbda5c59d437481c96ad645
+control sha256 still 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7 after the pair
+HIP6 ROCm 6.3.4 gfx900. ldd with LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib resolves libamdhip64.so.6 and libhipblas.so.2 under /opt/rocm-6.3.4. No HIP5 library.
+
+CPU GATE
+tests/core/ah_mirror_test.cpp, HIP_VISIBLE_DEVICES empty
+AH_MIRROR_PASS flag-off
+AH_MIRROR_PASS coverage
+AH_MIRROR_PASS secondary-swap
+AH_MIRROR_PASS primary-exchange
+AH_MIRROR_PASS lend
+AH_MIRROR_PASS stage-recycle
+AH_MIRROR_OK
+Helper experts are inside the complement when additional pairs are empty, and outside it when those pairs are passed. A simulated helper ownership change leaves both experts byte-identical. A primary exchange keeps the evicted bytes readable at the moved offset. The lent primary tail stays in the plan. A recycled stage buffer is a different allocation from the complement.
+
+A/B
+One pair. 7501 in, 512 out. Control is the original Stage J argv and binary. Candidate adds only --resident-cpu-experts and STRATA_REMOTE_RAM_MIRROR=1. No thermal kill. Guards were MemAvailable under 8 GiB, free VRAM under 300 MiB, PCI loss, and a 1500 s arm cap. None fired.
+Preflight MemAvailable 78215 MiB. Prompt sha 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. ornith-server inactive. threecard.cmd sha 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23. llama-server sha 3db76a9103250117a41c8189c36fd2ae80057005b37e3793db9a465a89dfae2a.
+
+A control pid 2823424 wall 114.9 s
+DONE 512 7501 36732.4 23340.7 length 277 371 0 67282 90337 0 0 33556.7 7501 200543
+PP 204.2066 TG 21.9359
+token sha ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046
+first divergent index: none
+235 windows, 99.32 ms/window
+GPU-reach wait 34.39, plan 4.98, actq 0.28, jobs 26.65, CPU 19.00, draft 9.20
+min free VRAM MiB 374.7 / 567.5 / 420.4
+min MemAvailable 75430760 KiB (71.94 GiB)
+start sclk MHz 26 / 26 / 26, max 1430 / 1054 / 849
+start junction C 29 / 25 / 25, max 61 / 37 / 33
+power1_input W min-max 7-150 / 3-47 / 4-24
+AER unchanged
+
+B candidate pid 2837931 wall 154.5 s
+allocating 46.12 GiB pageable resident at 52.54 s, ready at 95.01 s, copy 42.47 s (1.086 GiB/s)
+pinned 0.00 GiB, 918 experts in the primary GPU cache
+DONE 512 7501 35786.7 18534.4 length 279 371 0 67188 90012 20255 0 0.0 7501 199908
+PP 209.6030 TG 27.6243
+token sha ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046
+first divergent index: none
+233 windows, 79.55 ms/window
+GPU-reach wait 34.59, plan 4.66, actq 0.30, jobs 0.44, CPU 25.31, draft 9.53
+min free VRAM MiB 369.9 / 566.9 / 419.8
+min MemAvailable 26773628 KiB (25.53 GiB), above the 8 GiB floor
+start sclk MHz 627 / 609 / 611, max 1415 / 1050 / 849
+start junction C 45 / 31 / 30, max 64 / 39 / 34
+power1_input W min-max 7-150 / 3-54 / 4-25
+AER unchanged
+
+Same token ids as the Stage J reference on both arms. Sampled token SHA is the correctness evidence from this pair. Logits stay NOT_PROVED.
+
+PP 204.2066 to 209.6030 is left as a clock note. A started at 26 MHz and B started warm because it ran after A. Both primary clocks later reached about 1415-1430 MHz. The TG interval is the claim.
+
+AMDAHL
+TG 21.9359 to 27.6243 tok/s, +25.93%. Jobs 26.65 to 0.44 ms/window. That bucket was 26.65 of 99.32 ms. It fell 26.21 ms. The CPU bucket rose 19.00 to 25.31 ms. Net window time fell 99.32 to 79.55 ms. GPU-reach wait stayed 34.39 to 34.59 ms and is now the largest decode term. The next measurement is that helper round trip. No cache-size sweep.
+
+DECISION
+Keep the candidate isolated at src-codex-ah-mirror-20261016. Promotion NO until the owner approves. Production and the known-good binary stay as they were.
+
+END.
