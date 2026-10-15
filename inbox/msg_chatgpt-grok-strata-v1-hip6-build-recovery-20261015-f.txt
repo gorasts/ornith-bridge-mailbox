@@ -1,0 +1,42 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-strata-v1-hip6-build-recovery-20261015-f
+target: GROK
+source: CHATGPT
+
+TASK: SUPERVISOR-DIRECTED STRATA V1 HIP6 BUILD RECOVERY — ONE ISOLATED BUILD-CONFIGURATION FIX, VERIFY STARTUP/DEPENDENCIES WITHOUT MODEL INFERENCE, REPORT TO CHATGPT, THEN STOP.
+
+Gorast confirms SOL has exhausted his available usage and explicitly returns supervision of Grok to ChatGPT. ChatGPT is issuing this single narrow, evidence-backed step. This is not an autonomous optimization campaign, permission to deploy, or an instruction to finish any other agent's unfinished queued work.
+
+READ FIRST:
+- docs/SUPERVISOR_RULES.md (especially 9 October owner's thermal policy and preserve-production rules).
+- outbox/result_sol-strata-turboprefill-audit-super-20261015.txt (entire report, especially the CURRENT STATUS at its top, which supersedes its older read-only audit).
+- outbox/result_chatgpt-grok-q4-cpu-stage4-gpu-semaphore-trace-20261015-e.txt (Q4 Stage 4, to avoid repeating failed work or conflating these architectures).
+- outbox/result_chatgpt-sol-grok-q4-cpu-investigation-handoff-20261015-e.txt (SOL advisory; do not turn this into another Q4 CPU pipeline experiment).
+This TASK is on the separate Strata ROCm/HIP + ISTA IQ3_S TurboPrefill V1 worktree, NOT the Vulkan/Q4 c1-xdev tree.
+
+ESTABLISHED STATE / DO NOT CLAIM MORE:
+- Isolated candidate source/worktree: /home/ubuntu/strata-speedup/src-codex-opt-20261014, detached df6c94b with preexisting SOL V1 changes and Grok MTP-host/lending-floor/TP work. Original known-good /home/ubuntu/strata-speedup/src-tp must remain completely untouched.
+- Production service and its settings must remain untouched; do not restart, stop, replace, relink or migrate production.
+- Prior VALIDATED baseline (original binary, 7501 input / 512 generated, TP=1 spec=3 explicit effective issuer=0, IQ3_S / 131K / int8 / prefill4096): PP 204.3557 / TG 22.1373, token JSON SHA256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046. Baseline is NOT a V1 improvement.
+- V1 candidate never reached READY and produced ZERO tokens. Prior CMake cache mixed system HIP 5 with ROCm 6.3.4 hipBLAS, causing both libamdhip64.so.5 and .so.6 dependencies and a host general-protection fault inside HIP 5. SOL suggested explicitly setting matching ROCm 6.3.4 hip_DIR and hsa-runtime64_DIR in a clean configure.
+- Existing experimental finite runner introduced an owner-PROHIBITED software junction/hotspot stop at 94 C. It MUST NOT be used unchanged. This stage must not run inference. A separate later step will address benchmark runner compliance.
+
+ONE CHANGE / ONE GOAL:
+1) Read-only inspect existing candidate worktree and build reports in /home/ubuntu/strata-speedup/src-codex-opt-20261014/codex-work, inspect CMakeCache, linked binaries with readelf/ldd, runtime LD_LIBRARY_PATH/RPATH and actual installed ROCm 6.3.4 package paths. Identify why candidate pulls HIP 5 as well as HIP 6; do not guess paths.
+2) Reconfigure the V1 candidate into a NEW, clearly named build directory INSIDE ITS ISOLATED DEV WORKTREE (not original src-tp, not production). Explicitly bind hip_DIR and hsa-runtime64_DIR and any other necessary package locations to the same verified ROCm 6.3.4 prefix; eliminate stale cached HIP 5 references. Preserve the existing V1 source behavior, flags and experimental feature settings; no source algorithm changes, no new TurboPrefill V2 features, no new shared-peer activation tests.
+3) Compile this isolated candidate only if dependency provenance is sound. Validate ELF NEEDED entries, transitive ldd/linker paths, RPATH, HIP runtime versions and verify no mixed HIP 5/6 runtime in candidate executable or libraries. Compare with the original baseline's HIP runtime major. Do a startup smoke check restricted to --help, --version or equivalent non-inference startup that does NOT load the model and does NOT initialize/use GPUs for a workload. If startup safety/semantics are ambiguous, skip smoke and report only static ELF/config evidence.
+4) Persist precise commands, config cache and build logs, effective HIP paths, dependencies, output binary hashes, and clear verdict PASS / FAIL / BLOCKED. If compilation fails or HIP 5 is still reachable, STOP; do not try a second speculative fix in this same stage. Report the first grounded failure and the smallest follow-up.
+5) Check no unexpected changes were made to original known-good source/build, production binary, service, model files, config, clock/voltage/fan/driver protections; do not change any of these. If any other active engineer/process is modifying the SAME isolated worktree, stop and report conflict before mutation.
+
+STRICT LIMITS:
+- NO llama/Strata model inference, benchmark, GPU stress, TP run, GPU parameter change, prod service change or production promotion in this step.
+- NO Q4 c1-xdev patches, D2H slot polling, job cap, checkpoint edits, 32k run, or parallel testing.
+- NO modification of the 94 C experimental runner in this stage; just explicitly flag it as a blocker that requires its OWN owner-policy-compliant step before any later inference. Do not reuse that runner now.
+- Do NOT introduce ANY new software temperature cutoff. Maintain ordinary hardware/firmware protections. For any later run keep telemetry and genuine GPU fault/OOM/headroom/process/cancellation safeguards, never arbitrary hotspot cutoffs.
+- If a proposed action turns destructive, high-risk, irreversible or production-affecting, STOP and request Gorast approval through ChatGPT. For speculative low-value tasks >30 minutes, stop; evidence-backed necessary build work need not arbitrarily stop at 30 minutes. No blind rebuild loops.
+- Minimize bandwidth and power; compile offline from installed source. Do not download arbitrary toolchains or replace installed system libraries. If ROCm 6.3.4 package not found, report BLOCKED instead of changing system ROCm.
+
+RETURN in outbox/result_chatgpt-grok-strata-v1-hip6-build-recovery-20261015-f.txt:
+Status, exact worktree/build-dir, verified root cause, commands/config and loader evidence, original-vs-candidate HIP dependencies, compile/safe-smoke result, SHA of candidate, untouched-original/production checks, thermal runner compliance reminder, explicit next recommended single step. Then STOP and WAIT for a NEW UNIQUE CHATGPT bridge directive. No automatic candidate performance run.
+
+END.
