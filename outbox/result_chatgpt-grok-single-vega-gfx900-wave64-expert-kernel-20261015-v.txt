@@ -1,0 +1,40 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-gfx900-wave64-expert-kernel-20261015-v
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-gfx900-wave64-expert-kernel-20261015-v
+
+verdict: NOT_APPLICABLE
+output: NOT_RUN
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+Gate 0 stops the stage. The grouped native expert mode 7 path is already compiled into the gfx900 binary and is already the runtime default for every routed expert tensor in this IQ3_S pack. No new flag, no isolated build, no GPU run. Original binary sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7. ldd resolves libamdhip64.so.6 from /opt/rocm-6.3.4/lib. ornith-server inactive. PCI 0000:05:00.0, 0000:0c:00.0, and 0000:0f:00.0 were idle. Production binaries were not touched.
+
+GATE 0
+CMakeCache has STRATA_HIP_GFX906=ON and CMAKE_HIP_ARCHITECTURES=gfx900. The iq_kernels.cu.o ninja rule passes -DSTRATA_HIP_GFX906=1 and --offload-arch=gfx900. Under that define, exp_mode() returns STRATA_EXP_MODE or 7 (iq_kernels.cu). The Stage U child environment kept only STRATA_MTP_EXPERTS_HOST=1, so the measured resident runs used 7.
+
+GGUF shard 1, 48 layers, 512 experts, top-10. Routed gate/up tensors: IQ3_XXS (18) on 17 layers, IQ3_S (21) on 10, IQ2_S (22) on 20, IQ4_XS (23) on 1. Routed down tensors: IQ4_NL (20) on 39 layers, Q2_0 (42) on 9. With mode 7, gate/up types 18, 21, 22, and 23 all launch native_gu_lds_kernel<T, 1, true>. Down types 20 and 42 both launch native_down_lds_kernel. That is the whole routed grouped path. A new STRATA_GFX900_EXP_WAVE64 around the same guard would launch the same kernels.
+
+Mode 7 is the LDS kernel: signs through the SG=1 dp4a mask, grids in LDS, and one weight load per k for every token in the group (the TI=true loop). Its lane is tid & 31, the k loop steps by 32, and warp_sum reduces with __shfl_xor_sync from offset 16, a 32-lane group. The 64-lane layout is mode 1 (row_dot64, k step 64, shuffle width 64). Mode 7 does not call it. Upstream mode 7 is defined as bitwise the mode-2 32-lane result, and that is the kernel this binary already runs. Setting another STRATA_EXP_MODE would be a flag sweep, which this stage does not do.
+
+gfx900 has no v_dot4. hip_compat/intrinsics.hpp sends __dp4a to __builtin_amdgcn_sdot4 only for gfx1030-class targets, and to sudot4 only for gfx1100-class targets. gfx900 takes the scalar four-multiply fallback. __builtin_amdgcn_perm is the byte permute, and this binary already runs that path. Recompiling mode 7 cannot add a dot4 instruction this ISA does not have.
+
+The GPU cache is 918 of 24576 slots, 3.74% of the catalog, about 19 slots per layer. Stage U A on this same binary, spec 3, resident, one card: ring wait 39.750 ms, CPU pool 62.589 ms, GPU run 61.406 ms, pool 24.7 GB/s, TG 16.56. Stage T A was ring 39.659, pool 63.525, run 62.335, TG 17.85. The ring wait is the host waiting for the GPU graph before the CPU pool. It is the whole graph, not an exclusive expert-kernel time. The CPU pool is the larger term and it computes the cache misses. Stage S showed the run timer move with the pool when the worker count changed. Mode 7 is already inside the graph that produced those numbers. Copying it again has no end-to-end TG to collect.
+
+GATE 1
+NOT_RUN. The missed-path condition is false. No STRATA_VERIFY_PROFILE run.
+
+GATE 2
+NOT_RUN. No isolated tree and no STRATA_GFX900_EXP_WAVE64. There is no IQ3_S down kernel missing from the dispatch: the nine Q2_0 layers and the 39 IQ4_NL layers are already the mode 7 down kernel.
+
+GATE 3
+NOT_RUN. No 7501/512 pair.
+
+NEXT
+Leave STRATA_EXP_MODE unset and do not add a gfx900 wave64 expert flag. On this binary the single-Vega round is still about 40 ms of ver.ms_wait plus about 63 ms of CPU expert pool. A later single-Vega stage, if asked, should attribute that 40 ms GPU-reach wait on the original binary. Do not start three-card work from this result.
+
+Evidence: iq_kernels.cu exp_mode and the mode 7 launches, build.ninja flags, GGUF tensor types, Stage U bench_a environ. Stopped.
+END.
