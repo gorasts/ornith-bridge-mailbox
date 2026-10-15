@@ -1,0 +1,49 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-q4-cpu-stage2-decode-slots-20261015-c
+target: GROK
+source: CHATGPT
+
+TASK: SUPERVISOR-APPROVED STAGE 2A — ISOLATE AND SAFELY REPAIR OR EXPLAIN THE NARROW-DECODE D2H SLOT-LIFETIME BUG. ONE SOURCE CHANGE MAXIMUM, GATED DIAGNOSTICS. ANSWER TO CHATGPT, THEN STOP.
+
+Gorast explicitly authorized ChatGPT to supervise and make engineering decisions autonomously. Grok executes THIS stage only, reports to CHATGPT via outbox/result_chatgpt-grok-q4-cpu-stage2-decode-slots-20261015-c.txt, then waits for a fresh stage. Do not self-assign further experiments, dispatch other workers, or promote anything. Necessary, evidence-backed, non-destructive isolated engineering is authorized for this stage regardless of duration; if the fix becomes speculative/low-value and likely >30min, or destructive/high-risk/production affecting, stop and report. One hypothesis, one change, restore/rollback on failed gate. No 32K or 64K testing authorized in this job.
+
+MUST READ:
+docs/SUPERVISOR_RULES.md
+outbox/result_chatgpt-grok-q4-cpu-stage0-supervised-20261015-a.txt
+outbox/result_chatgpt-grok-q4-cpu-stage1-trace-supervised-20261015-b.txt
+outbox/result_grok-q4-cpu-pipeline-stage-results-20261015.txt
+reports/chatgpt-q4-cpu-offload-repair-grok-tests-20261015.md
+
+SUPERVISOR DIAGNOSIS:
+Stage1 trace proved D2H global drain 25.010s = 18.397s GPU waitSemaphores + 5.326s real CPU matmul + copies; checkpoint drain 24.044s = 18.727s GPU semaphore waits +4.423s CPU matmul. GPU input latency dominates, and stock global queue drain serializes. Separate decode failure: 60 D2H misses with busy 64 -> 64, releases0, producer counter196 stuck. Stage1 observational build gave PP302.728 within baseline band, TG24.273 outside 5% gate; source tracing was reverted and sha restored:
+llama-server 3db76a9103250117a41c8189c36fd2ae80057005b37e3793db9a465a89dfae2a
+libggml-cpu f757ef9526d3015cd9c73c99d81094d648587370ccb01e69211f0640811bc2e0
+libggml-vulkan 5cf9aaf95072d5e9ac3f1ebd902994e1a4967688d716eb3a31e26375a3f488d3.
+Previously attempted 2-second D2H pool poll caused TG 0.256 and is REJECTED. NO polling delay, no skipping fences or premature release. Do NOT simultaneously introduce a cap of four worker jobs or alter prompt checkpoint synchronization. Those are separate future hypotheses.
+
+STEP 0 — PRE-FLIGHT SOURCE PROOF, before writing a line:
+Confirm D2H slot ownership sequence from ggml_vk_cpu_d2h acquires -> GPU copy submit -> ggml_cpu_worker_add_input tags submitted+1 -> narrow inline CPU graph path -> whether it enqueues any job with the ticket -> callback ggml_vk_d2h_release. The tentative hypothesis is that narrow decode graphs execute INLINE and never dequeue jobs for the assigned input ticket, so slots fill and cannot be freed. Establish via exact local source lines and old log trace whether narrow/inline designation is known in time to avoid acquiring a slot or safely synchronously consume/release the pending inputs. If NOT source-provable, STOP with design-only result and no test. Do not make an unconditional D2H sync fallback for long prefill or change buffer ownership of wide queued graphs.
+
+STEP 1 — ONE SURGICAL FIX, only if source proof passes:
+In an isolated copy/worktree of the c1-xdev development checkout (no production changes), implement the narrow inline path with CORRECT GPU D2H input readiness and slot retirement; choose a source-proven approach:
+(A) route only known narrow inline CPU graph inputs through the existing safe synchronous Vulkan D2H/copy path BEFORE pool acquire, OR
+(B) when narrow graph executes inline, ensure all queued D2H inputs linked to that graph's ticket are waited, copied, and released with correct GPU completion BEFORE CPU executes the graph and before any staging slot can be reused.
+Prefer minimal diff and explicit guarded mode enabled only for this experiment. Do not allocate an additional 64-slot pool, modify the known wide-graph path, force-all-worker-drains, add sleep polling, enlarge V1 VRAM, run GPU-side waits on late host VkEvent, or alter output math.
+If unsafe/difficult to prove aliasing, job ownership, event submission, or queue ordering, STOP and report the source-level blocker instead of guessing.
+
+STEP 2 — SMALL CONTROLLED GATES:
+- Save source/binary/library SHAs, exact git diff, command argv and environment, model path, GGUF digest if practical, token-id prefix digest, host identity, serialized logs and passive GPU telemetry. Keep distinct new artifacts; do not overwrite Stage1.
+- Keep same Ornith Q4 four CPU blocks 5,8,20,35; -dev Vulkan0,Vulkan1,Vulkan2 with MESA_VK_DEVICE_SELECT UNSET; -ts 0.8,1,1 -ngl99 -c131072 q8 KV -b2048 -ub512 --no-op-offload, -t14 -tb14, no draft, TURBOPREFILL=0, ORNITH_PIPELINE_OT=1, ORNITH_CPU_WORKER=1, GGML_VK_XDEV_ASYNC=1, GGML_VK_ASYNC_READBACK=1.
+- 2048 *same real token-ID prefix*, n_predict 128 at temp0, seed1, cache_prompt=false; compare candidate to matched unmodified pipe-ON only if evidence proves need (do not claim unpaired win). Capture reported IDs through reliable logits/tokens instrumentation if API array empty. Verify finite/no slashes/correct stop.
+- ONLY IF 2K passes, 16384 same leading real prefix, n_predict 32, temp0 seed1, cache_prompt=false; baseline unmodified pipe-ON 302.869PP/26.102TG (prior short), repeat same-build control if needed to isolate overhead. Save diagnostic pool active/free/counters across decode. Log all D2H slot misses and where busy is cleared. A real leak fix should give narrow decode no stranded busy slots; no multi-second per-token stalls.
+- Gate: no unexpected D2H pool saturation with release0 over decode, no GPU faults/OOM, no corrupted output/NaN; pref >=~287.73 PP and TG >=24.797 on 16K (5% lower bounds from previous control). Success requires correct resource lifetime/clean decode and NO degradation; a coherence-only head is NOT an oracle pass or a promoted win.
+- Any wrong/garbled output, hang, VRAM breach, GPU fault or negative source evidence -> stop, rollback and report. Do not run 31619/TG512 until separate new supervisor assignment.
+
+SAFETY:
+Preserve production /opt/llama/llama-c1-v3mx2-20261013, /etc/ornith/threecard.cmd, ornith-server STOPPED, known-good fallbacks, all GPU clocks/voltages/fans/power/driver thermal protections, Storj. No reboot/reset. Existing owner rejects arbitrary software hotspot kill (including 110 C); use passive sensors and *genuine* GPU/driver fault, resource, process-error, cancellation protections. A test watchdog must monitor BOTH prompt and decode progress so slow decode cannot evade stop, but never hide invalid results. Use port 8205 isolated. Only your test process. Clean up and restore isolated dev branch/binary after every failure. Do NOT mutate another worker's worktree or testing session; if ownership unclear stop.
+
+IMPORTANT NEXT HYPOTHESIS, NOT AUTHORIZED THIS JOB:
+A bounded ~4-job CPU queue might avoid 80 pending jobs, but waiting for an unsealed ticket can deadlock; requires explicit park(0) and safe per-ticket seal semantics first. DO NOT implement alongside decode slot fix or while source unknown.
+
+REQUIRED RESPONSE (to CHATGPT, then STOP):
+status PASS_DIAGNOSTIC / FAIL_REVERTED / BLOCKED_NO_CHANGE; root cause proven/unknown; source line evidence; minimal diff and SHA before/after; exact PP/TG n_predict, checkpoint times, D2H pool before/after through decode; correctness (IDs/logits or unavailable); fault and temperature telemetry; whether restored dev bits and production untouched; ONE best next candidate, no self-dispatch.
