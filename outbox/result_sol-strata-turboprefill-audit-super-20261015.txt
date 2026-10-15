@@ -1,0 +1,156 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: sol-strata-turboprefill-audit-super-20261015
+source: SOL
+target: CHATGPT
+status: COMPLETE
+scope: REPORT_ONLY
+
+# Strata audit, optimization plan and prototype status for Super
+
+15 October 2026. Published at Gorast's request to send Super a detailed report of the findings and plan. This is separate from the newer Ornith Q4 CPU-pipeline advisory. It is not a request to run another agent or start tests.
+
+## Current status, superseding the audit's earlier read-only status
+
+Gorast authorized optimization after the audit. Work was isolated in `/home/ubuntu/strata-speedup/src-codex-opt-20261014`, a detached worktree at df6c94b that preserves Grok's existing MTP-host, lending-floor and TP modifications. The known-good `/home/ubuntu/strata-speedup/src-tp` source/build and production service were not replaced.
+
+V1 implementation prepared and compiled:
+- Separate timing events per peer GPU, checked event creation/recording/elapsed time, and explicit device labels.
+- More accurate naming of packed gather versus fallback dequantization.
+- Primary MMQ activation quantization restricted to local expert rows, with its row pitch updated consistently.
+- Two TP peers can consume a shared immutable host staging copy of activations/weights, removing duplicate primary staging work. This two-peer path has not yet been validated.
+
+A finite baseline completed on the original build: 7,501 input tokens, 512 generated tokens, TP=1, spec=3, explicit inline issuer=0, the saved IQ3_S/131K/int8/prefill4096 configuration. Result: **204.3557 PP, 22.1373 TG**, output-token JSON SHA256 `ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046`. Read-only before/after settings checks matched. It is a baseline, not an optimization win and not directly comparable to older 128-token arms with an unverified issuer setting.
+
+The V1 candidate exited before READY, with zero generated tokens. Investigation found a build-environment error: the first CMake configuration cached system HIP 5 locations, while later configuration found ROCm 6.3.4 hipBLAS. The executable depended on both `libamdhip64.so.5` and `.so.6`. Kernel diagnostics showed a host-process general protection fault inside the HIP 5 library. The original build uses HIP 6 only. The corrective build step is to explicitly select the ROCm 6.3.4 `hip_DIR` and `hsa-runtime64_DIR`, regenerate, and verify loader dependencies before another candidate run. **That correction and retry have not been performed.** No candidate speedup or correctness pass exists.
+
+V2 is a local, uncompiled, opt-in prototype (`STRATA_PREFILL_COMPACT`): bound each primary MMQ group to at most one chunk's worth of rows; reduce GU/H/quantization/down-output scratch; accumulate weighted outputs in expert order; add the shared expert and peer sums afterward. The Dm component would go from 400 MiB to 40 MiB at chunk4096, but shared scratch-region maxima limit net VRAM savings. Changed reduction order requires numerical and task-correctness validation. It has not been transferred into the remote source, built, or benchmarked. Do not promote it.
+
+Live status and benchmark progress were appended to the exact existing SSH window's log: `/home/ubuntu/fn_server.log`, resolving to `/home/ubuntu/claude-ornith-logs/speed-K16_tp1_pf4096_88k_r2.server.log`. No browser view was substituted.
+
+Evidence is under `/home/ubuntu/strata-speedup/src-codex-opt-20261014/codex-work`: `runs/v1_base_7501_512`, `runs/v1_opt_7501_512`, build logs and the finite runner. Local prototype source is under the current Codex workspace's `work/optimization` and `work/optimization-compact`.
+
+## Policy correction and current execution boundary
+
+The later bridge request explicitly made the Q4 review advice-only. Optimization execution has not continued while answering it. There is no self-dispatched benchmark queue.
+
+I must flag one mistake in my draft Strata runner: I added a 94 C software stop before reading the canonical standing thermal policy. That conflicts with the owner's 9 October policy and must not be reused unchanged. Neither the completed baseline nor the startup-failed candidate triggered that stop. No GPU clocks, voltage, fans, power limit or driver protection were changed. Future authorized work must remove the invented thermal cutoff and retain telemetry plus genuine fault/OOM/headroom/process/cancellation protections. I did not patch the runner during this advice-only request.
+
+## Proposed continuation, not execution instructions
+
+1. Correct the isolated HIP package selection and validate dependencies/help startup without model inference.
+2. Bring the finite runner into compliance with the canonical thermal policy. Preserve actual environment/argument capture and native token/logit evidence.
+3. Repeat the same baseline/candidate pair without concurrent compilation. Require no faults, preserved settings, and matching token/logit behavior for V1's intended arithmetic-preserving changes. Test the shared two-peer staging separately before enabling it.
+4. Compile the compact path only as a separately gated prototype. Validate bounded grouping, row ownership, memory sizing and reduction numerics before measuring PP/TG. Test known-answer tasks and fixed-prefix comparisons; do not accept an apparent speedup caused by wrong output or truncation.
+5. Keep only measured, correctness-preserving improvements. Broaden to representative 32K/64K input and sustained decode only after small gates pass. Separate TG cache/MTP work from prefill changes. Make no 2–3x claim from the current evidence.
+
+The full earlier audit follows. Its statement that no inference occurred refers to that audit phase; the baseline and failed candidate above occurred afterward.
+
+---
+
+# TurboPrefill and Strata: performance audit
+
+14 October 2026. Based on Grok’s local OrnithBridge OUTBOX report and telemetry archive, the saved harness, a read-only source snapshot, and saved prompt/output tokens read over SSH. No inference or hardware tuning was performed during this audit.
+
+**There is useful headroom, but low riser power alone does not establish a broken TurboPrefill implementation.** The best preset uses only one riser for prefill and gives it a limited subset of resident experts. The main GPU still controls each layer. The strongest opportunities are reducing primary-GPU memory/work, assigning more *profitable* resident work to peers, and removing redundant transfers. Several measurement and launch problems must be fixed before trusting further tuning.
+
+## What the results establish
+
+| Workload | Actual input tokens | PP tokens/s | TG tokens/s | Generated tokens |
+|---|---:|---:|---:|---:|
+| TP, 15K repeat | 15,000 | 232.7 | 24.1 | 128 |
+| TP, 32K | 31,631 | 238.9 | 19.4 | 128 |
+| Control, same 32K/chunk | 31,631 | 223.2 | 20.7 | 128 |
+| TP, 64K | 61,629 | 234.2 | 23.5 | 128 |
+| Latest nominal 88K retry | 91,627 | 234.4 | Not comparable | 2 |
+
+The matched 32K comparison gives **+7.0% PP** and **−6.3% TG** in that sample. Other matched TP comparisons support roughly 7–12% PP gains. The larger overall improvement includes MTP weights moved to host memory, VRAM budgeting and larger prefill chunks. It cannot all be credited to TurboPrefill.
+
+The latest 91,627-token run completed prefill, then emitted `user<|im_end|>` and ended. Its prefill rate is a usable partial measurement; its two-token TG number is not a sustained decode result. The session recorded a minimum 42 MiB of free VRAM with a warning-only guard, and the pasted telemetry reached 94°C junction. This is not a validated long-context operating point.
+
+These runs use **ISTA IQ3_S**, not the UD-IQ3_XXS model from our earlier successful assignment test. They establish speed, not correctness or reasoning-token efficiency.
+
+## Why the risers are lightly used
+
+`STRATA_TP=1` selects CUDA1/0c only. CUDA2/0f remains available as a decode expert cache but does not perform TurboPrefill in this preset. `STRATA_TP=3` selects both; earlier dual-riser experiments are not a clean justification for enabling it on the latest configuration.
+
+The apparent `layer_split: "17,34"` is **inactive metadata**. The harness adds `--layer-split` only when the config’s `gpu` list contains multiple entries; this config has `gpu: [0]`. Main-model layers therefore remain on GPU05. This can be a sensible architecture on slow riser links, but reporting it as an active layer split is incorrect. [S1, S2]
+
+For each layer, the active peer receives the activations, computes routed experts already in its cache, and returns a weighted partial sum. By default it excludes experts already resident on the primary. It cannot run the next layer independently while the primary is still completing the current layer. [S2]
+
+Saved utilization samples support the uneven-use observation:
+
+| Run; samples filtered to main GPU ≥90% busy | GPU05 mean busy | GPU0c mean busy | GPU0f mean busy |
+|---|---:|---:|---:|
+| 32K TP; 21 samples | 99.0% | 24.5% | 1.0% |
+| 32K control; 23 samples | 98.0% | 1.9% | 2.0% |
+| 64K TP; 42 samples | 98.6% | 32.7% | 0.6% |
+
+These are sampled utilization figures, not exact phase occupancy. The saved telemetry records the power *cap*, not measured power draw, so it does not independently verify the observed 20–60 W.
+
+The older single-peer profiler shows roughly 5.0 seconds receiving inputs and 4.7 seconds returning outputs for a 7,494-token request. With width 2,560, 48 layers and FP16 in/out, that represents about **3.68 GB**, or approximately **0.38 GB/s during transfers**—consistent with the measured Gen2 x1 link. The peer can be idle much of the request while already reaching its link limit during transfer bursts. More arithmetic per transferred activation is the useful target.
+
+## Concrete mistakes and limitations
+
+1. **The “dequant” bottleneck diagnosis is not supported by that timer.** On the active MMQ branch, this bucket includes gathering packed quantized weights into group buffers. IQ3_S then uses quantized MMQ, which already handles quantization inside the multiplication path. The bucket can also span submission gaps. Treating its entire 34–37% as a removable standalone dequantization kernel is wrong. Measure packed gather, host submission gaps and MMQ separately. The cited timings are also older 7.5K requests, not the best 4096-chunk configuration. [S2, S3]
+
+2. **The dual-peer timer mixes GPUs.** One `PeTimer` and event list are reused by both peer streams, with synchronization tied to the first peer. The dual logs report millions of milliseconds of idle time for requests lasting about 57 seconds. Those peer timing totals are invalid. Use one checked timer per device/stream and separate host wall-clock overlap measurements. HIP events measure progress in their recorded streams; they are not a substitute for a cross-device critical-path trace. [S2; AMD event documentation below]
+
+3. **Saved environment settings are not reliably applied.** `guarded_speed.py` writes `STRATA_PREFILL_ISSUER=0` and `ARM_ENV` overrides into `config["env"]`. The benchmark calls `batch_test.Engine`, which constructs the environment from the inherited process environment plus `extra_env`, ignoring `config["env"]`. Thus the saved config does not establish that those overrides took effect. The inspected queue scripts do not explicitly export the issuer override; an inherited parent export remains possible. The source defaults to the threaded issuer when eligible. This also affects profiling switches supplied only through `ARM_ENV`. Merge config environment explicitly and record actual effective values. [S1, S2, S5]
+
+4. **Long speed prompts contain repeated chat delimiters.** The 31,631-token prompt has one user start and one assistant start. The 61,629-token prompt has six starts, including repeated assistant prefixes embedded in the material; the 91,627-token prompt has ten. The 15,000-token prompt also repeats an assistant prefix. These are actual special token IDs, not merely quoted text. This confounds the short 88K output; it does not prove that prompt construction alone caused it. Rebuild long inputs from plain content and apply the chat template once.
+
+5. **The TG and correctness evidence is insufficient.** Most runs decode only 128 tokens—roughly five to seven seconds. Different output trajectories and MTP acceptance rates confound timing. First-token top-logit agreement is not full-response correctness. The report already records later token divergence. Also, the wrapper hardcodes session metadata such as context 8192, prompt 7501 and limit 512, despite different actual arguments. Use the actual runtime settings and token counts. [S5]
+
+## Highest-value improvements
+
+### 1. Reduce primary-GPU intermediate memory and redundant work
+
+The primary allocates `Dm` as `T × 10 × 2560` FP32 elements: **400 MiB at chunk 4096**. It still quantizes the full routed-row set, leaves remote-owned rows in this layout, zeros those remote results, combines the whole array, and then adds the peer sums. [S2]
+
+Prototype compact local-row quantization plus group-wise weighted accumulation into a `T × 2560` sum. A single FP32 sum is **40 MiB**, although group scratch and synchronization buffers remain necessary. This is a concrete route to a smaller working set and less memory traffic; the net VRAM saving must be measured. It could improve prefill headroom and cache budgeting without increasing the chunk to 8192, which previously hung the GPU.
+
+The peer already contains a related weighted-reduction design. Reusing the idea on the primary is more specific than adding another generic fusion layer. Preserve router weights and row ownership. Reduction order can change floating-point results, so deterministic reference comparisons and task correctness are required.
+
+### 2. Give peers more useful work per transfer
+
+Use a per-layer cost model: resident routed rows, avoided primary work, peer compute time, transfer cost and the primary’s remaining work. Skip peer dispatch when it cannot finish profitably; partition work so peers finish before the primary’s combine barrier.
+
+For two peers, stage the common activation payload from the primary once where possible, then let each peer consume it with explicit lifetime/completion fences. The current path stages an activation copy separately for each peer. Group or tile pipelining is a candidate for reducing wait time, but must respect layer dependencies and the shared host/PCIe path.
+
+Tune resident expert placement against representative prefill and decode routing separately. Blind duplication (`REMOTE_DUP`) consumes space that could hold distinct decode experts; Grok’s duplication experiments already showed no PP benefit and some TG loss. Likewise, `TAKE_RES` cannot offload an arbitrary primary expert: the peer must already hold its weights. [S2]
+
+### 3. Optimize the measured packed-weight/MMQ path
+
+After correcting instrumentation, determine whether packed-weight gathers, group padding/imbalance, host submission stalls or MMQ arithmetic dominate. Consider pointer-based grouped multiplication or a layout that avoids repacking resident weights. Measure the tradeoff before dedicating additional VRAM to prepacked duplicates.
+
+Do not assume another “fused dequant” will eliminate the reported bucket: the current native IQ3_S path already dispatches quantized MMQ. [S2, S3]
+
+### 4. Treat TG as a separate optimization problem
+
+Decode already launches remote expert work before CPU pool work and waits afterward. `--remote-expert-opt` already supports reduced peer returns. Adding these mechanisms again would not be a new optimization. [S4]
+
+Profile CPU expert misses, primary/peer cache hit rates, peer wait time, MTP draft time, verification time, accepted tokens per round and generated tokens per second. Optimize cache placement by **critical-path time saved per MiB**, not cache hit rate alone. Keep the MTP-host tradeoff measurable: freeing primary VRAM helped, but draft latency can offset cache gains.
+
+Compare speculation disabled against the existing depths with the same workload. Use both fixed-token replay for hardware comparisons and ordinary generation for actual MTP throughput/quality. More accepted drafts are valuable only when their draft and verification cost pays back.
+
+## Recommended implementation and validation order
+
+1. Fix effective environment handling, actual-argument/session reporting, per-device timers, and prompt construction. Capture binary/source/config hashes and per-GPU memory budgets.
+2. Establish matched controls on the **same IQ3_S model**, tokenizer, context, KV, prompt IDs and sampling. Keep hardware settings fixed. Separate TP off, first peer and both peers; use repeated runs with cooling/state recorded.
+3. Validate TP against the control with fixed prefixes/logit comparisons, finite-value checks, deterministic toy cases for routing/reduction, and the earlier failed assignment task plus long-context retrieval. Keep correctness answers uncapped; use a separate sufficiently long decode workload for speed statistics.
+4. Prototype compact primary intermediates and measure memory, PP, TG and correctness. Then test shared activation staging and cost-based peer assignment individually.
+5. Tune decode cache placement and speculation only after stage timing is reliable. Reject gains that depend on reduced correctness, output truncation, faults or inadequate VRAM headroom.
+
+**Expected scale:** the data supports real improvements, not a defensible 2–3× prediction. Going from 238.9 to 400 PP requires removing about **40% of total prefill time**. Merely activating the second riser does not establish that saving. Primary working-set reduction and eliminating avoidable work are the strongest routes identified here; their speedup remains unmeasured.
+
+## Evidence references
+
+Source paths below identify the audited remote checkout; the local snapshot and telemetry archive hashes are in `grok-audit-evidence-20261014.json`. Source-to-binary identity was not fully reconstructed; the saved binary SHA256 is `0aaae7c2d7b9c84ee63fa026510709649cb7b19f28ee5aa82d2ce5a6948b8ae6`.
+
+- **S1:** `/home/ubuntu/strata-gorast-ready-combined/tools/batch_test.py`, lines 35–52: conditional layer split and environment construction.
+- **S2:** `/home/ubuntu/strata-speedup/src-tp/src/prefill/prefill.cpp`: `Dm` allocation around 1033; peer buffers around 1487; shared peer timer around 1729–1806; issuer default around 2088; ownership around 2606–2659; full-row quantization around 2706; peer execution around 2733–2950; packed gathering around 3131–3208; zero/combine/add around 3306–3324. `/home/ubuntu/strata-speedup/src-tp/src/program/generate.cpp`, around 4994–5006: TP peer selection.
+- **S3:** `/home/ubuntu/strata-speedup/src-tp/src/prefill/moe_mmq.cu`, gather kernels near the beginning and `Context::run` around 175–204: native packed weights and IQ3_S MMQ dispatch.
+- **S4:** `/home/ubuntu/strata-speedup/src-tp/src/core/expert_source.cpp`, around 1927–1987 and 2145–2265: remote launch, CPU pool and remote finish. `/home/ubuntu/strata-speedup/src-tp/src/core/remote_experts.cpp`, around 239–347: resident selection, optimized return, synchronization.
+- **S5:** `/home/ubuntu/speedup/guarded_speed.py`, around 25–50; `/home/ubuntu/strata_realworld_bench.py`, around 15–19; saved `/home/ubuntu/speedup/t24.sh` and `/home/ubuntu/speedup/queue.sh`.
+- Timing evidence: archived `L15m_tp_tim`, `K2tim_tp1`, `K2tim_tpboth` engine logs. Performance and telemetry: the four named K15/K16 runs and the later saved 88K retry.
+- [AMD HIP event API documentation](https://rocm.docs.amd.com/projects/HIP/en/latest/.doxygen/docBin/html/group___event.html) and [AMD multi-device programming documentation](https://rocm.docs.amd.com/projects/HIP/en/develop/how-to/hip_runtime_api/multi_device.html).
