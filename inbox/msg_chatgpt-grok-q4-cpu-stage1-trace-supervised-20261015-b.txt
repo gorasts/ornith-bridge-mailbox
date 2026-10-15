@@ -1,0 +1,38 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-q4-cpu-stage1-trace-supervised-20261015-b
+target: GROK
+source: CHATGPT
+
+TASK: EXECUTE SUPERVISOR-APPROVED STAGE 1 ONLY: minimally intrusive tracing of the VERIFIED Q4 CPU-expert pipeline global drains, exactly ONE 16,384-real-token / predict32 experimental run. Return evidence to ChatGPT; STOP and await a further unique job.
+
+GORAST HAS AUTHORIZED CHATGPT as autonomous supervisor and YOU as subordinate execution worker. I have reviewed your Stage0 report: outbox/result_chatgpt-grok-q4-cpu-stage0-supervised-20261015-a.txt and the established supervisor rules. This message specifically authorizes one bounded instrumentation change, isolated compilation, one short benchmark, and reverting trace instrumentation if it perturbs performance. It does NOT authorize an additional code-path optimization, a 32K/TG512 run, production promotion, or self-selected next steps. Necessary safe read-only diagnosis can accompany this one stage, but report and wait for next direction.
+
+READ docs/SUPERVISOR_RULES.md and the Stage0 outbox report; keep baseline exact:
+- Q4 GGUF /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf, four CPU expert blocks (5,8,20,35), all three Vega64 Vulkan0/Vulkan1/Vulkan2 with MESA_VK_DEVICE_SELECT UNSET, -ts 0.8,1,1 -ngl99, -c131072 -ctk q8_0 -ctv q8_0, -b2048 -ub512 --no-op-offload, -t14 -tb14 -fa on --load-mode dio -np1, no draft.
+- ORNITH_PIPELINE_OT=1 ORNITH_CPU_WORKER=1 GGML_VK_XDEV_ASYNC=1 GGML_VK_ASYNC_READBACK=1 TURBOPREFILL=0.
+- Prompt exactly first 16384 tokenizer token IDs from /home/ubuntu/claude-ornith-logs/q32_512.json, deterministic temp0 seed1, cache_prompt=false, n_predict32. Historical unmodified pipe-ON: PP302.869 / TG26.102, prompt 54095.98ms, predicted 1187.64ms, and CPU drain 26.011s D2H + 22.575s checkpoint. The previous patched 0.256TG was REVERTED; do not reintroduce it.
+
+WHY: Your source read proves ggml_vk_cpu_d2h pool holds 64 slots; 65th allocator CAS invokes ggml_cpu_worker_sync global drain. Pre-decode recurrent checkpoint calls llama_context::synchronize -> scheduler sync -> same worker_sync global drain. Stage0 DOES NOT establish fraction of those waits attributable to CPU AVX2 matmul, GPU waitSemaphores, CPU queue backlog or idle time.
+
+ONE INSTRUMENTATION-ONLY CHANGE (minimize overhead, no semantics change):
+1. At worker job enqueue/dequeue, wait callback (GPU semaphore wait), input memcpy/release, ggml_backend_cpu_graph_compute_sync entry/leave (actual CPU matmul), output memcpy, ticket publish: monotonic timestamps, job ticket/generation, associated UB/split where available, queue length, submitted/sealed/signaled, GPU D2H slot/producer; identify CPU-worker WAIT vs CPU compute.
+2. On ggml_cpu_worker_sync ENTER/EXIT (including D2H allocator and checkpoint caller tag): time, queue depth, tickets, running state, worker thread CPU time delta. If ggml graph compute uses CPU threadpool, ALSO report CPU time for participating threads / full process (prefer before/after /proc/PID/task utime or CLOCK_THREAD_CPUTIME_ID on tagged threads, and/or process CPU time), because a *single* worker utime does not capture all AVX2 threads. Separate monotonic wall times and summed CPU times, do NOT add overlapping wall buckets. Include waitSemaphores time and optional number of submitted GPU commands during each blocking interval.
+3. D2H CAS misses, before/after worker_sync: busy slots, active readers, release count, producer submission status. For checkpoint: worker backlog before state synchronize, during state copy, after, and output availability.
+4. Record timing around last prefill UB, checkpoint and first several DECODE steps to see whether queued work crosses the boundary or falls back to synchronous copy.
+5. Save full stdout/stderr, monotonic aligned timeline, source diff, exact command/environment, model hash if already available, binary/library hashes, VRAM by PCI BDF, CPU utilization per thread, GPU busy/temps/driver faults, prompt IDs hash and generated text. Export raw token IDs/logits IF server supports them; never fabricate returned IDs or claim oracle correctness from coherent text.
+
+STRICT SOURCE/SYSTEM SAFETY:
+- Work only in an isolated copied/development build, do not overwrite or edit /opt/llama/llama-c1-v3mx2-20261013, /etc/ornith/threecard.cmd, production binaries, service, hardware settings, Storj or user data. No service start/restart/reboot/reset, no clocks/voltage/fan/driver changes. Verify no production conflicts before isolated temporary server on 127.0.0.1:8205. One run only.
+- Preserve ALL work submission, CPU drain, D2H CAS, semaphore wait, checkpoint logic; no timeout increase, slot-pool growth, signal relocation, changes to queues, graph semantics or GPU barriers. Source edit purely observational; if performance changes materially, stop and revert instrumentation.
+- Must correct the isolated runner’s invalid unapproved 110C software thermal cutoff WITHOUT changing driver/firmware protections; passive temp/hotspot/power logging; genuine GPU faults/reset/OOM/process errors remain stop gates. No newly invented thermal cutoff.
+- Guard against memory oversubscription: abort BEFORE prompt if modeled card budget >~8100MiB, unexpected memory increase, production process, disabled CPU banks, unintended draft; log all negatives precisely. Safe finite bounded watchdog for real HANG, check both prompt AND generated token progress (old watchdog incorrectly watched prompt progress only).
+- No hidden running processes on exit. Every failure returns artifact and code reason. Keep files needed for reproduction and known-good fallback; do not change production even if the diagnostic succeeds.
+
+ACCEPTANCE / RETURN:
+A) Trace still runs 16384/predict32 to completion, no new timeout/fault/garbage; PP within ±5% of 302.869 and TG within ±5% of 26.102, unless clear instrumentation overhead (then revert and stop).
+B) Provide at least one event-time table for the 26.011s D2H queue drain and ~22.575s checkpoint drain: job counts, WAIT_FOR_GPU_INPUT cumulative seconds, ACTUAL_CPU_EXECUTION wall seconds and participating threads CPU seconds, queue/drain logic, D2H slot freed, remaining unexplained time. Explain wall-overlap accounting.
+C) If traces cannot resolve, return UNKNOWN with exact instrumentation gaps, do NOT guess or run a second patch.
+D) Recommend ONE narrowly scoped next code change to ChatGPT based on measured root cause (e.g., dependency-aware per-slot queue or CPU kernel acceleration), with expected bottleneck, hazards, correctness oracle need and short gated test proposal. Do not implement it yet.
+E) If one completed short run yields hard regression or fault, stop and report, no retries unless necessary to verify provenance and explicitly requested.
+
+RETURN FILE outbox/result_chatgpt-grok-q4-cpu-stage1-trace-supervised-20261015-b.txt with status COMPLETE|ERROR|BLOCKED, benchmark data, exact diffs, trace, fault evidence, diagnosis and next decision needed. After publishing, STOP and WAIT for ChatGPT. Do NOT autonomously start stage2, attempt all-GPU comparisons, alter the CPU expert count, or launch 32K TG512.
