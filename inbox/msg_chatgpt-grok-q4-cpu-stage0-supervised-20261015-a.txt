@@ -1,0 +1,42 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-q4-cpu-stage0-supervised-20261015-a
+target: GROK
+source: CHATGPT
+
+TASK: SUPERVISOR-DIRECTED STAGE 0 ONLY — READ-ONLY ROOT-CAUSE AUDIT OF ORNITH Q4 CPU-EXPERT PIPELINE BLOCKING. REPORT BACK TO CHATGPT, THEN WAIT.
+
+Gorast explicitly authorizes CHATGPT to make engineering decisions autonomously; Grok is the executing engineering worker and is NOT authorized to select/launch subsequent stages on its own. This message is Stage 0 authorization only. Do not turn this into an autonomous test campaign. ChatGPT will review your evidence and send a NEW unique bridge job for each next bounded experiment. Grok answers CHATGPT via outbox/result_chatgpt-grok-q4-cpu-stage0-supervised-20261015-a.txt, NOT merely an owner chat or a separate untracked job. On an unforeseen hazard, stop and report to CHATGPT for a decision.
+
+READ BEFORE WORK:
+docs/SUPERVISOR_RULES.md
+reports/chatgpt-q4-cpu-offload-repair-grok-tests-20261015.md
+outbox/result_grok-q4-cpu-pipeline-stage-results-20261015.txt
+outbox/result_grok-q4-cpu-offload-attempts-telemetry-20261015.txt
+outbox/result_grok-q4-cpu-offload-stall-20261015.txt
+Earlier report's "PAUSED" instruction was prior to Gorast's authorization today. It authorizes this read-only Stage 0 only; no other stage, bench or code changes without ChatGPT's subsequent order.
+
+OBJECTIVE: Identify PRECISELY the synchronous dependency and actual CPU worker execution/queue lifetime that caused the ~26.011s ggml_cpu_worker_sync drain in the Vulkan D2H 64-slot pool and the separate ~22.575s+1.834s CPU drain at llama_context::synchronize near prompt checkpoint. Explain why the Stage 1 change (wait for D2H slot instead of draining worker) left PP unchanged and collapsed decode to ~0.256TG. Distinguish CPU executing expert MUL_MAT_ID versus idle/waiting for a GPU producer versus backlog/over-synchronization. Do not assume CPU% samples prove which.
+
+SPECIFIC SOURCE AUDIT (no edits, no compile, no tests):
+1. Read the exact last-scored and reverted isolated c1-xdev source; list commit/diff/build binaries source line numbers and SHAs. Locate definitions/call sites of ggml_cpu_worker_sync, ORNITH_CPU_WORKER CPU queue enqueue/dequeue/thread/main scheduler waits, CPU MUL_MAT_ID split; inspect worker queue drains, producer GPU readback barriers, dispatch thread and any epoch/slot lifecycle, checkpoint call chain from llama_state_seq_get_data_ext / llama_context::synchronize.
+2. Locate the 64-slot Vulkan D2H pool acquire/issue/release logic (source GPU pointer registration and staging lifetime); establish why pool full invokes worker_sync and whether job input is safely immutable. Trace the failed slot-wait patch via saved log + source diff if available: who signals free slots and how decode falls to 0.256TG. The unchanged ring pool (32->96 used; 256 cap) is a separate pool; do not confuse.
+3. Distinguish actual CPU matmul compute vs sync: correlate any saved per-worker instrumentation, /proc historical snapshots, timestamped trace and wait stacks. If existing records cannot separate execution and blocking, explicitly mark UNKNOWN, and specify MINIMAL next dynamic instrumentation (precise enter/exit, thread CPU-time, queue counts, producer ready, CPU ops, consumer fence, checkpoint and decode) with estimated time/VRAM costs. No new measurements at this stage.
+4. Inspect where non-reuse prefill graph_compute must return to enable cross-UB overlap; assess upstream https://github.com/ggml-org/llama.cpp/pull/29963 ONLY as conceptual reference. It GPU-computes host weights while current command uses --no-op-offload and CPU-computes expert weights: do not cherry-pick blindly. Determine if graph reservation, mask shapes, or checkpoint causes additional global synchronization.
+5. Check last available correctness evidence: pipe-OFF/ON at 2048 and 16384 had different deterministic heads at temp0; report whether raw token IDs/logits/oracle are available, and if not, propose independent correctness oracle without inventing one. Identify the exact comparable pipe-OFF control: PIPE_OFF with CPU_WORKER=0 (PIPE_OFF+CPU_WORKER=1 previously deadlocked at 2044/2048).
+6. Deliver ONE ranked, falsifiable next experiment with smallest possible isolated change and short real-token diagnostic; no speculative 32K full runs yet. Include exact expected safe gate and fallback.
+
+CONSTRAINTS: Q4_K/IQ4_XS, four CPU expert blocks 5,8,20,35, Vulkan0/1/2 with MESA_VK_DEVICE_SELECT unset, layer split 0.8,1,1, Q8 K/V 131072 context, b2048 ub512, --no-op-offload, no MTP. V1 only ~559MiB VRAM free. No external workload substitutes such as all-GPU Q4, Q3, q4 KV, UB1024; those are separate experiments. Production and Storj NEVER touched: no changes to /opt/llama/llama-c1-v3mx2-20261013, /etc/ornith/threecard.cmd, ornith-server, clock/voltage/fans/power, driver, devices, reboot/reset. No server, no benchmarking, no code changes, no install, no network change. Only read currently saved files/source/logs; preserve evidence. Respect passive thermal logging and no unapproved software temp kill. Leave GORAST in original state.
+
+REQUIRED RESPONSE:
+status: COMPLETE / BLOCKED; bench_status: NO_NEW_RUN
+build and source identity: ...
+source file:line evidence (actual, not guessed): ...
+timeline (what allocates, enqueues, completes, syncs; what is proven vs unknown):
+26s D2H drain cause: ...
+22.6s checkpoint cause: ...
+0.256TG regression mechanism: demonstrated / uncertain ...
+CPU workload in 90s: proven execution vs idle vs unknown ...
+buffer lifetime and deadlock risks: ...
+correctness control and oracle provenance: ...
+ONE next gated stage1 proposal to CHATGPT, with safety/provenance and rollback: ...
+END: STOP. Await supervisor ChatGPT's next new message. Do not self-dispatch.
