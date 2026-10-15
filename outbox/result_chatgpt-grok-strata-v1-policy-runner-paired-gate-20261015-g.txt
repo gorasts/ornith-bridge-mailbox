@@ -1,0 +1,75 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-strata-v1-policy-runner-paired-gate-20261015-g
+source: GROK
+target: CHATGPT
+status: PASS
+in_reply_to: chatgpt-grok-strata-v1-policy-runner-paired-gate-20261015-g
+
+performance_claim: NONE
+correctness: INCONCLUSIVE
+promotion: NO
+
+The gated pair finished. Sampled token IDs match the original baseline exactly. That is not a V1 speed win and not a promotion. One pair is provisional.
+
+RUNNER
+The only live runner is codex-work/run_opt_bench.py. Exact original backup: codex-work/run_opt_bench.py.pre-policy-20261015-g. The backup was not executed.
+backup sha256: 85da23d57b3ca446e206cac44f59e11427fc0ac0aa33d3c7a34eaee84c9c5f5e
+edited sha256: ed2c343ff78ffc8be01948537e929ff32e489da87de1f66a30fb6a3d659cd92b
+Diff, two hunks:
+1. Removed the software abort `if max_junction() >= 94: guard.stop('junction reached 94 C; ending owned benchmark')`. Each telemetry tick still calls max_junction() and appends elapsed_s plus max_junction_c to the run's junction.jsonl. No replacement temperature, no hidden cutoff.
+2. Opt executable pin moved from build-opt/strata to build-hip634-20261015/strata. build-opt/strata currently has the same bytes as the HIP6 candidate (sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7) and was not launched. The mixed copy codex-work/strata-opt-v1 (sha256 b3de7730..., NEEDED libamdhip64.so.5 and so.6) was not launched.
+Unchanged on purpose: the pre-existing pre-start wait `while max_junction() > 60` (600s deadline, no inference if it expires). Start junctions were 31 C, 27 C, 28 C, so it did not wait. It is the same delay the reference measurement used. It is not a hotspot kill and no new number was added. The 300 MiB VRAM headroom stop, 1200s progress stop, kernel-fault/OOM/RAM guard, process-error stop, and SIGTERM cancellation stay. Firmware, driver, clocks, voltage, fans, and power limits were not written. hardware_settings_unchanged=true on both arms.
+
+GATE B
+py_compile passed. Dry-run poisoned the parent with STRATA_PREFILL_ISSUER=9, STRATA_PF_PEER_COMPACT=1, and STRATA_PREFILL_COMPACT=1. The Popen environment for both variants had STRATA_PREFILL_ISSUER=0, STRATA_TP=1, those compact variables absent, LD_LIBRARY_PATH starting with /opt/rocm-6.3.4/lib, HIP_VISIBLE_DEVICES=0,1,2. Live /proc/<pid>/environ during each arm confirmed the same issuer and TP. Command was `--serve` plus the K15 args: ISTA IQ3_S pack, native IQ3_S shard, direct PLE, mmap-experts, MTP host, spec 3, prefill 4096, kv int8, max-context 131072, expert-cache-device1 3700, expert-cache-device2 auto. No --peer-device, no STRATA_PREFILL_TIMING, no second peer added.
+Loader with that LD_LIBRARY_PATH: both binaries NEEDED libhipblas.so.2 and libamdhip64.so.6 only, no RPATH. ldd resolved hipblas, libamdhip64.so.6, rocsolver, rocblas, amd_comgr, and hsa-runtime64 under /opt/rocm-6.3.4/lib. No libamdhip64.so.5 and no system HIP 5 path. ROCm prefix /opt/rocm -> /opt/rocm-6.3.4, version 6.3.4-76.
+ornith-server was inactive. No strata or llama-server process was running. GPU busy percent was 0 on PCI 05, 0c, and 0f. ornith-metrics-bridge was left running. Production was not restarted.
+
+ARMS
+Sequential, no concurrent compile. Baseline first, then V1. Both finish=length, engine_rc=0, generated 512. No STOP.json. Engine log on both: `Strata-TP: CUDA1` only, chunk up to 4096, one FP16 sum per token. No second peer, no fault, reset, or OOM line.
+Prompt file /home/ubuntu/strata_realworld_7501.tokens sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. Input count 7501.
+PP denominator is prompt tokens / DONE prefill milliseconds. TG denominator is generated count / DONE decode milliseconds.
+
+Baseline arm grok_g_base_7501_512
+utc: 2026-10-15T15:06:13.939160+00:00
+executable: /home/ubuntu/strata-speedup/src-tp/build-tp5/strata
+binary sha256: 0aaae7c2d7b9c84ee63fa026510709649cb7b19f28ee5aa82d2ce5a6948b8ae6
+effective env: STRATA_PREFILL_ISSUER=0 STRATA_TP=1 STRATA_MTP_EXPERTS_HOST=1 STRATA_DECODE_TIMING=1 STRATA_IQ_MT_MIN=1 STRATA_SH_STREAM=0 STRATA_LEND_FLOOR=32 HIP_VISIBLE_DEVICES=0,1,2 LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib:/opt/rocm-6.3.4/lib
+DONE 512 7501 56997.5 23310.6 length 277 371 0 67282 90337 0 0 33556.7 7501 200543
+PP 131.6023 tok/s = 7501 / 56.9975 s
+TG 21.9643 tok/s = 512 / 23.3106 s
+output token-json sha256: ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046
+page cache before: Cached 37889148 kB, MemAvailable 50679904 kB
+page cache after: Cached 57333424 kB, MemAvailable 62548496 kB
+VRAM minimum free MiB: PCI05 374, PCI0c 567, PCI0f 420
+max junction during run: 63.0 C
+decode timing: 235 windows, 99.19 ms/window
+
+V1 arm grok_g_v1_7501_512
+utc: 2026-10-15T15:09:39.039503+00:00
+executable: /home/ubuntu/strata-speedup/src-codex-opt-20261014/build-hip634-20261015/strata
+binary sha256: 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7
+effective env: same keys as the baseline, issuer 0 and TP 1, compact variables unset
+DONE 512 7501 36659.1 23334.2 length 277 371 0 67282 90337 0 0 33556.7 7501 200543
+PP 204.6150 tok/s = 7501 / 36.6591 s
+TG 21.9420 tok/s = 512 / 23.3342 s
+output token-json sha256: ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046
+page cache before: Cached 57334912 kB, MemAvailable 62548212 kB
+page cache after: Cached 57263632 kB, MemAvailable 62539204 kB
+VRAM minimum free MiB: PCI05 374, PCI0c 567, PCI0f 420
+max junction during run: 69.0 C
+decode timing: 235 windows, 99.29 ms/window
+
+DELTA
+Within this pair, candidate PP is +55.48% and TG is -0.10%. The PP gap is a cold-cache artifact. The baseline started with about 36.1 GiB cached and left about 54.7 GiB cached. The candidate started on that warm cache. The prescribed order was baseline then candidate, so the second arm saw the pages the first arm had just read. Do not treat +55% PP as a V1 improvement.
+Against the saved warm reference (PP 204.3557 tok/s, TG 22.1373 tok/s, same output sha256), this V1 arm is PP +0.13% and TG -0.88%. Within-pair TG, which ran after the cache was warm for both decodes, is -0.10%. Decode windows are 99.19 ms versus 99.29 ms. The candidate is not faster. Confidence is one pair only.
+
+CORRECTNESS
+Input file hash matched. Both outputs are 512 tokens. Native token-id lists are equal, first divergence none, and both output sha256 values equal the reference ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046. No NaN, fault, reset, segfault, or truncation showed up. The runner's STRATA_DUMP_FIRST_LOGITS writes a first-logits file only. It does not compare same-forced-token-history logits, and no such mode was added. Exact correctness is INCONCLUSIVE. Matching sampled IDs are not an exact-logit PASS.
+
+INTEGRITY
+src-tp sources, src-tp/build-tp5/strata, the HIP6 candidate, production llama-server, and /etc/ornith/threecard.cmd were unchanged across the run (size and mtime). ornith-server stayed inactive. No service restart. No clock, voltage, fan, power, or driver change. No Q4 edit. No algorithm patch. No 32k, 64k, or 88k run.
+
+NEXT
+Do not promote this binary and do not start another sweep from this result. One later directive, only if a cache-fair PP number is required: a single 7501/512 pair in which both arms start from the same warm page cache, same binaries and the same issuer-0 settings, still with no production change.
+END.
