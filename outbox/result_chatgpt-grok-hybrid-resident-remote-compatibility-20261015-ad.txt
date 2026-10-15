@@ -1,0 +1,83 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-hybrid-resident-remote-compatibility-20261015-ad
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-hybrid-resident-remote-compatibility-20261015-ad
+
+verdict: NO_GO
+next_run: NOT_SCHEDULED
+implementation: NOT_STARTED
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+Read-only audit. No build, no GPU job, no source edit, no service change, no clock or power write. Combining the proven three-card helper command with --resident-cpu-experts is an ownership-protocol change across the guard, the complement call, the prompt-lend predicate, and remote adaptive swaps. A guard deletion is unsafe. A correct exclusion is not a small plumbing fix, and the Stage J log does not show a file stall large enough to pay for a second RAM copy. Power feeds stay unconfirmed. Nothing is scheduled.
+
+VERDICT
+NO_GO for a supervised isolated implementation. The local fork still refuses the mix. The official gfx900 tree v0.1.44.1 still refuses remote caches. Stage J's decode window is 99.36 ms with a 19.03 ms CPU bucket and a printed PCIe expert time of 0.00. Helper waits and the x1 prefill transfer sit outside anything a CPU complement can remove.
+
+SOURCE
+Pinned tree /home/ubuntu/strata-speedup/src-codex-opt-20261014. Not modified. Binary 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7 was not opened or rebuilt.
+
+generate.cpp:1621-1623 returns 2 when resident_cpu_experts is set and a layer split or any expert_cache_remote[0|1|2] is set. The printed error is "--resident-cpu-experts does not support layer splits or remote expert caches". Lines 1604-1606 still require mmap-experts and a static profile. Official tree /home/ubuntu/strata-official-gfx900-v01441-20261015/src/program/generate.cpp:2421 still returns on remote caches with "--resident-cpu-experts does not support remote expert caches". Upstream has not removed the refusal.
+
+generate.cpp:4551 calls pin_cache_complement with an empty additional-pair vector. expert_source.cpp:76-145 make_cache_complement_plan marks primary pairs and additional pairs and rejects overlap, including "the primary and additional GPU expert tiers overlap". The empty vector never feeds the helper pairs into that planner. Helper experts are then copied into the RAM arena.
+
+RemoteExperts::open (remote_experts.cpp:147-154, 175-185, 232-235) skips a pair already in the primary cache or already claimed, fills from source.blob before any complement exists, then sets claimed[]. selected is a local vector and is discarded. The header (remote_experts.hpp:42-57) exposes resident(), gib(), and holds(layer, expert). It has no pair list. The caller's claimed[] is the only snapshot, and it is valid only until the next swap.
+
+Default adapt_every is 4 and adapt_swaps is 96 (generate.cpp:474, 497). Stage J did not override them. --remote-expert-opt builds remote_opt when device1 is set (the Stage J command sets device1 3700). generate.cpp:5509 calls RemoteExpertOpt::adapt with adapt_swaps. remote_expert_opt.cu:181-189 fills the victim slot from source.blob(incoming) and cache_.replace. It does not call exchange_cache_complement.
+
+Primary-cache swaps do exchange. FileExpertSource::commit_exchanges (expert_source.cpp:1782-1790) copies bytes and then exchange_cache_complement (lines 172-177), which moves an in-complement offset onto a slot whose offset is kNoCacheComplement. That protocol is the primary tier only. kNoComplement is detail::kNoCacheComplement (expert_source.hpp:53 and :567).
+
+FileExpertSource::blob (expert_source.cpp:1820-1846) returns the complement when the offset is present. Otherwise it returns the mapped GGUF and adds the layer blob size to file_read_bytes_. file_reads_ increments only when complement_ready_ is already true (line 1843). device_alias (lines 1859-1862) returns a HIP pointer only for a pinned complement offset.
+
+expert_source.cpp:1440 sets lend only when additional_gpu_pairs is empty. Lines 1451-1459 return false, before malloc, when the complement exceeds MemAvailable minus the 8 GiB headroom. Passing helper pairs turns lend off. The budget path also forces lend_from_slot to -1 (line 1437).
+
+Layer-split stages are a different path. Stage J passes no layer-split numbers. This audit does not retune that path. STRATA_TP reads RemoteExperts::slot_ptr on the helper device. A CPU complement does not change TP ownership.
+
+OWNERSHIP
+Stage J OFF engine.log, 5499 bytes, run grok_j_v1_off_7501_512 on the original binary. The ON log matches these placement lines.
+
+Primary ExpertCache: 918 slots, 2.28 GiB, 19 slots per layer (0..18), pre-filled 918 of 918. Remote ranking: 24576 profiled pairs, 0 other pairs, striped across 2 CUDA devices. CUDA1: 3700 additional experts, 7.01 GiB. CUDA2: 3961 additional experts, 7.47 GiB. Union 8579 experts and 16.76 GiB. Catalog is 48*512 = 24576, so 15997 experts stay off the three GPUs. open() skips primary slots and claimed slots, so the three sets start disjoint. STRATA_REMOTE_DUP is unset. The profile line in the same log is "24576 ranked pairs, built for 24576 slots".
+
+Prompt path borrows 819 CUDA0 slots (2.03 GiB). That is the lend region. Keeping that refill and also excluding helper pairs requires changing the lend predicate. Leaving the predicate as it is means a correct helper exclusion drops the RAM refill of those 819 slots. Their bytes then come from the GGUF map.
+
+After open, remote adapt can exchange membership every 4 rounds, up to 96 swaps. The engine log does not print how many swaps fired. The code path is armed. A pin-time snapshot of claimed[] goes stale on the first such swap. The evicted helper expert has no complement offset, so blob() falls back to the mapped file. The incoming expert keeps the RAM copy it already had and is also on the helper. Bytes stay the mapped expert, because the fallback is the GGUF. The offset table does not follow the swap, so "zero file reads" is false after the first eviction, and the RAM copy of an expert that has moved onto a helper is a duplicate. Fixing that is the primary exchange protocol applied to helper swaps. That is a new lifetime rule for complement_offsets_, not a call-site edit.
+
+Helper experts do not need a second RAM copy for the helper GPU to compute them. VRAM already holds them. They need RAM only when a later swap or a CPU miss reads them. The mapped GGUF remains the correct read-only fallback. There is no silent file-tier hole in blob(). There is a silent return to the file path.
+
+Reused begin() arenas rebuild owned_ from slot_of each layer. TP and the helper kernels follow the cache after replace(). The stale object is the complement, not the GPU slot map.
+
+BYTES
+One-card complement on this same 918-slot primary cache was 46.12 GiB (Stage R / Stage Z). That figure is everything except the primary 2.28 GiB, plus whatever prompt-lend copies of primary slots that run kept. Helper caches are chosen from outside the primary, so their 7.01 + 7.47 = 14.48 GiB sit inside that 46.12 GiB.
+
+Excluding the helpers leaves about 31.6 GiB, with about 2 GiB of uncertainty because the one-card number also kept lent primary slots and that run used prefill 2048, not 4096. Passing the empty vector, which is what the call site does today, keeps the full 46.12 GiB and duplicates the 14.48 GiB already on CUDA1 and CUDA2.
+
+Largest native blob in the Stage J log is 2.66 MB. The printed cache GiB values are the sizes to use. Per-layer file blob sizes were not re-summed from the GGUF in this audit.
+
+Stage J prints no MemAvailable. The only archived complement sample is the one-card run: MemAvailable 75.95 GiB at start and 25.82 GiB at the low point with the 46.12 GiB copy. The three-card process already maps the shards. Its serve line records 138617.7 MB of mapped reads since process start. A further 31.6 or 46 GiB malloc hits the existing check at expert_source.cpp:1451 (available RAM minus 8 GiB) or reclaims the page cache the current process is using. No allocation was made. Host MemAvailable during Stage J was not sampled.
+
+OPPORTUNITY
+Stage J OFF decode, same log: 235 windows, 2.18 tokens/window, 99.36 ms/window. Verify 90.05 ms is GPU-reach wait 34.43 plus per-layer host 51.24. Inside the host bracket: plan 4.95, actq 0.28, jobs 26.66, CPU 19.03, stage 0.01. Draft 9.20. Commit/emit 0.11. Per layer-window: CPU experts 1.81 ms and 2.04 entries, VRAM hits 5.96, PCIe 0.00. Prompt 7501 tokens in 36774 ms (204.0 tok/s). 512 tokens in 23350 ms (21.9 tok/s). Output sha ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046, from the published Stage J result.
+
+Primary hit rate 74.5% (67282 / 90337 lookups). The log says 200543 further reads were "by the GPU over PCIe or from another GPU" (68.9% of 290880 routed). CUDA1 served 101251 entries and CUDA2 served 101366. That pair is the "another GPU" term. CUDA1 host time was 634 ms staging and 1982 ms waiting. CUDA2 was 541 ms staging and 675 ms waiting. Those waits are about 8.4 ms and 2.9 ms per window. A CPU copy does not shrink them.
+
+"RAM 0 blobs, files 0 blobs, 138617.7 MB read" is not a zero-IO measurement. file_reads_ stays 0 until a complement exists. file_read_bytes_ still counts every mapped blob() since process start, including load. The timed decode split is the authority: PCIe expert time prints 0.00, and the CPU bucket is 19.03 ms of a 99.36 ms window. The 1.81 ms CPU-expert figure is AVX2 work on about two entries per layer-window. A RAM copy removes page faults on those entries. It leaves the arithmetic, the 34.43 ms GPU-reach wait, the helper waits, and the x1 prefill transfer.
+
+Stage J prefill, from the published Stage J result: the x1 peer did about 28% of routed rows, gemm 3490 ms, transfer/setup 9775 ms. That cost is helper transport. The complement does not move it.
+
+The one-card jump from 5.92 to 17.85 tok/s removed a file tier of about 499 ms/round on a different argv (prefill 2048, no remotes, no TP, KV resident 20480, sha 1109d0d7). That stall is not in the Stage J window. No tok/s gain is estimated. The three-card result is already 21.93–21.99 tok/s.
+
+ALTERNATIVE
+Keep the Stage J command: mmap experts, STRATA_TP=1, CUDA1 cache 3700, CUDA2 auto, --remote-expert-opt, no --resident-cpu-experts, no layer split. The GGUF map is the file tier the process already uses. The OS page cache is the RAM copy that already backs those mapped reads. No pool-worker change, no spec-depth change, no new cache size.
+
+SAFETY THAT A LATER PATCH WOULD STILL OWE
+Not authorized by this result. Any later patch stays off unless the flag is passed, keeps the layer-split refusal, passes the post-open helper pairs, asserts the three sets are disjoint, and updates complement offsets inside remote adapt using the existing exchange rule. Lend behavior has to be chosen explicitly because the current predicate turns it off. Baseline binary 79178630, threecard.cmd, production llama-server, clocks, voltage, fans, power, and sysctls stay untouched. Headroom stays 8 GiB. Free VRAM stop stays 300 MiB. No software thermal cutoff. No hidden disk writes. Output sha ea1f0a23 is a reproducibility clue. A changed id needs a known-answer check. Logits stay unproved. Owner power confirmation is still required before any three-GPU process.
+
+POWER
+Unchanged from Stage AC. The two x1 cards' supply is not confirmed. A 2 Oct note put them on a separate EVGA 750 W supply. A 26 Sep note recorded a dropped card on a 750 W supply with two Vegas. Three caps at 220 W are 660 W of GPU cap before the CPU. This audit did not measure a rail and did not start the cards.
+
+NEXT
+Stop. Do not patch generate.cpp and do not build a hybrid binary. The three-card command stays as Stage J ran it. A later three-GPU run, including the already-specified one-shot profile, waits on a new inbox after the owner confirms the power feeds. This result does not authorize that run.
+END.
