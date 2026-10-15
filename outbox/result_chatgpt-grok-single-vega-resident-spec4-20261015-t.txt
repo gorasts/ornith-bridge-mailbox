@@ -1,0 +1,32 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-resident-spec4-20261015-t
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-resident-spec4-20261015-t
+
+verdict: NOT_VERIFIED
+output: SAME_MODEL_OUTPUT_NOT_IDENTICAL
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+No three-GPU work and no rebuild. Binary sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7 before and after. ornith-server stayed inactive. threecard.cmd sha256 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23. Clocks compared equal.
+
+SOURCE
+kVerifyMaxT is 8 (include/strata/kernels/verify_kernels.hpp). Suffix drafting defaults on. generate.cpp:1777 sets mtp_max_t to the --spec value and raises the verifier window to min(spec+2, 8). --spec 3 therefore runs MTP max 3 inside a window of 5. --spec 4 runs MTP max 4 inside a window of 6. mtp.cpp rejects max_t above kVerifyMaxT. Both windows fit. The MTP pack was unchanged. No --mtp-max-t and no --suffix-draft were passed.
+
+ARMS
+PCI 0000:05:00.0 only. Child env matches Stage S A: HIP_VISIBLE_DEVICES=0, ROCR_VISIBLE_DEVICES=0, CUDA_DEVICE_ORDER=PCI_BUS_ID, LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib, STRATA_MTP_EXPERTS_HOST=1. A is the Stage S A argv, including --resident-cpu-experts and --spec 3. B replaces only that 3 with 4. Default 13 pool workers plus the host thread. Prompt sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. No thermal kill. Stops were free VRAM under 300 MiB after 30 s, another card busy or up 64 MiB, a 900 s stall, or a 1800 s wall. No reverse arm.
+
+A, rc 0, 170.3 s. Printed 13 expert-pool workers. Speculation: 216 rounds of 5, accepted 298 of 431 (0.691), 2.38 tokens/round. Suffix: 5 windows, 7 of 11. Accepted per round 0:47 1:40 2:129 3:0 4:0. Prefill 7500 in 53837.0 ms, 139.31 tok/s, TTFT 116608.2 ms. Decode 512 in 28675.6 ms, 17.85 tok/s. Ring wait 39.659. Pool 63.525. Jobs 0.091. GPU run 62.335. CPU experts 15.39 distinct / 19.50 routed per layer. Draft 9.962 ms/round. PLE 340.0 ms. Resident 46.12 GiB, file reads 0.0 MB. Output sha256 1109d0d7ba2e87c8a9bd7ff28c19b5c09d539dc9ee635fab6061234cf73b2de1, no divergence from Stage S A. Min free VRAM 373 MiB. MemAvailable min 25.79 GiB. Junction max 62 C. 0c and 0f busy 0. Swap 0.
+
+B, rc 0, 174.3 s. Printed 13 expert-pool workers. Speculation: 196 rounds of 6, accepted 317 of 583 (0.544), 2.62 tokens/round. Suffix: 7 windows, 10 of 19. Accepted per round 0:54 1:33 2:43 3:66 4:0 5:0. Prefill 7500 in 53732.2 ms, 139.58 tok/s, TTFT 115879.3 ms. Decode 512 in 31878.3 ms, 16.06 tok/s. Ring wait 49.185. Pool 79.609. Jobs 0.123. GPU run 78.017. CPU experts 19.62 distinct / 26.14 routed per layer. Draft 14.319 ms/round. PLE 341.5 ms. Resident 46.12 GiB, file reads 0.0 MB. Draft VRAM 160 MiB against 159 on A. Cache 917 slots against 918. Output sha256 a7d1383cd5026402297351d077ebefed69e1313ec0c62a03b84b3ea164a3d336. First difference at index 48: spec 3 token 42903, spec 4 token 1785. Min free VRAM 368 MiB. MemAvailable min 25.79 GiB. Junction max 64 C. 0c and 0f busy 0. Swap 0.
+
+TG is 16.06/17.85 = 0.900 of A, -10.0%. PP is 100.2% of A. Tokens per round rose from 2.38 to 2.62, and the round grew from 132.8 ms to 162.6 ms. The extra depth accepted a third draft on 66 rounds and never filled the two suffix slots. Acceptance fell from 69.1% to 54.4%. Each wider window routed 26.14 CPU experts per layer instead of 19.50, and both the ring wait and the pool grew. The ids are not the same, so the rate is not a production comparison. Depth 4 stops. Do not change spec-min-p from this result.
+
+NEXT
+On the matching spec-3 path the round is still about 40 ms of ver.ms_wait plus 63 ms of CPU expert pool. Depth 4 made both larger because the window routes more experts, and it changed token 48. A later single-Vega stage, if asked, should stay on --spec 3 and attribute that 40 ms GPU-reach wait. Do not raise the spec depth again. Do not start three-card work from this result.
+
+Evidence: /home/ubuntu/strata-fork-single-work/stage-t-20261015/summary.json, bench_a and bench_b stdout. Stopped.
+END.
