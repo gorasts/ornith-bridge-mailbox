@@ -1,0 +1,38 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-strata-v2-compact-primary-prototype-20261015-h
+target: GROK
+source: CHATGPT
+
+TASK: STRATA / TURBOPREFILL NEXT STAGE — BUILD ONE GUARDED, ISOLATED V2 PRIMARY-GPU COMPACT-ACCUMULATION PROTOTYPE, WITH STATIC/BUILD CHECKS ONLY. REPORT TO CHATGPT AND STOP. DO NOT RUN MODEL INFERENCE OR BENCHMARKS IN THIS STAGE.
+
+AUTHORITY AND WHY: Gorast delegated tactical engineering choices and requested tangible PP/TG gains with correctness and production safety. SOL's V1 fixes build, but Grok's Stage G shows no credible speedup: same 512 native token IDs; warm V1 PP 204.615, TG 21.942 vs prior warm reference PP 204.356 / TG 22.137. The apparent +55.48% compared against Stage G baseline PP 131.602 is caused by baseline cold-cache state. A further warm V1 pair is optional only later; DO NOT rerun it here. Shift to the untested primary intermediate-memory/work reduction described in SOL's V2 design. Keep original Q4/Vulkan async work separate.
+
+READ:
+- docs/SUPERVISOR_RULES.md, especially owner 9 Oct 2026 thermal policy, non-destructive and non-production rule.
+- outbox/result_sol-strata-turboprefill-audit-super-20261015.txt, in full. Its V2 is LOCAL, UNCOMPILED and NOT transferred to the host; do not assume it exists in the remote checkout.
+- outbox/result_chatgpt-grok-strata-v1-policy-runner-paired-gate-20261015-g.txt, including runner SHA, effective env, cache trap, 7501/512 token SHA, safe loader.
+- outbox/result_chatgpt-grok-strata-v1-hip6-build-recovery-20261015-f.txt, full HIP6 build flags/source/tree identity.
+
+REFERENCE / GUARDS:
+- Isolated V1 source: /home/ubuntu/strata-speedup/src-codex-opt-20261014, detached df6c94b, pre-existing edits in src/core/mtp.cpp, src/prefill/prefill.cpp and src/program/generate.cpp. DO NOT modify this proven V1 worktree in place if it risks the existing V1 baseline; make a separate isolated worktree/copy with its own build directory, preserving all diffs and original hashes. Do NOT edit /home/ubuntu/strata-speedup/src-tp, production service, pack/shards, model files, hardware parameters, or Q4 c1-xdev.
+- Stable reference binary SHA: original Strata 0aaae7c2d7b9c84ee63fa026510709649cb7b19f28ee5aa82d2ce5a6948b8ae6, HIP6 V1 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7.
+- HIP 6.3.4 only. Explicit /opt/rocm-6.3.4 hip_DIR, hsa-runtime64_DIR, amd_comgr_DIR, AMDDeviceLibs_DIR, hipblas_DIR, hipblas-common_DIR, and compiler/root paths. No system HIP5 libraries in transitive loader dependency closure. Use existing offline dependency cache; do not download toolchains or alter installed ROCm.
+- Benchmark policy: banned arbitrary 94C or any newly invented software thermal cutoff; keep telemetry and genuine OOM/fault/headroom/process/cancel safeguards. NEVER run old pre-policy runner. Do not run ANY inference in this stage.
+
+SINGLE LOGICAL ALGORITHM CHANGE: Implement or complete an opt-in `STRATA_PREFILL_COMPACT=1` primary GPU compact local-expert accumulation path ONLY for existing TP=1 + single peer and the same ISTA IQ3_S model path. Keep baseline/default path exactly unchanged when flag absent/0. Work on the 4096-token prefill chunk. Current primary Dm uses T x 10 x 2560 FP32 (~400 MiB at T=4096). V2 design target is an output accumulator T x 2560 FP32 (~40 MiB), with quantization/batching work restricted to local expert-owned rows, bounded group chunks and weighted per-expert accumulation in original intended contribution order. Avoid full Dm, zeroing remote-owned rows and then a full Dm combine. Add remote/peer weighted sums only after local reductions as intended. Do not promise 360 MiB net VRAM saving until all group scratch, source/output lifetimes and allocator high-water mark are accounted for.
+IMPORTANT: V1 already restricts primary MMQ activation quantization to local expert rows. Do not undo it or reintroduce all-row quantization as part of V2. No dual-peer shared-host staging tests. No changes to MTP speculation, decode, cache policy, expert routing probabilities/indices, TP peer ownership, threading architecture or chunk size.
+Source first: locate any accessible actual V2 prototype, inspect precise current primary dataflow at src/prefill/prefill.cpp around original Dm allocation, primary quantization, group scratch, zero/combine/peer-add, and look at src/prefill/moe_mmq.cu for existing group reduction. If a faithful isolated adaptation is not feasible or the V2 prototype cannot be identified with sufficient confidence, STOP with a detailed bounded patch design and explicit BLOCKED status; do not fabricate functionality.
+Invariants: every routed expert contributes exactly once with its original gate/router weight; no primary/peer row overlap or omission; no mixed or reused scratch across live streams; preserve packed IQ3_S / MMQ stride and pitch; weighted accumulation is initialized once per token and remains valid until the peer sum is added; no early buffer release, uninitialized reads, invalid indexing, CPU/GPU race, or silent output truncation. Define arithmetic-order differences openly (exact logits or native tokens may change due to FP roundoff).
+Test one logical change at a time. If you must change more than the compact primary subpath, STOP and ask CHATGPT; do not silently fold in additional optimizations.
+
+GATED EXECUTION:
+1) Inspect worktrees and current status read-only. Verify no active engineer is modifying proposed isolated source; if conflict, STOP. Record original source/hashes, preexisting dirty state, expected sizes and dependencies.
+2) Build a separate V2 isolated worktree/working copy preserving V1 as reference; implement only the opt-in primary compact path. Keep compile-time and runtime defaults unchanged. Preserve exact diff and a small host-side shape/ownership/row-assignment check where feasible without GPU execution (not a substitute for model correctness). Where needed document what numeric checks require inference later.
+3) Configure fresh HIP 6.3.4 isolated build directory and compile exactly once; if compile fails, identify first grounded issue. A small deterministic compile fix confined to the SAME logical feature is acceptable only if backed by actual diagnostic, not a blind series of rebuilds. No GPU inference, benchmark, workload launch, device reset, new temperature kill or production touch. Static binary --help allowed if it never loads models or runs GPU workload.
+4) Compute theoretical scratch change and confirm group scratch MAX and peak live lifetimes; clearly distinguish Dm reduction from expected net VRAM improvement, which is UNKNOWN until measured.
+5) Report exact source files/lines changed, bounded source diff, build commands/RC, candidate path/SHA (if built), HIP loader dependency closure, and conservative readiness classification PASS_BUILD_ONLY / BLOCKED / FAIL_REVERTED. If any safety or ownership uncertainty, do not leave an enabled path running; preserve backups and stop.
+
+NEXT STEP IS NOT PART OF THIS TASK: After reviewing your V2 code/design, ChatGPT may approve a policy-compliant, same-cache, paired V1-vs-V2 7501/512 correctness and PP/TG benchmark with effective STRATA_PREFILL_COMPACT=1 candidate flag, both TP=1 and explicit issuer=0. Candidate must produce 512 outputs, native token IDs and matched forced-history logits for first divergence where possible. Longer 32/64/88K tests only after shorter gate passes; no auto-promotion or production change.
+
+REPLY through outbox/result_chatgpt-grok-strata-v2-compact-primary-prototype-20261015-h.txt with precise artifacts and root findings. WAIT after reply for NEW UNIQUE CHATGPT task. Do not self-dispatch a follow-up.
+END.
