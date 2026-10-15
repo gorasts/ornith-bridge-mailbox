@@ -1,0 +1,52 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-threevega-stage-retention-1g-20261016-af
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-threevega-stage-retention-1g-20261016-af
+
+verdict: NO_PROMOTION
+gate1: PASS
+gate2: PASS
+gate3: RAN
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+One isolated flag, STRATA_STAGE_RETENTION_MIB, capped at 1024. Absent or 0 on the candidate keeps the original stage pool and adds no counters. The GPU A/B is one contemporaneous 7501/512 pair. A is the original Stage J binary with the flag absent. B is the isolated binary with only STRATA_STAGE_RETENTION_MIB=1024. TG rose 1.70%. The jobs bucket fell 1.82 ms/window. Both are short of a 10% TG move.
+
+VERDICT
+NO_PROMOTION. B decode is 22.5082 tok/s against A's 22.1324 (22747.3 ms vs 23133.5 ms, 512 tokens). Jobs is 24.58 ms/window on B and 26.40 on A. The 10% TG bar on this shape is about 9 ms/window off the Stage J decode. The measured drop is 1.82 ms/window, and the window time moved 98.86 to 97.21 ms.
+
+B prefill is 203.0915 tok/s (36934.1 ms). A prefill is 168.1081 tok/s (44620.1 ms). A primary sclk sample starts at 26 MHz and later reaches 1428 MHz. B primary sclk starts at 567 MHz and reaches 1423 MHz. B prefill matches Stage J OFF at 203.9745 tok/s and 36774.2 ms. The prefill gap is the idle-clock start on A.
+
+Output sha256 of both arms is ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046. First differing index versus Stage J OFF token-ids.json is none. 234 windows, avg T 2.56, 2.19 tokens/window. CPU experts 1.79 (2.02 entries) are counts per layer-window, the same way Stage J's 1.81 and 2.04 are counts. VRAM hits 5.92. PCIe 0.00. The printed stage 0.01 ms is ver.ms_host.
+
+LIFETIME
+Gate 1 passed without a new pin API. With the flag at 0, claim_stage is the original body. With the cap set and the pool under the byte cap, claim_stage grows and does not evict. At the cap it recycles only a buffer the original rule already allows: not busy, and either kStageAge 3 or kStageSeq 256. If no such victim exists it returns false and the run fails cleanly. It does not recycle sooner than Stage J. Startup still uses the seq half of that rule, because begin_layer has not moved epoch yet. The queued cudaMemcpyAsync refill that already exists when STRATA_REFILL_BLOCKING is unset is unchanged. Stage J did not set that variable, and this pair did not set it.
+
+CPU
+Isolated test stage_retention_test, HIP_VISIBLE_DEVICES empty, real IQ3_S GGUF. AF_CPU PASS. Flag 0: counters stayed 0 and the assembled blob matched role slices. Cap 1024, two windows of 48 layers plus an alternate trio and 16-wide parallel prefetch: lookup 900 hit 596 fill 304 evict 0 refuse 0, alloc 771.9 MiB, peak 771.9 MiB, prefetch wall 775.3 ms, file-thread 2256.8 ms. The retained bytes matched the flag-off assembly. Cap 64 MiB over 400 experts on one layer: evict 25, refuse 351, 50 blobs matched, 350 clean nulls, alloc stayed within 64 MiB. Cap 1 MiB: the first blob returned null, refuse 1, alloc 0. MemAvailable during the test was about 76 GiB.
+
+B COUNTERS
+Cap 1024 MiB, alloc 1023.2, peak 1023.2, refuse 0. This request: lookup 40286, hit 25165, fill 15121, evict 15121. Prefetch wall 5602.7 ms, 23.943 ms/window. File-thread time 5937.2 ms, summed across fetch threads. Fill count equals evict count, so once the cap was full every new blob recycled a resident one. The decode miss set does not stay inside 1 GiB across the original 256-claim horizon.
+
+SAFETY
+No watcher stop. Min free VRAM A 374/567/420 MiB and B 373/566/419 MiB on 0000:05:00.0, 0000:0c:00.0, 0000:0f:00.0. Min MemAvailable A 75426492 KiB and B 75052936 KiB. Junction max A 62 C and B 63 C, recorded only. No software thermal cutoff. No clock, voltage, fan, or power write. In-run power was not sampled; the hwmon node is power1_input. SwapTotal 0. PCIe AER correctable, fatal, and nonfatal files on the three endpoints matched before and after. All three PCI devices stayed present. ornith-server remained inactive.
+
+HASHES
+Original strata 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7, rechecked after the pair. Candidate 66cc4b29565d53f90e722e8edb20b32e56d5ce1ac82742882e2c89edf7f01d91. Prompt 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. threecard.cmd 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23. Production llama-server 3db76a9103250117a41c8189c36fd2ae80057005b37e3793db9a465a89dfae2a. The original tree, the original binary, threecard.cmd, and the production tree were not modified.
+
+SOURCE
+Isolated tree /home/ubuntu/strata-speedup/src-codex-af-stage-20261016. Edits: include/strata/core/expert_source.hpp, src/core/expert_source.cpp, src/program/generate.cpp, tests/core/stage_retention_test.cpp. Unified diff against the untouched original tree is 32, 217, and 45 lines for the header, expert_source.cpp, and generate.cpp. Objects were compiled with /usr/bin/c++ and the gfx900 HIP link line. libstrata_engine.a was copied, then ar replaced expert_source.cpp.o. The original archive and the original build were not rebuilt.
+
+ARGV
+--serve plus the Stage J result.json args: --pack /home/ubuntu/strata-packs/ista-iq3s --native /opt/testmodels/models/ista-iq3s/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf --ple-gguf /opt/testmodels/models/ista-iq3s/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf --ple-io direct --mmap-experts --mtp /home/ubuntu/strata-data/mtp/rt --stats --pool-workers 13 --expert-cache auto --expert-cache-per-layer --expert-cache-device2 auto --remote-expert-opt --expert-profile /home/ubuntu/speedup/profile_iq3s.bin --adapt-every 256 --spec-min-p 0.5 --expert-cache-device1 3700 --max-context 131072 --kv int8 --kv-resident 16384 --vram-reserve-mib 700 --spec 3 --prefill 4096. --expert-profile-save and STRATA_DUMP_FIRST_LOGITS point at the arm directory. Env on both: HIP_VISIBLE_DEVICES=0,1,2 LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib STRATA_PREFILL_ISSUER=0 STRATA_IQ_MT_MIN=1 STRATA_SH_STREAM=0 STRATA_LEND_FLOOR=32 STRATA_MTP_EXPERTS_HOST=1 STRATA_TP=1 STRATA_DECODE_TIMING=1. B adds only STRATA_STAGE_RETENTION_MIB=1024. Stdin after READY is GEN 512 and the 7501 prompt ids. No STRATA_REMOTE_POLL, no STRATA_REFILL_BLOCKING, no STRATA_PREFILL_TIMING, no --resident-cpu-experts.
+
+LOGS
+A /home/ubuntu/strata-speedup/src-codex-af-stage-20261016/codex-work/stage-af-20261016/runs/af-a/ (engine.log, protocol.log, telemetry.jsonl, summary.json, token-ids.json). B is the af-b directory beside it. A DONE 512 7501 44620.1 23133.5. B DONE 512 7501 36934.1 22747.3. A pid 2703689, B pid 2720138. Neither was killed.
+
+NEXT
+Leave this binary unpromoted. The 1 GiB cap filled and then thrashed, so the next question is the unique CPU-miss key count across the 234 windows, which this run did not log per expert. A larger cap is a separate experiment.
+
+END.
