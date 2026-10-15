@@ -1,0 +1,41 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-strata-ram-resident-cpu-experts-20261015-r
+target: GROK
+source: CHATGPT
+
+TASK: STAGE R — ACT ON THE OWNER'S EXPLICIT RAM-RESIDENCY CONCERN: TEST THE EXISTING v0.1.39 --resident-cpu-experts OPTION AGAINST THE VERIFIED SINGLE-VEGA BASELINE, WITH THE SAME MODEL, MTP, AND EXACTLY ONE CONTROLLED VARIABLE. THIS IS AN ALREADY IMPLEMENTED STRATA EXECUTION FEATURE, NOT A REQUEST TO REWRITE KERNELS. IF THE FLAG MEASURABLY HELPS, RETURN A PLAN TO TRANSFER THE SAME PROVEN IDEA TO THE THREE-VEGA DEPLOYMENT. REPORT & STOP.
+
+QUEUE/CONCURRENCY: Earlier Stage Q (chatgpt-grok-strata-upstream-stager-sleep-fix-20261015-q) was dispatched and its outbox result was NOT yet available when Stage R was authored. Do not interrupt it. First check for outbox/result_chatgpt-grok-strata-upstream-stager-sleep-fix-20261015-q.txt and confirm NO running inferencer, all GPUs idle and workspaces available. If Q or any production work is active, WAIT to execute this task until it concludes if the bridge safely supports serialized jobs; otherwise report BLOCKED_ACTIVE_WORK with NO model run and do not start competing workloads. Q focuses on three-card PREFILL; do not introduce its changes into this single-card test.
+
+WHY THIS MAY ACTUALLY MATTER:
+User repeatedly supplied public one-card results; single gfx900 ISTA IQ3_S Strata baseline of ~5.6 tok/s has 274-296 ms CPU expert job latency per 400-427ms verify round. Stage O single card with MTP expert weights on HOST, freeing 675 MiB, improved TG from 5.58 to 5.89 but still had 19.50 CPU routed experts/layer, 274ms jobs/round. Its file-tier decode counter: ~333093 MB of accumulated model expert reads during 512 output, ~1542 MB/round and 496.7ms apparent read timer/round at 3.10 GB/s; timer OVERLAPS compute and must not be added. Our previous --mmap-experts run was page-cache resident in OS but NOT an explicit resident CPU expert arena. User had asked whether model fully in RAM; we failed to follow through. Verified source from official upstream v0.1.39 src/program/generate.cpp help near lines 707-718 + logic near 4533: --resident-cpu-experts with --mmap-experts and static profile invokes src.pin_cache_complement(xcache, ...) to materialize the cache complement in ordinary RAM, with documented no file reads during prefill/decode when it fits; the related --resident-experts wrapper optionally page-locks allocations and is NOT our first test. Thus first test exact one-flag --resident-cpu-experts, retaining --mmap-experts and profile. Source may differ in our fork; verify before launch. Evidence upstream community issue #2585 Haswell Xeon + native expert residency achieves major gains, but differs in GPU and quant; no speed guarantee.
+
+REQUIRED READ:
+docs/SUPERVISOR_RULES.md including owner-approved no arbitrary temperature kill thresholds
+outbox/result_chatgpt-grok-single-vega-mtp-host-cache-tradeoff-20261015-o.txt
+outbox/result_chatgpt-grok-single-vega-decode-bottleneck-audit-20261015-n.txt
+outbox/result_chatgpt-grok-fork-single-gfx900-matched-official-20261015-m.txt
+Review upstream v0.1.39 generate.cpp around --resident-cpu-experts option and pin_cache_complement, and local unmodified fork's actual path. READ Stage O stderr and successful runner args, don't assume CLI accepts option until --help/source confirms.
+
+REFERENCE:
+Stage O unmodified fork HIP6 executable /home/ubuntu/strata-speedup/src-codex-opt-20261014/build-hip634-20261015/strata SHA256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7.
+Stage O logs /home/ubuntu/strata-fork-single-work/stage-o-20261015/bench_7501_512/; PRESET Stage O env: HIP_VISIBLE_DEVICES=0 ROCR_VISIBLE_DEVICES=0 STRATA_MTP_EXPERTS_HOST=1, TP unset, single PCI 0000:05:00.0 x16 GPU only. Args stage O: 7501 fixed token input /home/ubuntu/strata_realworld_7501.tokens sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212, ISTA IQ3_S pack/shards, --mmap-experts, same --expert-profile, int8 KV, kv resident20480, context131072, prefill2048, --spec 3 greedy, cache auto per-layer, reserve700, max-new512. Stage O benchmark 137.73 PP / 5.89 TG, 216 verify rounds, 2.38 tokens/window, jobs274.023ms/window, MTP draft9.94ms/window, token hash 1109d0d7ba2e87c8a9bd7ff28c19b5c09d539dc9ee635fab6061234cf73b2de1. Stage O CPU MemAvailable 79,606,216 kB at startup and Cached 75,426,756 kB, but RAM residency for other services and cache reclaim can change. DO NOT ASSUME sufficient headroom; check immediately before a run.
+
+GATE A — SOURCE + MEMORY PREFLIGHT ONLY:
+1) Verify actual fork source path and --resident-cpu-experts implementation, static profile support, source objects and estimated expert cache complement bytes. Identify whether the option is a strict same model/same weights residency change and whether file-backed experts.bin absence creates a compatibility blocker. The model uses two GGUF shards; do not assume pin_cache_complement works for GGUF on this port. Check static --help, NO rebuild.
+2) Check physical main-GPU BDF / HIP ordinal, force strictly 05 visible, 0c/0f idle; no hidden peer/cached-offloads/TP. Check model/source/binary sha, effective child flags/env, HIP6 only. Verify no other workload present, no source/production writes.
+3) Calculate memory requirement for resident complement AND live process, plus OS/model page cache as reclaimable (cached memory is NOT extra physical RAM). Do not allocate if available RAM cannot leave at least 8 GiB genuinely available to OS after resident allocation; avoid swap thrashing. If model pack and resident complement won't fit with safe headroom, STOP as BLOCKED_RAM; do not turn on --resident-experts fallback, lower quality, alter pack/VRAM or tweak hardware.
+4) Policy-compliant runner with process errors, OOM/reset/fault, cancellation, progress timeout and >=300 MiB free VRAM guards. No invented thermal kill; preserve driver/firmware protection, durable junction temp/throttle telemetry; no power/clocks/fans/voltages changes.
+
+GATE B — ONE REVERSIBLE SINGLE-CARD 7501/512 COMPARISON:
+Baseline A: same exact Stage O env/args and binary, no new flags, run only if same warm cache can be established.
+Candidate B: SAME binary, argv/seed/sampler/context/quant/model and Stage O MTP host flag, PLUS ONLY --resident-cpu-experts.
+At most ONE scored A + ONE scored B with the same finite input/output, no broader sweep, no second new flag, no rebuild, no new library install. If memory residency initialization fails or causes OOM/OS swap, abort cleanly; don't auto-tweak budget or retries. Capture measured resident bytes, source/file-tier decode reads, CPU host jobs/round and CPU experts/layer, draft acceptance, PP and TG512, native 512 ids, first divergence, compute clocks/temps, GPU telemetry, CPU/RAM/major page faults, RSS/pagecache, peak free VRAM each device, all stop reasons. Avoid falsely adding overlapping file-tier times to wall clock. If different outputs, no claim of exact correctness or fully causal perf gain; identify first difference and track sampling/suffix draft nondeterminism. If file-tier reads NOT suppressed, diagnose why but do not patch and loop.
+
+DECISION:
+If resident candidate produces valid 512-token output, no fault, no swap thrash, proper safety margins, and >=15% TG512 gain versus same-session warm baseline, report PROVISIONAL_REAL_SPEED_GAIN with exact measured values and what latency term fell. If <15% or result confounded, report NO_MATERIAL_GAIN; do not call it success and do not repeat tuning. Even if passes, production unchanged and results subject to further reproducibility/numerical proof. If option doesn't apply, give a source-proven blocker (NOT_AVAILABLE) rather than another speculative test. Preserve known-good reference and no upgrades.
+If Stage Q succeeded, keep its three-card result separate; no confounded cross-comparisons.
+
+DELIVERABLE:
+outbox/result_chatgpt-grok-strata-ram-resident-cpu-experts-20261015-r.txt summarizing actual A/B PP, TG, CPU job wall, file-tier reads, RAM/VRAM residency, output SHA, source/runner identities, cross-GPU idle proof, one next step. STOP AND WAIT FOR NEW CHATGPT DIRECTIVE. Owner wants speed gains, not hypothetical objectives or a status-only report; this experiment is deliberately the highest-signal existing runtime feature from the known bottleneck.
+END.
