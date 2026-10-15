@@ -1,0 +1,47 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-grok-q4-cpu-stage3-narrow-bypass-20261015-d
+target: GROK
+source: CHATGPT
+
+TASK: SUPERVISOR-DIRECTED STAGE 3 — TEST ONE EARLY NARROW-DECODE ASYNC-D2H BYPASS (SYNCHRONOUS FALLBACK BEFORE ACQUIRING ANY SLOT), THEN REPORT BACK TO CHATGPT AND STOP. NOT AN AUTONOMOUS CAMPAIGN.
+
+Gorast explicitly delegated engineering decision-making to ChatGPT. I have reviewed your Stage0, Stage1, and Stage2 reports. Stage2 proves narrow CPU graph copies take D2H slots tagged to future CPU-job tickets, but narrow inline decode never dequeues those tickets, so slots leak; your correct inline retire fixed lifetime but made TG23.160 vs26.102 at 16K (gate failure), so it was reverted. The D2H pool and prompt checkpoints still globally drain wide CPU jobs during prefill. This stage addresses DECODE ONLY. Do NOT implement the 4-job cap, disable checkpoints, change GPU event waits, refactor graph pipelines, run full 32K/TG512, or let worker choose a second patch. We will address the prefill bottleneck in a distinct stage after this.
+
+READ:
+docs/SUPERVISOR_RULES.md
+outbox/result_chatgpt-grok-q4-cpu-stage2-decode-slots-20261015-c.txt
+outbox/result_chatgpt-grok-q4-cpu-stage1-trace-supervised-20261015-b.txt
+outbox/result_chatgpt-grok-q4-cpu-stage0-supervised-20261015-a.txt
+reports/chatgpt-q4-cpu-offload-repair-grok-tests-20261015.md
+
+EXACT ONE SOURCE CHANGE / HYPOTHESIS:
+In ggml_backend_cpu_cpy_tensor_async (ggml/src/ggml-cpu/ggml-cpu.cpp around old lines 617-633), BEFORE calling the Vulkan asynchronous D2H hook and BEFORE registering a future worker ticket or acquiring any Vulkan D2H slot, add an **opt-in narrow-copy predicate** that returns false so the scheduler uses its pre-existing, synchronized fallback copy. Suggested initial guard only when:
+(1) ORNITH_PIPELINE_OT and ORNITH_CPU_WORKER are both active;
+(2) opt-in ORNITH_NARROW_D2H_BYPASS=1;
+(3) destination / transfer size <256KiB and small dimensions ne[1], ne[2], ne[3] <32, as proposed in your Stage2 result;
+(4) source type/backends and destination are the exact case observed in narrow CPU decode.
+This predicate is a PROXY for inline graph selection, not definitive proof: before making any edit, read actual function and scheduler fallback code, trace the copied tensor's role. Confirm that returning false triggers a synchronous, source-ready GPU->CPU copy BEFORE inline MUL_MAT_ID; that it cannot leave a prior queued ticket, lose a required producer event, or misclassify a wide-prefill copy. If not source-provable, STOP with BLOCKED_NO_CHANGE and send analysis. No unconditional bypass of all CPU inputs, and no new sleep, buffer pool, device synchronization deletion, event manipulation or GPU memory allocation. Do not combine with Stage2's inline retire: that patch stays reverted. Add only compact debug counters for bypassed copies, D2H slot acquisitions/misses, and expected synchronous fallback count without logging per tensor excessively.
+
+RUN GATES ONLY AFTER SOURCE PROOF:
+0. Confirm isolated owner of /home/ubuntu/c1-xdev dev tree; keep /opt/llama/llama-c1-v3mx2-20261013 and /etc/ornith/threecard.cmd and ornith-server untouched. No service restart, no clocks/undervolt/fan/power changes, no reboot/reset, Storj untouched. Use 127.0.0.1:8205 only if idle. Save exact source diff, model identity (SHA if reasonable), ELF and .so hashes, source hash, GPU BDF mapping, prompt IDs SHA, argv/environment, logs, stop reason, process and GPU telemetry. Restore dev source/binaries on FAILED gate; preserve old logs. If shared worktree is in use, STOP.
+1. First run the unchanged pipe-ON 2048-real-token prefix / n_predict128 control if necessary for a matched comparison, and the guarded candidate on the SAME exact prefix/predict/temp0 seed1/cache_prompt=false; same binary build flags, change gated by env only. B2048 UB512 Q8 KV c131072, four CPU experts 5/8/20/35, -ts 0.8,1,1, --no-op-offload, no draft, MESA_VK_DEVICE_SELECT UNSET, ORNITH_PIPELINE_OT=1 ORNITH_CPU_WORKER=1 GGML_VK_XDEV_ASYNC=1 GGML_VK_ASYNC_READBACK=1 TURBOPREFILL=0.
+Require no narrow decode tickets leaked, no D2H pool exhaustion, no unexpected stall, no nonfinite logits, correct stop count, no hangs/faults/OOM. Every bypassed copy must be accounted for by sync fallback. Compare output/token distributions as possible; if tokens array empty, use completion_probabilities IDs with limitation noted. Coherent text alone not oracle. Report exactly how many candidate copies bypassed and any wide prefill copies accidentally bypassed; if any prefill wide graph changed unexpectedly STOP.
+2. Only if short control/candidate lifetime and decode timings are sound, do ONE matched 16384 real-token prefix / n_predict32 test with exact Stage2 16K id digest 025a57716dc142ee727437ee8679eb0dea360d5959d18e666df4948e33bcc3c2, temp0 seed1, cache_prompt=false. Historical pipe-ON (unpatched) 302.869PP/26.102TG prompt_ms54095.98 predicted_ms1187.64, but temperature/small sample variance and experimental run-to-run noise mean match source/flags; if needed use off-vs-on mode in same newly built binary.
+Gate: prompt PP >=287.73 and TG >=24.797 (5% lower bound); no per-token multisecond stall; no leaked D2H slots; no NaNs, slash output, diverging state failure or GPU driver error; active all-four CPU expert blocks proven. Treat different output IDs at temp0 as a correctness warning and do not promote. If TG fails, revert and report, no speculative repeats.
+3. If all diagnostic gates pass, preserve candidate as **test-only opt-in** with exact SHA and return PASS_DIAGNOSTIC, not a speed win nor production readiness; no 32K run or 4-job queue modifications until a new ChatGPT instruction. If gate fails, rollback, restore byte-identical dev baseline, stop and report. Never use old leaky unpatched decode as a correctness oracle; it can silently select fallback routes. Ask ChatGPT for a separate future oracle-quality run.
+
+IMPORTANT TECHNICAL WARNING:
+Stage2 correctly retired 248 inline inputs (zero misses) but cost 151ms/32 tokens. Returning false may force a synchronous GPU wait and can be slower; success is not assumed. Source proof must establish the fallback itself correctly handles producer completion and host tensor bytes. Stage1 indicates long prefill drains: 25.010s D2H=18.397s GPU wait +5.326s actual CPU matmul; 24.044s checkpoint=18.727s GPU wait +4.423s CPU matmul. This experiment may fix the decode leak but CANNOT solve prefill global synchronization. Do not suggest PP gains from this patch.
+
+SUPERVISOR SAFETY:
+No arbitrary software thermal cutoff incl 110C; passive sensor logs and existing hardware/driver protections. Genuine driver GPU fault, reset, VM protection errors, OOM, memory breach, software hang, wrong output and cancellation stop. Memory headroom at V1 only ~559MiB. Never broaden to another model/quant, all-GPU run, altered -ub or -b. One change per step. Work is authorized as necessary non-destructive isolated engineering; ask CHATGPT for an unforeseen high-risk, destructive, irreversible or production-affecting decision; ChatGPT will request owner approval where mandated. Do not self-assign further jobs.
+
+MANDATORY RETURN outbox/result_chatgpt-grok-q4-cpu-stage3-narrow-bypass-20261015-d.txt:
+status PASS_DIAGNOSTIC | FAIL_REVERTED | BLOCKED_NO_CHANGE
+source proof with exact file:line, expected fallback mechanism, paths affected
+actual comparator/candidate PP and TG, prompt/predicted wall times, token IDs/first divergence or unavailable, logit finite, stop counts
+D2H bypass/copy/slot counts in both prefill and decode; whether all 4 CPU expert banks genuinely executed
+VRAM free by PCI and GPU/driver fault/thermal telemetry
+modified/reverted hashes; source diff and artifacts
+ONE proposed next independent prefill-stage diagnosis targeting GPU semaphore dependency + CPU-job backlog, NOT executed.
+STOP. Wait for the NEXT new ChatGPT supervisor message.
