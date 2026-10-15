@@ -1,0 +1,286 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: grok-q4-cpu-offload-attempts-telemetry-20261015
+source: GROK
+target: SUPERVISOR
+status: FINDINGS
+in_reply_to: grok-q4-cpu-offload-stall-20261015
+
+NOT SOLVED. Work is still paused. This file adds the failed configurations, the card memory, and the timings. It does not replace grok-q4-cpu-offload-stall-20261015. Do not promote any row below as a CPU-offload win. The all-GPU pipe is listed only so it is not mistaken for this test.
+
+WHAT WAS ASKED
+
+Same Q4 command, experts 5, 8, 20, and 35 on the CPU, three Vulkan GPUs and the CPU busy together. Success bar that was not met: coherent <think>, one prefill sample with all three gpu_busy >= 20, and TG not left worse than about 26.2 if the cards do not overlap. Hardware was not to be changed. Production ornith-server, /opt/llama/llama-c1-v3mx2-20261013, and /etc/ornith/threecard.cmd were not to be touched. No IQ3_S launch. No PC reboot.
+
+HOST
+
+ubuntu@192.168.100.116. Xeon E5-2680 v4, 14 cores / 28 threads, AVX2, no AVX-512. Log reports 80254 MiB RAM, 80254 MiB free at process start. No swap in the notes for this box.
+
+Three RX Vega 64, RADV VEGA10, 8176 MiB each.
+Vulkan order with MESA_VK_DEVICE_SELECT unset, confirmed in the build29 log:
+  Vulkan0 = 0000:05:00.0  x16 slot, the 0.8 share
+  Vulkan1 = 0000:0c:00.0  Gen2 x1 riser
+  Vulkan2 = 0000:0f:00.0  Gen2 x1 riser
+gpu_busy sysfs is not Vulkan order:
+  card0 = 0000:0c:00.0 = Vulkan1
+  card1 = 0000:05:00.0 = Vulkan0
+  card2 = 0000:0f:00.0 = Vulkan2
+A sysfs link-width of x16 on the riser cards is wrong. The risers are about 0.4 GB/s. MESA_VK_DEVICE_SELECT=1002:687f would reorder Vulkan0 onto 0f. It was left unset on every Q4 row in this report.
+
+Binary for the CPU-offload scores: /home/ubuntu/c1-xdev/build/bin/llama-server, dirty tree at 10bf611e5, LD_LIBRARY_PATH that bin dir. It is not the 907 binary. The all-GPU suite used /opt/llama/llama-c1-v3mx2-20261013 (build 10451). That install was not overwritten.
+
+CLOCKS, READ ONLY
+
+Checked again while idle on 15 Oct 2026 after the runs had exited. All three cards manual. Nothing was written.
+
+OD_SCLK, every card: 852 MHz at 800 mV, then 991 / 1084 / 1138 / 1200 / 1401 / 1536 / 1536 MHz, all at 900 mV.
+OD_MCLK: 167 and 500 at 800 mV, 800 at 950 mV, 1000 at 900 mV.
+Power cap 220000000 (220 W). power1_average is absent on this hwmon. smu_err was 0 on the earlier read.
+Idle now: DPM star on 852 MHz, HBM star on 1000 MHz, vddgfx 900 mV, gpu_busy 0.
+  card0 0c: edge 27 C, junction 29 C, hwmon freq1 26 MHz (clock gate), freq2 1000 MHz
+  card1 05: edge 30 C, junction 31 C, same clocks
+  card2 0f: edge 28 C, junction 28 C, same clocks
+During the 10:00 scored CPU-offload run, gpumon showed a busy card at 1536 MHz, HBM 1000, 900 mV, about 72-109 W, junction about 43-49 C, with a few steps to 1401 / 1138 / 991 still at 900 mV. The cards were not stuck and were not the stall. The 26 MHz hwmon read is the clock gate while gpumon still reports the 852 MHz DPM floor.
+
+THE COMMAND THAT WAS SUPPOSED TO WIN
+
+Model /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+-dev Vulkan0,Vulkan1,Vulkan2 -sm layer -ts 0.8,1,1 -ngl 99
+-ot blk.(5|8|20|35).ffn_(up|down|gate)_exps.weight=CPU
+-c 131072 -ctk q8_0 -ctv q8_0 -b 2048 -ub 512 --no-op-offload
+-t 14 -tb 14 -fa on --load-mode dio -np 1 -lv 4 --temp 0.1 --jinja --no-webui --cache-ram 0
+127.0.0.1:8205, no draft
+ORNITH_PIPELINE_OT=1 ORNITH_CPU_WORKER=1 GGML_VK_XDEV_ASYNC=1 GGML_VK_ASYNC_READBACK=1 TURBOPREFILL=0
+Prompt /home/ubuntu/claude-ornith-logs/q32_512.json, 31619 tokens, n_predict 512, cache_prompt false.
+Runner /tmp/grok-q4-async.py. Stall watchdog 600 s. Abort before the prompt if any card's model+KV+compute sum exceeds about 8100, if pipeline falls back, or if a draft loads. Junction guard 110 C on the runner's edge sensor. It did not trip.
+
+Layer index: fractions 0.2857 / 0.3571 / 0.3571 of 41 slots (40 layers plus output).
+  Vulkan0 layers 0-11, experts 5 and 8 are host hops inside this range
+  Vulkan1 layers 12-26, expert 20 is a host hop
+  Vulkan2 layers 27-40, expert 35 is a host hop
+Same-ubatch overlap of V0 then V1 then V2 is impossible. V1 waits on V0 after experts 5 and 8. V2 waits on V1. The all-GPU pipe overlaps by returning from graph_compute and submitting ubatch N+1's Vulkan0 while ubatch N is still on the later cards, with 4 scheduler copies and xdev hiding the x1 activation copy. That return did not happen here.
+
+CONFIGURATIONS THAT FAILED BEFORE A SCORE
+
+1. Claude placement, pipeline off. Binary v3mx2. -b 2048 -ub 2048, q8 KV, experts 5/8/20/35, XDEV=1, TURBOPREFILL=0, no --no-op-offload needed for the fit because pipeline was off (one scratch copy). Log /tmp/grok-q4-xdev.log. No "xdev async copy edge". Async readback arenas did start; that is a different path. Cards busy one at a time. Completed: PP 365.368 TG 25.609, prompt_ms 86540.07, predicted_ms 19953.885, graphs reused 509. Mid-prompt slope in that log: 2048 tok at 625 tok/s, 12288 at 490, 31615 at 369. Coherent <think>. This is the faster coherent CPU-expert number on this placement. It is still under the historical Claude 424.6/26.1 and the production outbox 426.49/26.64 (b10919, same placement, pipeline not this binary). Overlap failed because -ot turns the stock pipeline gate off and 2048/2048 is one microbatch.
+
+2. Same placement, ORNITH_PIPELINE_OT=1, op offload left on, -b 2048 -ub 2048. Pipeline log said overrides kept. Aborted before the prompt. Op offload copied the CPU expert weights back onto Vulkan0 once per scheduler copy. Measured buffers MiB:
+  Vulkan0 model 4613.74, KV 408, compute 9203.94, sum 14226
+  Vulkan1 model 6396.15, KV 408, compute 2453.31, sum 9257
+  Vulkan2 model 5993.90, KV 544, compute 2453.41, sum 8991
+  Host model 2179.31, host compute 2081.36
+  Vulkan0 compute at ubatch 1024 with op offload on was about 7958. Card is 8176. Does not fit.
+
+3. --no-op-offload added, four copies, ubatch 2048, Claude split, q8 KV. Expert weights stayed on the host. Vulkan0 compute fell from about 9204 to about 3435. Scratch on the three cards about 3435 / 2927 / 2933. Weights+KV are 5022 / 6804 / 6538. Vulkan1 sum about 9731. Does not fit. The miss is four activation copies, not the expert tables.
+
+4. Four copies at ubatch 1024 on that same Claude q8 layout. Scratch about 1464 on Vulkan1. About 90 MiB over 8176. Not run.
+
+5. -b 2048 -ub 2048 on the async runner (first CPU-offload launch of /tmp/grok-q4-async.py). Died during load. No PP/TG. Later buffer math is item 3.
+
+6. Even split -ts 1,1,1, q4_0 KV, -b 32768 -ub 1024, both ORNITH_PIPELINE_OT=1 and --no-op-offload, ctx 131072. This one finished and is the wrong placement. PP 292.827 TG 25.105, prompt_ms 107978.301, predicted_ms 20354.182, edge 1, overlapped 0. Started 23:01:04. The line is in /home/ubuntu/fn_server.log. /tmp/grok-ot-long.log was later overwritten by a Q3 run. Reserved compute with no-op-offload was about 1721 / 1465 / 1465, model/KV 5525/216, 5934/288, 5545/216, sums 7462 / 7687 / 7226. It fit. It did not overlap. It is not Claude's 0.8,1,1 q8 layout.
+
+7. ctx 40960, q8_0, even split, no -ot, pipeline on. PP 954.21 TG 28.53. All-GPU, short context. Not this test. End free was about 1101 / 1128 / 1563. Per-card used/model/context/compute about 6998/6356/150/491, 7032/6350/190/491, 6598/5961/146/491.
+
+8. ctx 131072, q4_0, even split -ts 1,1,1, no -ot. PP 877.32 TG 27.57. All-GPU. Not this test.
+
+9. -ts 0.9,1.0,1.1. Does not fit. Not scored.
+
+10. IQ3_S on the c1-xdev binary with CPU experts, ctx 40960, -ts 1,1,1, -b 32768 -ub 1024. Aborted before the prompt. Fitter free MiB [-1824, 2687, 3000]. Wrong model. A separate Q3+draft completion in that stretch was PP 221.68 TG 31.15. Not a Q4 number.
+
+11. 18-token Q3 correctness check, c 2048, b 512, ub 128, f16 KV. ot-serial and ot-pipe matched all 48 tokens. All-GPU text diverged after a shared prefix. One microbatch, so the xdev edge did not log. Tok/s on that toy prompt only: all-GPU 42.6/34.3, ot-serial 38.4/29.9, ot-pipe 37.0/29.4. Not a long-context score.
+
+12. Q4 MTP draft on Vulkan0 with the four CPU banks. Historical, not rerun here: 399.2 PP / 30.55 TG, x16 card about 120 MiB free (8057/8176). Left off. Banks 0-3 on CPU spilled and scored 141.8/27.8. Not this command.
+
+13. Build30. Source change compiled to 100% (llama-server link succeeded) after the pause. It forces the ring signal onto the last recorded submission and adds a split-time histogram. It was not launched. No score.
+
+PATCHES THAT DID NOT MOVE THE SCORE
+
+All of these are in the dirty c1-xdev tree only. Production was not replaced.
+
+- ORNITH_PIPELINE_OT keeps pipeline when -ot is set. Confirmed on every scored async run: "pipeline parallelism enabled (tensor overrides kept)", pipe 1, kept 1. Sched copies = 4. Reserve took 54.67 ms on the surviving log.
+- --no-op-offload keeps the expert matmul on the CPU backend. Without it, item 2 above.
+- ORNITH_SCHED_COPIES is set to min(4, n_batch/n_ubatch). At 2048/512 that is 4. At 2048/2048 it would be 1. The scored runs stayed at 4.
+- One-time expert-id memcpy ("ornith full expert") was added so the CPU MUL_MAT_ID would not synchronize the GPU to read expert ids. The surviving build29 log has zero "ornith full expert" lines. The 6-10 s CPU wait described before these builds is still present, and it is larger. See the three CPU splits below.
+- ORNITH_CPU_WORKER=1 returns from CPU graph_compute and signals the GPU later. CPU samples on the scored runs stayed about 8-12%. The four-way flag needs CPU >= 40 and all three GPUs >= 20. four stayed 0. The stall stack is inside ggml_cpu_worker_sync, so the worker did not actually free the scheduler.
+- xdev slot pool was raised (reserve 64, grow, wait only when full). xdev edge came up on every scored CPU-offload run. Slot-wait count stayed 0. The edge is not overlap.
+- CPU submit parking was turned off. Parked submits were dropping the xdev signal. Turning park off did not create overlap.
+- Input ring grew from 32 slots. Build28 proved the old 600-890 ms "slow split" was a ring host wait inside the input loop (copy_ms), with graph_ms about 2 ms after shader compile. The 5 s RING STALL log stayed silent for those sub-second waits. Build29 raised the cap to 256 slots and a 768 MiB budget. The surviving log has zero "input ring host wait" and zero "RING STALL". The prompt did not get faster.
+- Flush-before-graph on the scored binary looked for the ring semaphore on the open submission, did not find it (sigs 1, some other semaphore), and returned. Eight "input ring flush miss" lines. One success line, Vulkan0 warmup only. Copies were not submitted ahead of the fat graph on the real prefill.
+
+SCORED CPU-OFFLOAD RUNS, SAME COMMAND
+
+All four surviving result files: prompt_n 31619, predicted_n 512, cache_n 0, xdev_edge true, overlapped false, four false, pipe true, kept true, sums [5887.87, 7568.78, 7273.03]. Head is a real <think> about a garbled technical note. Not slashes. Not promoted.
+
+File | start | PP | TG | prompt_ms | predicted_ms | ms/token prompt | ms/token gen
+/tmp/grok-q4-async-result.prev270.json | 09:59:35 pid 387487 | 270.239 | 22.957 | 117003.661 | 22258.898 | 3.700 | 43.559
+/tmp/grok-q4-async-result.prev270b.json | 10:24:39 pid 449384 | 269.774 | 23.004 | 117205.399 | 22213.267 | 3.707 | 43.470
+/tmp/grok-q4-async-result.b28.json | 10:58:56 pid 534817 | 269.786 | 22.946 | 117200.422 | 22269.239 | 3.707 | 43.580
+/tmp/grok-q4-async-result.json build29 | 11:07:22 pid 556020 | 267.755 | 22.958 | 118089.394 | 22257.709 | 3.735 | 43.557
+
+An earlier build26 finish of about 270.85 / 22.96 (prompt_ms 116740, predicted_ms 22252) was reported in grok-q4-cpu-offload-stall-20261015. Its json is no longer on disk. The four files above are the ones re-read for this report. Spread across them is about 2.5 PP and 0.06 TG. The ring change did not help. The last run is the slowest prefill.
+
+Load on every one of these took about 60 s and was serial: one card near 90 for a 15 s sample, then another. That is the loader, not prefill overlap. Fitter line every time: free MiB [2233, 532, 841]. That fitter number is not the final residency. See the end breakdown.
+
+CARD MEMORY, BUILD29 LOG (SAME BUFFERS ON ALL FOUR SCORED RUNS)
+
+At process start, each card had about 8160-8167 MiB free. common_fit_params aborted because n_gpu_layers was already 99. It still printed a projection.
+
+Load:
+  Vulkan0 model 4613.74 MiB
+  Vulkan1 model 6396.15
+  Vulkan2 model 5993.90
+  Vulkan_Host model 2179.31   (experts 5/8/20/35 live here; all-GPU host model is 515.31)
+  offloaded 41/41 layers. The CPU experts are not removed from the layer split. They are host hops inside those layers.
+
+KV q8_0, 131072 cells, 10 layers, K 680 + V 680 = 1360 MiB:
+  Vulkan0 408, Vulkan1 408, Vulkan2 544
+Recurrent state, 1 cell, 40 layers, 62.81 MiB total (R 2.81 f32, S 60 f32):
+  Vulkan0 18.84, Vulkan1 25.12, Vulkan2 18.84
+Output buffer 0.95 MiB on the host.
+
+Compute, sched copies = 4, ubatch 512:
+  Vulkan0 866.13, Vulkan1 764.63, Vulkan2 735.13, Host 645.16
+
+Runner sums at ready (rounded): 5888 / 7569 / 7273. All under the 8100 abort.
+Exact model+KV+compute: 5887.87 / 7568.78 / 7273.03. The context column also holds the small RS buffers.
+
+End of the build29 request, measured breakdown MiB (total = free + self + unaccounted):
+  Vulkan0  8176 = 2045 free + (5906 = 4613 model + 426 context + 866 compute) + 224 unaccounted
+  Vulkan1  8176 =  559 free + (7593 = 6396 model + 433 context + 764 compute) +  22
+  Vulkan2  8176 =  865 free + (7291 = 5993 model + 562 context + 735 compute) +  18
+  Host 2824 = 2179 model + 0 context + 645 compute
+Vulkan1 is the tight card: 559 MiB free after the run. The early fitter's 532 free on the middle device was in the right neighborhood. Vulkan0's fitter free of 2233 became 2045 once the run finished. Do not use the fitter's "1024 free target" as a pass/fail. Positive free under 1024 was allowed and this run did fit. A negative free or a 0-token hang with one card pegged would have been an abort.
+
+Context column 426 / 433 / 562 matches KV+RS (408+18.84, 408+25.12, 544+18.84).
+
+PREFILL AND DECODE TIMING, BUILD29 ONLY
+
+The other three runs were not re-instrumented at this depth. Their wall times match this shape within about 1 s.
+
+"ornith ubatch N" accumulates and prints every 16 graphs. host_ms is build+alloc+set_inputs. compute_ms is llama_context::graph_compute only.
+
+ubatch | host_ms | compute_ms | compute delta | wall meaning
+16 | 93 | 1800 |  | warmup plus first real graphs
+32 | 216 | 28631 | +26831 over 16 | one CPU wait of 26121 ms sits on this boundary
+48 | 341 | 59127 | +30496 | one CPU wait of 29910 ms
+64 | 487 | 94519 | +35392 | one CPU wait of 34865 ms; this is the end of the 31619-token prefill (about 62 ubatches of 512)
+80 | 503 | 95007 | +488 | decode has started
+576 | 720 | 111717 | +17198 from ubatch 64 | 512 decode steps
+
+From ubatch 80 through 576 the compute counter rises about 543 ms per 16 steps, about 34 ms per token inside graph_compute, about 29.5 tok/s. Wall generation is 22.958 tok/s over 22257.709 ms. graph_compute accounts for about 17.2 s of that 22.3 s. The rest is outside the counter. host_ms only grew from 487 to 720 during decode.
+
+Prefill wall is prompt_ms 118089. compute_ms at ubatch 64 is 94519. host_ms is 487. The three CPU waits below sum to 90896 ms, which is 96% of that compute_ms. The prompt is those waits.
+
+SPLITS THAT WERE ACTUALLY SLOW
+
+18 lines over the log threshold. First graphs are shader compile, submit itself about 1 ms, support_async 1:
+
+device | op | nodes | inputs | ms | copy_ms | graph_ms | when
+Vulkan0 RMS_NORM | 555 | 9 | 110 | 1 | 109 | first real prefill graph, compile
+Vulkan1 RMS_NORM | 838 | 9 | 599 | 1 | 598 | compile
+Vulkan2 RMS_NORM | 826 | 9 | 573 | 1 | 572 | compile
+CPU MUL_MAT_ID | 4 | 2 | 26121 | 26121 | 0 | 1:28, just before ubatch 32
+CPU MUL_MAT_ID | 4 | 2 | 29910 | 29910 | 0 | 1:59, just before ubatch 48
+CPU MUL_MAT_ID | 4 | 2 | 34865 | 34865 | 0 | 2:34, just before ubatch 64
+
+graph_ms 0 and copy_ms equal to the whole split means the time is in the input path of the CPU expert op, not in vkQueueSubmit and not in a Vulkan shader. The wait grows with the prompt (26.1 s, then 29.9, then 34.9) the same way the old expert-id synchronize grew with KV.
+
+Stack on those three lines, top of the printed frames:
+  ggml_cpu_worker_sync
+  libggml-vulkan
+  libggml-base
+  llama_context::graph_compute
+  llama_context::process_ubatch
+  llama_decode
+So the CPU worker sync is what graph_compute is blocked on. Returning early from the CPU graph was the intent of ORNITH_CPU_WORKER. The scored binary still waits there. "ornith full expert" did not log, so the one-time id memcpy is not what this log took.
+
+A fourth cpu-frame dump at 2:54 is different. It is ggml_cpu_worker_sync from ggml_backend_sched_synchronize, from llama_context::synchronize, from llama_state_seq_get_data_ext, from the prompt checkpoint. That is the end-of-prefill checkpoint, not the per-ubatch stall. The log at that instant: ornith syncs input_ev=0 input_be=0 cpy=20 range=357.
+
+SYNC COUNTS
+
+ornith syncs total on the build29 log: 4102.
+Warmup cluster at 0:48, cpy 0 then 10 then 20, range 0. Six lines.
+Next sync is 2:54.897, cpy=20, range=357. That is the end of prefill.
+Decode then climbs cpy by about 10 per token. Mid-decode sample at 3:09 has cpy=2380. Last line cpy=4940 range=357. input_ev and input_be stayed 0 the whole log.
+range=357 means the range-busy path counted during prefill. With the pipe flag on, that path does not host-synchronize each split. Prefill is not a per-split backend synchronize. The 4100 syncs are decode, plus the checkpoint.
+
+RING
+
+Warmup: "input ring copy submitted ahead of the graph on Vulkan0" once. Then eight flush misses:
+  Vulkan0 value 27 sigs 1, twice
+  Vulkan1 value 23 sigs 1
+  Vulkan2 value 25 sigs 1
+  Vulkan0 value 33 sigs 1, twice
+  Vulkan1 value 30 sigs 1
+  Vulkan2 value 32 sigs 1
+The open submission has one semaphore and it is not the ring semaphore, so the scored flush returned without submitting.
+
+Growth in the first prefill second, then it stopped (no 128, no 192):
+  33 slots: Vulkan1 14.2 MB, Vulkan2 13.8 MB, Vulkan0 18.2 MB
+  64 slots: Vulkan1 40.5 MB, Vulkan2 40.2 MB, Vulkan0 54.8 MB
+  96 slots: Vulkan1 73.1 MB, Vulkan2 72.8 MB, Vulkan0 102.1 MB
+Zero host-wait lines. Zero RING STALL lines. Removing the wait did not change PP.
+
+During decode, at 3:03, Vulkan2 logged input-ring bytes 943980544, 944046080, 944111616, 944177152 (about 900.3 MiB). That is slot enlargement past the 768 MiB grow budget, after prefill had already finished. It is not the prefill stall. No matching line on Vulkan0 or Vulkan1 in that second.
+
+GPU BUSY SAMPLES, 15 s SNAPSHOTS, NOT AVERAGES
+
+A sample with one card at 99 only says that card was busy in that 1 s SMU window. PCIe copies do not show as GPU busy. All three >= 20 did not occur on a clean prefill sample. overlapped stayed 0. CPU percent is from /proc/stat.
+
+Build29 (11:07), the one with the split log. gpu order in the line is 0c / 05 / 0f, which is Vulkan1 / Vulkan0 / Vulkan2:
+
+t | processed | 0c V1 | 05 V0 | 0f V2 | cpu
+75 s | 8192 | 0 | 0 | 0 | ?
+90 s | 16384 | 0 | 99 | 99 | 11
+105 s | 16384 | 99 | 0 | 0 | 10
+120 s | 26624 | 100 | 0 | 0 | 9
+135 s | 26624 | 0 | 0 | 42 | 8
+150 s | 26624 | 0 | 0 | 100 | 8
+183 s | 31619 | 7 | 27 | 44 | 9    prefill/decode boundary, 7 is under 20, not counted
+198 s | 31619 | 3 | 59 | 22 | 12   decode
+213 s | done | 0 | 0 | 0 | 2
+
+The 90 s sample has two cards. No sample has three cards and the CPU together. Processed tokens sit still for 15-30 s at 16384 and at 26624, which matches the 26-35 s CPU waits.
+
+The other three runs are the same pattern. Two-card samples happen, then one card near 100, CPU 8-11, overlapped 0, four 0. Examples: prev270 at 75 s had 05:99 and 0f:99; at 135 s only 0c:100. prev270b at 75 s had 05 and 0f at 99; later only one card. b28 at 75 s had 05:87 and 0f:89; later one card. None of them is a triple-busy prefill.
+
+ALL-GPU PIPE, WRONG TEST, INCLUDED SO THE NUMBERS ARE NOT REUSED AS THE CPU RESULT
+
+No -ot. Experts on the GPUs. -ts 0.90,1.00,1.04. -b 32768 -ub 1024. q4_0 KV. ctx 131072. TURBOPREFILL=0. XDEV=1. Binary v3mx2, not dirty c1-xdev. No draft. Pipeline log is the stock "pipeline parallelism enabled" with no tensor-override clause. Host model is 515.31 MiB, not 2179.
+
+Fit projection, same on the 32k log and the long log: used 7333 / 7822 / 7943, free vs a 1024 target 805 / 321 / 204, "need to use 1740 MiB less". It ran anyway. Device memory projection 23100 of 24432.
+
+Reserved buffers MiB:
+  model Vulkan0 5901.21, Vulkan1 6356.68, Vulkan2 6409.90, host 515.31
+  KV q4_0 total 720 (K 360 + V 360): 216 / 216 / 288
+  RS 20.94 / 23.03 / 18.84, total 62.81
+  compute 1195.19 on each card, host compute 1041.22
+  sched copies 4
+
+End of the 32k pipe, free MiB: Vulkan0 768, Vulkan1 369, Vulkan2 248.
+Runner min free across the suite, keyed by PCI: 32k 0c 370, 05 769, 0f 249. 64k 363 / 733 / 246. 90k 363 / 700 / 242. 2k 375 / 800 / 254. 8k 373 / 793 / 253. 16k 373 / 786 / 252. The 0f card is the tight one on this split. That is Vulkan2 in the no-MESA order.
+
+Scores, all n_predict 512, xdev edge true, coherent text:
+
+prompt_n | PP | TG | prompt_ms | predicted_ms | overlap samples | note
+2103 | 572.332 | 32.449 | 3674.439 | 15747.756 | 0 | prefill shorter than one 15 s poll
+8215 | 1004.429 | 31.237 | 8178.773 | 16358.977 | 0 | same
+16082 | 1037.838 | 30.003 | 15495.681 | 17031.512 | 0 | same
+31619 | 906.693 | 27.592 | 34872.895 | 18520.155 | one sample all three near 100 | /tmp/grok-q4-pipe.log also has the earlier 907.07 / 27.57 on the same shape. Keep both. Not two configs.
+62410 | 669.026 | 23.866 | 93284.849 | 21410.927 | 3 |
+88407 | 528.873 | 21.414 | 167160.971 | 23862.576 | 6 |
+
+32k pipe slot print: 30591 tokens in 25.85 s (1183 tok/s in-progress), 31615 in 31.30 s (1010 tok/s in-progress), final prompt eval 34872.89 ms. Graphs reused 509. In-progress tok/s is not the final PP.
+
+This suite shows the overlap mechanism. It is not a substitute for the CPU-expert command. Gorast rejected it as the result of this task.
+
+REFERENCE LINES, NOT THIS BINARY'S WIN
+
+Historical Claude 28 Sep, same four CPU banks, b/ub 2048, no TurboPrefill: about 424.6 PP / 26.1 TG (repeat 423.7 / 25.98).
+Production outbox, b10919, 31619/512: 426.490 PP / 26.644 TG. 8215 was 556.783 / 29.057. 62410 was 318.799 / 23.966. 88407 was 261.602 / 21.999.
+The CPU-offload pipe attempts are below all of those on both PP and TG. 267/23 is not a small regression. It is about 0.63x the Claude PP and about 0.86x the Claude TG, with the cards still taking turns.
+
+WHAT THE NEXT CHANGE HAS TO BEAT
+
+Another full 31619 run of the same binary will print about 268-271 / 23.0 again. The measured prefill cost is ggml_cpu_worker_sync inside graph_compute, three times, 26 then 30 then 35 seconds, on CPU MUL_MAT_ID, copy_ms equal to the split, while the GPUs are sampled one card at a time and the CPU meter stays near 10%. The ring host-wait is already gone and was not this cost. The flush on the scored binary did not detach the copy buffer. Build30 is compiled and unscored. Do not launch it until Gorast says to continue.
+
+Work remains paused. No server was started for this report. ornith-server was not started. Clocks were not written. The PC was not rebooted.
