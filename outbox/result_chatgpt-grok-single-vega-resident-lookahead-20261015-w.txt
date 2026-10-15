@@ -1,0 +1,34 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-resident-lookahead-20261015-w
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-resident-lookahead-20261015-w
+
+verdict: NOT_CORRECTNESS_PROVEN
+output: SAME_MODEL_OUTPUT_NOT_IDENTICAL
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+One Vega, original binary, no source change. sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7 before and after. ornith-server stayed inactive. threecard.cmd sha256 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23. The A/B clocks compared equal. Swap stayed 0.
+
+GATE A
+Stage T A stderr printed "routing-aware prefetch of the file tier on" and the decode line was predictor 35.1 ms/round, 0 experts warmed, file tier 0 blobs and 0.0 MB. Its environment had STRATA_MTP_EXPERTS_HOST=1 and no STRATA_LOOKAHEAD. Resident complement 46.12 GiB. generate.cpp starts RouterLookahead when warms() is true and STRATA_LOOKAHEAD is unset or not 0. FileExpertSource::warms() is the mapped GGUF with an empty direct list. It does not look at the complement. The class comment says a prediction only warms pages and does not change which experts are computed. There is no Foresight use of this object. File reads on the resident path are already 0, so turning the prefetch off does not drop a page the decode still reads. Gate A passed.
+
+ARMS
+PCI 0000:05:00.0 only. Same Stage S/T A argv, including --resident-cpu-experts and --spec 3, 13 pool workers plus the host thread. B adds only STRATA_LOOKAHEAD=0. Prompt sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. No thermal kill. The first A did not match the reference ids, so one reverse A was run. No fourth arm.
+
+A, lookahead default, rc 0, 166.4 s. Prefetch line present. Predictor 30.3 ms/round, 0 experts warmed, 0 layers skipped, file reads 0. Speculation: 218 rounds of 5, accepted 295 of 445 (0.663), 2.35 tokens/round. Suffix: 17 windows, 34 of 45. Accepted per round 0:48 1:49 2:117 3:4 4:0. Prefill 7500 in 54920.6 ms, 136.56 tok/s, TTFT 113555.0 ms. Decode 512 in 31963.9 ms, 16.02 tok/s. Ring wait 40.128. Pool 64.414. Jobs 0.091. GPU run 63.200. Pool 24.3 GB/s. CPU experts 15.57 distinct / 19.78 routed per layer. Draft 9.938 ms/round. Resident 46.12 GiB. Output sha256 b7e406da9a81529955714b1ef83cef65446318ef475b57afeac93b85dc731be0. First difference from the Stage S A ids at index 329: this arm 668, reference 1189. Min free VRAM 373 MiB. MemAvailable min 25.79 GiB. Junction max 62 C. 0c and 0f busy 0.
+
+B, STRATA_LOOKAHEAD=0, rc 0, 173.0 s. No prefetch line and no predictor line. File reads 0. Speculation: 215 rounds of 5, accepted 299 of 430 (0.695), 2.39 tokens/round. Suffix: 5 windows, 7 of 12. Accepted per round 0:46 1:39 2:130 3:0 4:0. Prefill 7500 in 54845.0 ms, 136.75 tok/s, TTFT 114405.1 ms. Decode 512 in 29901.9 ms, 17.12 tok/s. Ring wait 40.664. Pool 56.085. Jobs 0.091. GPU run 55.108. Pool 27.5 GB/s. CPU experts 15.39 distinct / 19.51 routed per layer. Draft 9.954 ms/round. Resident 46.12 GiB. Output sha256 1109d0d7ba2e87c8a9bd7ff28c19b5c09d539dc9ee635fab6061234cf73b2de1, the reference. Min free VRAM 373 MiB. MemAvailable min 25.95 GiB. Junction max 62 C. 0c and 0f busy 0.
+
+Reverse A, lookahead default again, rc 0, 177.4 s. Prefetch line present. Predictor 35.0 ms/round, 0 experts warmed, file reads 0. Speculation matches A: 218 rounds of 5, accepted 295 of 446 (0.661), same 0:48 1:49 2:117 3:4 histogram. Prefill 135.18 tok/s, TTFT 119307.4 ms. Decode 15.92 tok/s. Ring wait 40.051. Pool 64.741. GPU run 63.515. Pool 24.2 GB/s. Output sha256 b7e406da…, no difference from A. Difference from B at index 329: reverse token 668, B token 1189. Min free VRAM 372 MiB. MemAvailable min 25.80 GiB. Junction max 63 C. 0c and 0f busy 0. Swap 0.
+
+TG of B is 17.12/16.02 = 1.069 of A, +6.9%. PP is 100.1% of A. The pool fell 8.3 ms and the row rate rose from 24.3 to 27.5 GB/s. Ring wait stayed 40 ms. The predictor warmed nothing on a 0 MB file tier, and its thread was 30 to 35 ms/round. The 512 ids are not the same, so this is not a correctness proof and not a promotion. The TG move is under 10%, so it is also not PROVISIONAL_REAL_GAIN. Stages S, T, and U A used this same default and printed the reference sha, so the ON path is not a permanent id change across the day. Inside this trio the two ON runs matched each other and the OFF run matched the reference. Do not set STRATA_LOOKAHEAD=0 on a later default from this pair.
+
+NEXT
+The ring wait stayed about 40 ms with the predictor on or off. A later single-Vega stage, if asked, should attribute that GPU-reach wait on the original binary and leave STRATA_LOOKAHEAD unset. Do not start three-card work from this result.
+
+Evidence: /home/ubuntu/strata-fork-single-work/stage-w-20261015/summary.json, bench_a, bench_b, bench_a2. Stopped.
+END.
