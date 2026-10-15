@@ -1,0 +1,42 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-oneshot-gpu-profile-report-20261015-z
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-oneshot-gpu-profile-report-20261015-z
+
+verdict: WAITCPU_DOMINANT
+profiler_usable: YES
+output: SAME_MODEL_OUTPUT_NOT_IDENTICAL
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+One Vega. Isolated diagnostic binary, one profiled 7501/512 run. Original binary sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7 before and after. New binary sha256 ca600b9bf73ec064e2b9b68fc47c7646da4aa07ec435126472c1ee2534b4b7f3. PCI 0000:05:00.0 only. ornith-server inactive. No other strata process. Clocks before and after equal on 05, 0c, and 0f: sclk level 0 at 852 MHz starred, mclk level 3 at 1000 MHz starred, performance level manual. Swap total 0. No thermal kill. Profiled 16.33 tok/s has sh_fork off and is outside the production comparison.
+
+GATE A
+Passed. prof_on_ is getenv("STRATA_VERIFY_PROFILE") != nullptr at verify.cpp:464. Stamps record group 0 only. collect_profile at verify.cpp:1541 runs when prof_on_ && G == 1, after cudaStreamSynchronize in Verifier::run. Capture sets G to 1 unless --spec-split (verify.cpp:561). This argv does not pass --spec-split. The non-empty report is the evidence G stayed 1. Counters reset only inside profile_report, after the print. sh_fork is sh_stream_env && !prof_on_ (verify.cpp:907). One fprintf on the one-shot path is enough.
+
+GATE B
+Isolated tree /home/ubuntu/strata-speedup/src-codex-z-oneshot-20261015. diff -rq of src and include against the original fork differs only in src/program/generate.cpp. The hunk is four lines after the one-shot mtp printf, before that block closes, at the original line 8201. It calls ver.profile_report() once when STRATA_VERIFY_PROFILE is set and not "0", and prints to stderr only when the string is non-empty. --help rc 0. ldd resolves libamdhip64.so.6 from /opt/rocm-6.3.4/lib. The original binary, production tree, launcher, service, and model files were left in place. HIP objects were not rebuilt. generate.cpp.o was recompiled and linked against the copied static libs.
+
+GATE C
+argv is Stage W A with argv[0] replaced by the new binary: resident CPU experts, mmap experts, static profile, --spec 3, suffix draft left at default, prefill 2048, KV int8 resident 20480, max-context 131072, 512 greedy, no --pool-workers. Prompt sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. Child env: HIP_VISIBLE_DEVICES=0, ROCR_VISIBLE_DEVICES=0, LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib, STRATA_MTP_EXPERTS_HOST=1, STRATA_VERIFY_PROFILE=1, STRATA_DECODE_TIMING=1. STRATA_LOOKAHEAD unset. rc 0, 175.6 s. 13 expert-pool workers plus the host thread. Prefetch line present. Predictor 35.9 ms/round, 0 warmed, file reads 0. Speculation: 219 rounds of 5, accepted 294 of 445 (0.661), 2.34 tokens/round. Suffix: 17 windows, 33 of 43. Accepted per round 0:49 1:49 2:118 3:3 4:0. Prefill 7500 in 54256.2 ms, 138.23 tok/s, TTFT 118858.5 ms. Decode 512 in 31360.8 ms, 16.33 tok/s. Host verify window: rings 40.902, pool 64.618, host 0.015, commit 0.085 ms/round. CPU experts 15.53 distinct / 19.70 routed per layer. Pool multi: gate/up 46.025, quantize 0.432, down 16.945 ms/round, 24.1 GB/s, CPU pool call 64.580. Dispatch jobs 0.091, run 63.416. Draft 10.054 ms/round, 159 MiB. Resident 46.12 GiB, 2297 exchanged, 0 file blob reads. Cache 918 slots. Output sha256 b7e406da9a81529955714b1ef83cef65446318ef475b57afeac93b85dc731be0. That sha matches Stage W A token ids exactly. Versus Stage X and Stage S A, the first difference is index 329: this run 668, reference 1189. The fprintf runs after the tokens are already produced. Logits stay NOT_PROVED. Min free VRAM 368 MiB (386023424 bytes). MemAvailable min 25.82 GiB. Sampled VmRSS max 76.35 GiB, RssAnon max 50.44 GiB, VmHWM max 76.41 GiB. The peak.json RSS field stays 0 because it looks up the colon form of the key. Junction max 62 C, edge 49 C, mem 45 C on 05. 0c and 0f busy 0, used 8421376 bytes. The 300 MiB VRAM stop did not trip. "strata decode timing:" was not printed. That fprintf stays on the serve path. This run did not pass --serve.
+
+PROFILE
+One line, 219 windows, matching the 219 speculation rounds. Values are exclusive positive stamp deltas, ns/1e6/windows. Omitted names had sum <= 0. Printed total 118.99 ms/window. The printed numbers sum to 118.97; the 0.02 is rounding. hc-read0 is absent on both kinds because collect_profile subtracts the parent when hc0 norm, down, and up are all positive (verify.cpp:1378-1383). The pieces are the replacement. Head is prof_sum_[0][26], so its 3.99 ms prints in the GDN column and is one post-layer interval per window.
+
+GDN ms/window: q8+qkv/q-idx gemv 6.23, conv 0.26, ab 1.28, z 3.52, rec 1.49, out-proj 3.97, hc-read1+router 7.55, shared+quant 2.72, waitA 0.53, VRAM hits 8.04, waitB 0.34, PCIe grp 0.66, waitCPU 43.09, copy+combine 1.23, (gap) 0.06, head 3.99, hc0 norm 0.96, hc0 down 2.26, hc0 up 1.64.
+QSA ms/window: q8+kv-idx 0.21, k/v+norm-rope 0.58, kv+idx append 0.38, q+q-idx 3.23, scores+topk 1.27, kv-resolve 0.43, attention 2.14, gate 0.07, out-proj 1.33, hc-read1+router 2.52, shared+quant 0.91, waitA 0.12, VRAM hits 3.06, waitB 0.11, PCIe grp 0.22, waitCPU 10.70, copy+combine 0.36, (gap) 0.02, hc0 norm 0.14, hc0 down 0.76, hc0 up 0.59.
+
+Same source across both kinds: waitCPU 53.79, VRAM hits 11.10, hc-read1+router 10.07, hc0 pieces 6.35, out-proj 5.30, q8+qkv/q-idx gemv 6.23 on GDN only, head 3.99, z 3.52, q+q-idx 3.23, attention 2.14. GDN omits the QSA attention stamps. QSA omits conv, ab, z, rec, and the GDN gemv. Inter-layer gap is 0.06 and 0.02 ms/window. The resident copy walked layer 48/48. The printer has no per-layer row. No unsigned wrap.
+
+waitCPU is stamp 23. It is recorded only on the non-all_resident, non-device_plan branch, and the interval is stamp 22 to the stamp that follows wait_flag_ge(m_flag_) at verify.cpp:1066-1067, the GPU wait until the CPU rows are in the mapped buffer. Host rings 40.902 ms are the host waiting while the GPU advances. Host pool 64.618 ms is the CPU expert call after that. Those two are sequential on the host. GPU waitCPU overlaps the pool. The three were not added to each other or to the 118.99 total. File-read, adaptive, predictor, and draft timers were not added.
+
+The largest stage is waitCPU, 53.79 ms/window, 45% of the stamped GPU total. The largest GPU compute category is VRAM hits at 11.10 ms/window. Decode wall is 143.2 ms/round (31360.8/219). A cut of the 46.025 ms gate/up phase has to shrink this wait before it moves the round. Stage Y already measured that STRATA_IQ256_GATHER and STRATA_IQ_MT_MIN do not reach a 20% gate/up cut on the mix this CPU actually runs.
+
+NEXT
+The next path is the nt=1 CPU gate/up inside native_gu_rows, the ggml vec_dot rows that fill the pool the GPU waits on at verify.cpp:1066. Leave STRATA_IQ256_GATHER unset. Leave STRATA_IQ_MT_MIN unset. Leave STRATA_LOOKAHEAD unset. Do not patch a GPU kernel in this step. Do not add the one-shot print to a default build. Do not start three-card work. This step was not started.
+
+Evidence: /home/ubuntu/strata-fork-single-work/stage-z-20261015/gpu-stages.txt, bench_prof/stdout.txt, stderr.txt, environ.txt, result.json, samples.json, clocks-before.json, clocks-after.json. Stopped.
+END.
