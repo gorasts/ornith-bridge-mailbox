@@ -1,0 +1,72 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-strata-v1-gather-vs-submission-20261015-k
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-strata-v1-gather-vs-submission-20261015-k
+
+gateA: PASS
+gateB: PASS
+gateC: PASS
+verdict: HOST_GAP_DOMINANT
+performance_claim: NONE
+correctness: SAMPLED_IDS_MATCH
+promotion: NO
+logits: NOT_PROVED
+
+The 6.4 s primary "packed gather / fallback dequant" bucket is host-submission gap on the primary stream. The gather kernel itself is 629.8 ms. Fallback and SDMA copies did not run. Timing-off and timing-on both emitted the stage I token sha256. Prefill wall rose 2.82% with the timer on, under the 5% invalid-profiler line. No kernel patch.
+
+GATE A PASS
+V1 prefill.cpp sha256 f564ed03fb8ad2f2a33d39703929bca694ecf31b51ca92c756a503173f85f251 was not edited. On the IQ3_S MMQ path, flush() in that file marks kPfWaitCopy, waits for the last expert copy, marks kPfDequant, then calls mmq::gather_native_group. moe_mmq.cu gather_native_group returns false before any launch when the pointers are not 16-byte aligned. When it launches, it queues one copy16_group_kernel on the caller stream and returns. The per-expert gather_native and the STRATA_GATHER_SDMA memcpy loop are the other arms of the same flush, both off unless the group launch returns false or STRATA_GATHER_SDMA is set. compute() also marks kPfDequant before it only stores a pointer, and marks kPfGemmGU only after the group is complete. PfTimer charges the stream gap between those marks to kPfDequant, so the stage J 6022 ms includes the gather kernel plus every GPU idle gap while the host is between those marks. It is not a dequant kernel.
+
+A same-stream event immediately before and after that one launch is the kernel's stream span. It is not CUPTI active time, and it does not include starvation before the start event. The rest of the kPfDequant bucket is the stream time outside that span. Host CLOCK_MONOTONIC around the launch is the enqueue cost and is a different clock. No new stream wait, cudaEventSynchronize, or copy was added. Events are a fixed pool of 1024 pairs, created once, folded only after the syncs PfTimer already uses.
+
+GATE B PASS
+Isolated tree /home/ubuntu/strata-speedup/src-codex-k-gather-20261015. The only source difference versus V1 is src/prefill/prefill.cpp, now sha256 ec922a35d960767407a6848b2c3e4c13548e519675ac0b5a5011c4ece8469e9b. Diff: codex-work/prefill-gather-split.diff (177 lines). Build dir build-k-20261015, ROCm 6.3.4, same cmake pins as stage F including FETCHCONTENT_SOURCE_DIR_STRATA_LLAMACPP. ninja and --help succeeded. ldd resolves libamdhip64.so.6 from /opt/rocm-6.3.4/lib. No libamdhip64.so.5. K binary sha256 8575cb1c5207db222c0ca6fecdd7ebeb8f3bd9f49be2bf5a133c21ec781e86a7. Original V1 binary remains 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7. V2 binary remains bf3e50cd28e5f4b5faad3d1d7bb42398c5ed909999d52a15abd2379cbf09fbf1.
+
+GATE C PASS
+Same K executable for both arms. Runner copy stage-k-20261015/run_opt_bench_k.py sha256 8da7012f9d570156357208fff92daa24b315943bde4382224893cc6bb7de229a. The only edits versus run_opt_bench.py sha256 ed2c343ff78ffc8be01948537e929ff32e489da87de1f66a30fb6a3d659cd92b are the run directory and the opt exe path. No 94 C cutoff. Guards kept: 300 MiB, 1200 s, junction>60 start wait (starts were 31 C and 43 C). Junction max 64 C then 66 C.
+
+Idle before launch: ornith-server inactive, gpu_busy_percent 0/0/0. After the pair, production hashes unchanged: llama-server 3db76a9103250117a41c8189c36fd2ae80057005b37e3793db9a465a89dfae2a, threecard.cmd 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23. ornith-server inactive. Hardware-before and hardware-after matched on both arms, including the power-cap files. Instantaneous power was not sampled. No clock, fan, voltage, or power write.
+
+Prompt sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. Shard 1 resident fraction 97.24% before, after OFF, and after ON. Shard 2 is the direct-IO PLE file, 41.21% then 40.70%. No drop_caches. Args matched stage J: ISTA IQ3_S, prefill 4096, context 131072, KV int8, spec 3, TP=1, issuer 0, expert-cache-device1 3700, expert-cache-device2 auto, mmap experts, MTP host. Live environ OFF pid 1445878 had no STRATA_PREFILL_TIMING. ON pid 1460603 added only STRATA_PREFILL_TIMING=1. Neither had STRATA_PREFILL_COMPACT, STRATA_GATHER_SDMA, STRATA_PF_PEER_COMPACT, or STRATA_TP_TAKE_RES. HIP_VISIBLE_DEVICES=0,1,2. LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib.
+
+OFF grok_k_off_7501_512: FINISHED, DONE 512 7501 36635.0 23282.8 length. PP 204.7496, TG 21.9905. 512 ids, sha256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046. No timing line. First divergence versus stage I: none.
+
+ON grok_k_on_7501_512: FINISHED, DONE 512 7501 37669.9 23113.5 length. PP 199.1245, TG 22.1516. Same sha256. Divergence versus OFF and versus stage I: none. Server prefill 37669.9/36635.0 = 1.0282 (+1034.9 ms, +2.82%). Decode time 23113.5/23282.8 = 0.993. Both are inside 5%. The ON PP is profiler overhead, not a speed result. Serve draft counters differ (OFF 277 of 371, ON 278 of 364) while the 512 output ids match, so this is not a logit proof.
+
+VRAM min free MiB OFF and ON: 05/0c/0f 375/567/420. Max used about 7800/7608/7755. Banner still "Strata-TP: CUDA1" and CUDA2 remains the decode expert cache (3961 experts). Peer line, not added to the wall: idle 23017, moe in 5044, moe gemm 3488, moe out 4733, 96 layers, 10603 rows/layer, 76 experts/layer.
+
+1. THE 6022 ms BUCKET
+ON primary stream, exclusive within that stream. Printed gather-split line:
+
+group_ok 7085, fallback 0, memcpy 0, overflow 0, nonfinite 0, live_max 117, broken 0
+gather kernel span 629.8 ms
+packed-gather bucket 6369.2 ms
+stream outside kernel 5739.3 ms
+host enqueue 472.5 ms
+
+Method. Kernel span is cudaEventElapsedTime on m.cs from the event recorded immediately before gather_native_group to the event recorded immediately after it returns. One copy16_group_kernel sits between those events. Fold runs only after the existing layer sync and the final sync. Host enqueue is CLOCK_MONOTONIC from just before the start event to just after the end event, summed over the 7085 launches. It is not GPU time and is not added to 6369.2 or to the wall.
+
+Coverage. 7085 successful group launches, zero fallback gather_native, zero SDMA memcpys, zero pool overflows, zero non-finite elapses. Peak live events in one layer before fold: 117, under the 1024 pool. That is 7085/96 = 73.8 launches per MoE layer-pass. A full MMQ_GROUP of 16 would be about 5 launches per pass at that expert count. The count matches one launch per primary expert. Source allows that: release_to() flushes an open group when the next ring seq id was not routed, before 16 experts accumulate. Group width was not counted per launch, so the 1-expert reading is that count plus that source path, not a recorded g.n.
+
+Share of the bucket: kernel span 629.8/6369.2 = 9.9%. Stream outside the kernel 5739.3/6369.2 = 90.1%. Per launch, about 0.089 ms of kernel span and 0.810 ms of stream gap. The host enqueue average is 472.5/7085 = 0.067 ms, so the GPU-visible gap is not the launch API itself.
+
+Reconciliation with the warm wall. Speed baseline is this pair's OFF server clock, 36635.0 ms, 204.75 PP. Stage J OFF was 36774.2 ms with the same ids. ON prefill() timer: 7494 tokens, wall 36727 ms, GPU timeline 36651 ms. Server ON prefill is 37669.9 ms, so 943 ms of that server clock is outside prefill() and has no phase. Inside prefill(), 36727-36651 = 76 ms is outside the primary event sum. The 6369.2 ms bucket is inside the GPU timeline. Host staging 16631 ms overlaps that timeline (16631+36651 exceeds 36727) and is not added. Stage J's unsplit bucket was 6022 ms on a different ON run. This bucket is 347 ms higher. That is an upper bound on the extra event-record cost inside the bucket, and it does not move the 5739 ms gap down to the 630 ms kernel.
+
+Not distinguished. The 629.8 ms is stream time of the copy kernel, including its own memory waits, not shader-active cycles. The 5739.3 ms is every other same-stream gap charged to kPfDequant: host walk between experts, the post-gather slot event, and the bubble until kPfGemmGU. Those pieces are not split further. Peer times stay off this table.
+
+Ceilings against the OFF wall of 36635.0 ms, if that many ON-measured milliseconds became zero and nothing else grew. New PP versus 204.75.
+- Outside-kernel stream gap 5739.3 ms: wall 30895.7 ms, PP 242.8, +18.6%.
+- Gather kernel span 629.8 ms: wall 36005.2 ms, PP 208.3, +1.7%.
+
+2. VERDICT
+HOST_GAP_DOMINANT. Nine tenths of the packed-gather bucket is primary-stream time with no gather kernel in it. A faster copy kernel cannot remove more than about 1.7% of this prefill. The gap is real on the current issuer-0, TP=1, chunk-4096 path.
+
+One future change, not run here. Keep the ring-slot rule that a slot is not reused before its gather has been recorded, and stop flushing a partial group merely because the next ring id was not routed, so copy16_group_kernel runs on a full group of 16 instead of about one expert. Same bytes must land in the same group slots before GEMM. Gate: this 7501/512 prompt, output sha256 must stay ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046, hardware unchanged. Stop if any id diverges, or if a timing-on packed-gather bucket does not fall by at least 1000 ms from 6369 ms. Upper bound if the whole 5739 ms gap disappeared is 242.8 PP. Do not start that from this result.
+
+3. EVIDENCE
+Runs: /home/ubuntu/strata-speedup/src-codex-k-gather-20261015/codex-work/stage-k-20261015/runs/grok_k_off_7501_512 and grok_k_on_7501_512. Build logs: codex-work/cmake.log, ninja.log, ldd.txt, help.txt, prefill-gather-split.diff. Driver start 2026-10-15T16:34:50Z. Each arm 116.2 s including load, rc 0, 512 tokens, finish=length. compare.json records both shas equal to the stage I sha and both divergence indexes null.
+
+Stopped. No production edit, no V1 or V2 binary change, no second peer, no 32k, no kernel patch.
+END.
