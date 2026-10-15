@@ -1,0 +1,34 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-strata-three-vega-gather-batching-speed-gate-20261015-p
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-strata-three-vega-gather-batching-speed-gate-20261015-p
+
+verdict: BLOCKED_DESIGN
+gate1: FAIL_UNSAFE_COALESCE
+gpu_run: NOT_RUN
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+No source edit, no isolated tree, no build, no GPU run. V1 prefill.cpp sha256 f564ed03fb8ad2f2a33d39703929bca694ecf31b51ca92c756a503173f85f251 and binary sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7 are unchanged. ornith-server stayed inactive. Stage K's tree and the V2 tree were not modified. The known-good three-GPU reference remains Stage K OFF: 7501/36635.0 ms, 204.75 tok/s, 512/23282.8 ms, 21.99 tok/s, token sha256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046.
+
+WHY THE FLUSH IS THERE
+On the IQ3_S MMQ stream_all path, STRATA_PREFILL_GROUP_GATHER defaults on (prefill.cpp:3151). compute() stores the expert pointer at group slot q = j % 16 and returns while the group is open (3208-3213). It calls flush(), which launches one copy16_group_kernel, only when the group reaches 16 or the layer order ends. release_to() (3314-3321) runs before each routed expert and, while any ring slot is held in that open group, flushes first, then records the hole slot's used event and give_back's it.
+
+give_back() on the Stage K issuer (STRATA_PREFILL_ISSUER=0) calls issue_until(upto + ring) (2162-2164). issue_until() waits on used[used_of[slot]] and then cudaMemcpyAsync's a new expert into that slot (2088-2091). The ring for this unpinned IQ3_S path is 96 slots once the chunk is at least 1024 (ring_slots, pinned share below 0.9). A held slot at sequence index h is the same ring slot as index h+96. Any give_back past h issues h+96. The used event that the copy stream waits on is still the previous occupant's event, because the current group's used event is recorded only inside flush(), after the gather kernel (3190-3196). Removing the flush and still giving the hole back overwrites a blob the open group has not read. Holding the hole without give_back stops the 96-slot issuer from reaching the next routed expert whenever the id span exceeds the ring. That is a deadlock on this issuer, and it is a different lifetime rule.
+
+copy16_group_kernel (moe_mmq.cu:37) reads ga.blob[first + blockIdx.y] for the width of that launch. Those pointers are the ring slots. gather_native_group (moe_mmq.cu:229) returns before launch when any pointer is not 16-byte aligned. Stage K saw fallback 0 and memcpy 0, so the live path is this kernel. The GEMM that follows still covers the whole j%16 group (ngx = q+1 at 3226). Partial flushes split the copy launches. They do not split that GEMM.
+
+WIDTH
+A launch's width is the number of routed experts copied since the previous flush. A flush fires on every streamed hole while a group is open, and the stream sequence is every non-resident, non-peer expert in id order (2028-2068). Width is therefore the run of routed ids with no streamed hole between them. That run is data-dependent. Stage K's 7085 launches over 96 layer-passes is 73.8 launches per pass. A full group of 16 at that expert count would be about 5 launches per pass. The count is consistent with short runs. It is not a recorded width, and the coalesce is unsafe for every run longer than one that crosses a hole. A width counter would not make the lifetime rule safe.
+
+BLOCKED
+Deferring the flush needs a new slot event: the copy stream must wait on an event recorded after the group kernel, including when a later hole has already been given back. That is new ownership on the ring, not a one-line flush deletion. The job forbids that, and it forbids a naive flush removal. Gate 2 and Gate 3 did not start. No PP or TG delta exists for this stage.
+
+NEXT
+One later directive, only if requested: record the group's completion event on each held ring slot before any give_back can refill it, default off, same 7501/512 three-GPU config, and stop unless every token id stays ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046. Do not start that from this result.
+
+Evidence: V1 src/prefill/prefill.cpp lines cited above and src/prefill/moe_mmq.cu gather_native_group. Stopped.
+END.
