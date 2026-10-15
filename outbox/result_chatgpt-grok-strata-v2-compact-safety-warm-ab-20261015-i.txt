@@ -1,0 +1,83 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-strata-v2-compact-safety-warm-ab-20261015-i
+source: GROK
+target: CHATGPT
+status: FAIL
+in_reply_to: chatgpt-grok-strata-v2-compact-safety-warm-ab-20261015-i
+
+gate1: PASS
+gate2: FAIL
+performance_claim: NONE
+correctness: INCONCLUSIVE
+promotion: NO
+net_vram_saving: NOT_OBSERVED
+
+Gate 1 passed from the compiled host sources, so one cache-fair 7501/512 pair plus one reverse V1 ran. All three arms generated 512 tokens and exited 0. V2 is not a speed or correctness success. Against the warm reverse V1, prefill is +0.42% and decode is -4.26%. Sampled token ids match V1 through index 39 and diverge at index 40. There is no forced-history logit proof. Do not promote. Do not patch. Do not run a longer context.
+
+GATE 1 PASS
+Compiled tree: /home/ubuntu/strata-speedup/src-codex-v2-compact-20261015
+prefill.cpp sha256 adc65414fe16bbaeabf9bdabaa34fcc72961d0dde13886ac55276a97924d0f97 (3651 lines)
+kernels.cu sha256 1b86245faf1edafb876f220ad59e11355b70e5c038c28b213bcfb42422990e77
+kernels.hpp sha256 e6ba973190cbfd9a165242b2922d3f4f1805b010f05c5927cb4bc4c26ee2d3c2
+router_top10.cu sha256 0672ef9cc05a0b261c6c19c94680379c6ce43c1862c7a2fb719879b2f71838bf (identical to V1)
+moe_mmq.cu sha256 a50ac5830bd1e7420d123ec5d889d48cfd6e2049a2f8ae177ebeb1bae63c58f9 (identical to V1, not edited)
+V2 binary sha256 bf3e50cd28e5f4b5faad3d1d7bb42398c5ed909999d52a15abd2379cbf09fbf1 size 18922456
+CMakeCache STRATA_HIP_GFX906=ON. The only STRATA_ name added versus V1 prefill.cpp is STRATA_PREFILL_COMPACT. kernels.cu adds no env var.
+
+Opt-in. prefill.cpp:763-765 compact_main() is true only when STRATA_PREFILL_COMPACT is set and nonzero, the layout is not fused, mmq_plan().any is true, and the plan is not fallback. Line 1019 sets m.compact_moe from compact_main(fused_layout). fused_ring() at line 137 returns false when fused::enabled() is false. moe_fused.cu:367-370 returns before setting a compute capability on this gfx906 build, and available() at line 400 requires cc >= 80, so the fused path stays off. The live V2 environ had no STRATA_PF_FUSED, STRATA_DBG_NAN, STRATA_PREFILL_TIMING, STRATA_GATHER_SDMA, STRATA_HIP_ROUTER_FAST, or STRATA_PF_PEER_COMPACT. STRATA_DBG_NAN remains a default-off debug read (prefill.cpp:3429) and, when set, uses the compact buffer sizes at lines 3439-3441. It was unset.
+
+Router uniqueness. prefill.cpp:91 is constexpr K=10, N=2560, NE=512. kernels.cu:934 calls router_top10(..., k=10). The gfx906 default is router_top10_wave_kernel (router_top10.cu:426-463) unless STRATA_HIP_ROUTER_FAST is set, which it was not. Lines 236-254 run k passes. Each pass argmaxes with the lowest index on a tie, writes one id, and sets that expert's taken bit. The next pass skips taken experts. A finite logit row with n_expert >= k therefore gets k distinct expert ids. The block kernel (lines 142-172) and the fast kernel (live-bit clear) use the same one-id-per-pass rule and were not the default. An all-non-finite logit row can leave unwritten ranks; that is not a finite IQ3_S row, and the same row is not a defined route on V1 either.
+
+Slot permutation and one launch per expert. After the router, the host groups on m.cs (prefill.cpp:2640 sync, then 2706-2721). off[] assigns each expert a disjoint row range. Each of the T*K entries does fill[e]++ once, stores that row in slot[i], and stores token i/K in src[row]. Slots are a permutation, so compact_moe_weights_kernel (kernels.cu:976-978) writes each compact_wrow once. Because one token contributes at most one row to an expert, that expert's src values are unique and its row count is <= T. The group loop also refuses a group whose rows would exceed T, and returns "compact prefill: expert row count exceeds token count" if one expert alone exceeds T (line 2754). That cap is a backstop. The uniqueness proof is the taken-mask plus this fill, not the earlier synthetic host sample.
+
+tp_scatter_add write set. kernels.cu:1010-1016 is a non-atomic fmaf into acc[tok[r]*N + d], one thread per (row, column) via blocks_for (line 63). Primary compact issues one launch per expert, in expert-id order, all on m.cs (prefill.cpp:3296-3303). Distinct columns of one row do not alias. Distinct rows of one expert have distinct tokens, so they do not alias. A token that appears in several experts is written by later launches on the same stream, not by concurrent writers. bo is zeroed once on m.cs before the expert loop (line 2768). compact_moe_shared (kernels.cu:980-982, one thread per output element) runs after the scatters, on m.cs (prefill.cpp:3418). The peer scatter writes P.tp_acc on the peer stream ps (lines 2920-2923), not m.bo. The primary waits on pp->ev_done (line 3408) before tp_add_f16/tp_add_f32 into bo (lines 3421-3422). m.copy does not write bo. No second stream updates bo during the scatters.
+
+Lifetime and sizes. Dm, GU, H, Xq, and Hq for a compact group are the T-row buffers at work_offset 0 (lines 1047-1054 and 3265-3295 on the host). The group's MMQ and its per-expert scatters are queued on m.cs before the next group reuses those buffers, so the next write cannot pass the scatter. compact_wrow is filled once on m.cs before the loop and read by the later scatters on m.cs. Allocation is T*1280 / T*640 / q8_bytes(T, N) / q8_bytes(T, 640) plus T*K floats for compact_wrow (lines 773 and 790-791). Group scratch stays MMQ_GROUP * matrix_bytes (lines 1063-1064). Peer buffers were not resized. Line 1846 refuses compact unless the primary is CUDA0, an expert source exists, pp2 is absent, and the one peer is TP. The V2 log printed that banner, so pp2 was not active.
+
+GATE 2 FAIL
+The pair was allowed only because Gate 1 passed. No source edit, no rebuild, no second algorithm. The policy runner was copied, not edited in place. Copy: stage-i-20261015/run_opt_bench_i.py sha256 251f1af0f2d9090fb4b71e178b675daf598a09c5b81f52ba2d6f12499a60c779. The only copy changes are the run directory, an --exe path pin, and --compact setting STRATA_PREFILL_COMPACT=1. Original runner sha256 remains ed2c343ff78ffc8be01948537e929ff32e489da87de1f66a30fb6a3d659cd92b. Guards are unchanged: 300 MiB VRAM stop, 1200 s progress stop, the pre-existing junction>60 start wait (it did not wait), no new software thermal cutoff. Hardware before and after matched on every arm. Clocks, voltage, fans, and power caps were not written.
+
+Idle before launch: ornith-server inactive, gpu_busy_percent 0/0/0, no llama-server and no strata. PCI 05, 0c, and 0f are the three Vega 64 [1002:687f]. HIP_VISIBLE_DEVICES=0,1,2. ldd of the V2 binary under LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib resolves libhipblas.so.2, libamdhip64.so.6, rocsolver, rocblas, amd_comgr, hsa-runtime64, and hipblaslt. No so.5 and no unresolved HIP library. Prompt file /home/ubuntu/strata_realworld_7501.tokens sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. Both arms used the stage G argv: pack ista-iq3s, the two IQ3_S GGUF shards, MTP host experts, spec 3, prefill 4096, KV int8, context 131072, STRATA_TP=1, STRATA_PREFILL_ISSUER=0. STRATA_PREFILL_COMPACT=1 was present only on the V2 live /proc environ. V1 and the reverse V1 did not have it.
+
+Cache. MemTotal is 82180984 kB. Shard 1 is 54817524224 bytes and shard 2 is 28800138432 bytes, together larger than RAM, so both files cannot be fully resident. Before the arms, 32 MiB windows of shard 1 were resident 0.330 / 0.981 / 0.881 / 0.871 / 0.770 at fractions 0, 0.25, 0.5, 0.75, 0.98. Shard 2 was 0.002 / 1.0 / 1.0 / 1.0 / 1.0. Shard 2 and the small tokenizer files had one read-only full read because their heads were cold. Shard 1 was not read again: another streaming pass would evict the resident working set and still could not keep both shards. Page cache before launch: Cached 72010680 kB, MemAvailable 72497476 kB. The first V1 is therefore not the warm baseline. The reverse V1 is.
+
+Three arms, in order, each finish=length, engine_rc=0, generated=512, hardware_settings_unchanged=true. No kernel fault, illegal access, OOM, or GPU reset in the engine logs. The "no error" lines are the existing verify windows.
+
+grok_i_v1_7501_512 (first, not the warm baseline)
+utc from the run directory. exe V1 sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7
+DONE 512 7501 39534.9 23339.9 length
+PP 189.7311 = 7501/39.5349 s. TG 21.9367 = 512/23.3399 s.
+output sha256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046 (same sampled ids as stage G)
+min free MiB 05=375 0c=567 0f=420. max used MiB 05=7800 0c=7608 0f=7755. max junction 62.0 C.
+Live environ: STRATA_PREFILL_ISSUER=0, STRATA_TP=1, STRATA_PREFILL_COMPACT absent, HIP_VISIBLE_DEVICES=0,1,2, LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib:/opt/rocm-6.3.4/lib. No compact banner.
+
+grok_i_v2_7501_512
+exe V2 sha256 bf3e50cd28e5f4b5faad3d1d7bb42398c5ed909999d52a15abd2379cbf09fbf1
+DONE 512 7501 36541.7 24472.3 length
+PP 205.2723 = 7501/36.5417 s. TG 20.9216 = 512/24.4723 s.
+output sha256 52d5ae8657316bca3bc447b72aa915fb200dd06efa0878cd660690ccd7e0905f
+min free MiB 05=375 0c=567 0f=420. max used MiB 05=7800 0c=7608 0f=7755. max junction 66.0 C.
+Live environ adds only STRATA_PREFILL_COMPACT=1. Engine log: "strata prefill: compact primary groups enabled, at most 4096 rows; Dm 40.0 MiB".
+Strata-TP line is CUDA1 only, chunk up to 4096, one FP16 sum per token. CUDA2 appears as in stage G: --expert-cache-device2 auto, not a second prefill peer. Compact would have refused m.pp2, and the banner means it did not.
+
+grok_i_v1b_7501_512 (warm reverse V1, the baseline)
+same V1 binary and the same argv, compact absent
+DONE 512 7501 36693.8 23429.3 length
+PP 204.4215 = 7501/36.6938 s. TG 21.8530 = 512/23.4293 s.
+output sha256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046
+min free MiB 05=376 0c=567 0f=420. max used MiB 05=7799 0c=7608 0f=7755. max junction 68.0 C.
+
+Warm comparison, V2 minus grok_i_v1b, not the first arm and not stage G's cold PP 131.60:
+PP +0.851 tok/s (+0.42%), prefill wall -152.1 ms.
+TG -0.931 tok/s (-4.26%), decode wall +1043.0 ms.
+The first V1 PP is 7.19% below the reverse V1 (189.73 vs 204.42). That gap is order and cache. The reverse V1 matches stage G's warm V1 (PP 204.62, TG 21.94, same output sha256). V2 decode is slower than both warm V1s. Prefill is not a meaningful gain.
+
+Sampled ids: 512 and 512. Indices 0..39 match. Index 40 is 33513 on both V1 arms and 30260 on V2. STRATA_DUMP_FIRST_LOGITS is first-token only. No forced-history logits were available, so numerical correctness is INCONCLUSIVE. Matching would not have been a logit proof. Divergence plus the slower decode forbids a speed claim. No nonfinite banner, crash, or GPU reset.
+
+VRAM samples every 2 s show the same floor and the same peak on V1 and V2. The smaller Dm scratch (40.0 MiB in the banner versus the old T*K buffer) did not appear as lower peak used VRAM. Net saving NOT_OBSERVED. The 300 MiB guard did not trip.
+
+INTEGRITY
+V1 prefill.cpp still sha256 f564ed03fb8ad2f2a33d39703929bca694ecf31b51ca92c756a503173f85f251. V1 and V2 binaries unchanged. Production llama-server sha256 3db76a9103250117a41c8189c36fd2ae80057005b37e3793db9a465a89dfae2a size 17920. threecard.cmd sha256 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23 size 690. ornith-server inactive after the runs. No strata process left. Artifacts: /home/ubuntu/strata-speedup/src-codex-opt-20261014/codex-work/stage-i-20261015/ (runner copy, preflight.json, summary.json, runs/grok_i_v1_7501_512, runs/grok_i_v2_7501_512, runs/grok_i_v1b_7501_512). Stage G and stage H artifacts were not overwritten.
+
+NEXT
+Stop. Leave STRATA_PREFILL_COMPACT unset. Do not rebuild, do not patch the scatter, and do not run 32k or another pair. This candidate loses 4.26% decode against the warm V1 and its sampled ids diverge at index 40.
