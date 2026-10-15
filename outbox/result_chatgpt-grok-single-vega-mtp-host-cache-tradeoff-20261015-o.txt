@@ -1,0 +1,41 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-mtp-host-cache-tradeoff-20261015-o
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-mtp-host-cache-tradeoff-20261015-o
+
+verdict: NO_BENEFIT
+jobs_gate: MISS
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+One scored 7501/512 arm on the existing HIP6 fork. No smoke, no rebuild, no second flag. The binary and the production files were not modified. ornith-server stayed inactive. No strata process was running at start.
+
+SOURCE
+STRATA_MTP_EXPERTS_HOST=1 in src/core/mtp.cpp places the 675 MiB drafter experts in cudaHostAlloc mapped host memory and skips the expert cudaMalloc. Dense MTP weights still use cudaMalloc on the one visible device. The flag does not open a peer GPU. STRATA_TP was unset. --expert-cache-device and --peer-device were absent. The banner printed "675 MiB of drafter experts in mapped host memory" and "draft layer loaded, 159 MiB of VRAM (experts 675, dense 111)".
+
+SETUP
+Fork binary sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7 before and after. Binary mtime stayed 2026-10-15 14:50:14Z. Prompt sha256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. KFD's first GPU node is 0000:05:00.0. Child env was HIP_VISIBLE_DEVICES=0, ROCR_VISIBLE_DEVICES=0, CUDA_DEVICE_ORDER=PCI_BUS_ID, LD_LIBRARY_PATH=/opt/rocm-6.3.4/lib, STRATA_MTP_EXPERTS_HOST=1. Argv matched the Stage M dry-run, including --prefill 2048, --spec 3, --max-context 131072, --kv int8, --kv-resident 20480, --expert-cache auto --expert-cache-per-layer, --vram-reserve-mib 700, greedy, --max-new 512. No thermal kill. Stop rules were free VRAM under 300 MiB after 30 s, another card busy or up 64 MiB, a 900 s stall, or a 1800 s wall. Read-only clocks were starred sclk 852 MHz and mclk 1000 MHz on 05, 0c, and 0f before and after. power1_average was absent, so power was not sampled. Finished 2026-10-15T17:58:06Z, rc 0, 512 ids, empty stop reason. llama-server sha256 3db76a9103250117a41c8189c36fd2ae80057005b37e3793db9a465a89dfae2a. threecard.cmd sha256 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23. Cached RAM 75426756 kB before and 74761464 kB after. MemAvailable 79606216 kB before. Stage M saved no meminfo. Caches were not dropped.
+
+STAGE M VERSUS STAGE O
+Both rows are the same fork, the same argv, PCI 0000:05:00.0 only. Stage O adds only STRATA_MTP_EXPERTS_HOST=1. Stage L and Stage J are not rows in this comparison.
+
+Stage M, MTP experts in VRAM: cache decision 2.31 GiB free, 652 slots, 13 per layer, 1.62 GiB. Draft layer 834 MiB of VRAM. Prefill 7500 in 54879.5 ms, 136.66 tok/s, TTFT 55981.6 ms. Decode 512 in 91801.4 ms, 5.58 tok/s. 215 rounds, 2.39 tokens/round. Jobs 295.936 ms/round. Pool 359.505. GPU run 62.189. CPU experts 16.77 distinct / 21.23 routed per layer. Draft timer 7.744 ms/round. Accepted 299 of 431 (0.694). Output sha256 5d306f424217e65801f1eaf0337fbd677f211a0897500488396ae8ad57e4bd22.
+
+Stage O, MTP experts mapped on the host: cache decision 2.97 GiB free, 918 slots, 19 per layer, 2.28 GiB. Draft layer 159 MiB of VRAM. Prefill 7500 in 54454.7 ms, 137.73 tok/s, TTFT 55550.0 ms. Stderr chunk 54163.1 ms, streamed 96696, host 35557.1 ms, resident 1550. Decode 512 in 86914.6 ms, 5.89 tok/s. 216 rounds, 2.38 tokens/round. Jobs 274.023 ms/round. Pool 332.569. GPU run 57.161. Ring wait 38.966. Host 0.015. Commit 0.332. CPU experts 15.39 distinct / 19.50 routed per layer. Draft timer 9.938 ms/round over 215 draft rounds. MTP prompt 187.3 ms. Accepted 298 of 431 (0.691). Counts 0:47 1:40 2:129 3:0 4:0. Suffix 5 windows, 7 of 11. File tier 333092.9 MB, 1542.10 MB/round, read timer 496.7 ms/round at 3.10 GB/s, overlapping the round. Adaptive 5179 swaps, 12.554 ms/round, overlapping. Output sha256 1109d0d7ba2e87c8a9bd7ff28c19b5c09d539dc9ee635fab6061234cf73b2de1.
+
+ACCOUNTING
+Round wall is 86914.6/216 = 402.4 ms. Exclusive pieces are ring 39.0 + pool 332.6 + host 0.02 + commit 0.33 = 371.9 ms. Remainder 30.5 ms/round. Jobs 274.0 and GPU run 57.2 sit inside the pool. Gate/up 40.3 and down 16.4 sit inside GPU run. The file-read timer and the adaptive timer overlap the round. The printed draft timer, 9.938 ms/round, is inside the unassigned remainder. Stage M's printed draft timer was 7.744 ms/round. These terms are not added together.
+
+VERDICT
+The Stage N gate was jobs/round at or under 265.9, a drop of at least 30 ms from 295.936. Measured jobs are 274.023, a drop of 21.9 ms. The gate misses. Decode wall is 4887 ms shorter and the printed rate is 5.89 tok/s against 5.58. Token ids match through index 47 and diverge at index 48 (Stage M 1785, Stage O 42903), so that wall delta is on a different expert trajectory for most of the 512. Min free VRAM on 05 was 398 MiB (peak used 8155590656 of 8573157376). 0c and 0f max busy 0, max used 8421376, which is 32768 bytes over the 8388608 idle baseline. Card 05 junction samples peaked at 63 C, the other cards at 28 C, 75 samples. Journal tail had no amdgpu fault line. The run is finite and inside the headroom guard. It is still NO_BENEFIT on the jobs gate, and it is not a correctness or promotion result.
+
+The cache grew by the 675 MiB the drafter experts left behind (1.62 GiB to 2.28 GiB, 13 to 19 slots per layer). Routed CPU experts fell from 21.23 to 19.50 per layer. The draft timer rose from 7.744 to 9.938 ms/round. About 19.5 CPU expert routes per layer remain, and they are still the body of the 332 ms pool.
+
+NEXT
+Stop this knob. The 675 MiB move already happened, and another value of the same flag is not available. Do not add a second flag, a second card, or a rebuild from this result.
+
+Evidence: /home/ubuntu/strata-fork-single-work/stage-o-20261015/bench_7501_512/stdout.txt and stderr.txt, summary.json. Stopped.
+END.
