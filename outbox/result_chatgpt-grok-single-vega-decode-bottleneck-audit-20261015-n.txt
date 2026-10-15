@@ -1,0 +1,44 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-decode-bottleneck-audit-20261015-n
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-decode-bottleneck-audit-20261015-n
+
+diagnosis: HOST_TRANSFER_OR_CACHE
+gate_b: NOT_RUN
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+No new GPU run. The Stage L and Stage M CLI stdout already print the decode split. STRATA_DECODE_TIMING was not required. Nothing was rebuilt. Production hashes and the two binaries were not touched. ornith-server was inactive and no strata process was running.
+
+DIAGNOSIS
+On one Vega 64 the 512-token decode is about 410 to 427 ms per verify round, and about 2.3 tokens are committed per round. Roughly 70% of that round is dispatch jobs for experts that missed the GPU cache and ran on the CPU. The GPU expert math is about 57 to 62 ms inside that same pool time, not an extra term. MTP is on and is accepting drafts. It is not the reason the round is slow.
+
+The counters below are one critical path. Pool, dispatch, and pool-multi are the same pool. Gate/up and down sit inside GPU run. File-read milliseconds and the adaptive-tier milliseconds overlap the round. They are not added.
+
+STAGE L, official v0.1.44.1 plus the 33-line port, binary e2437e5a, PCI 0000:05:00.0 only, prefill 2048
+224 rounds, 2.29 tokens/round, decode wall 91900.8 ms = 410.3 ms/round, 5.57 tok/s.
+Ring wait 37.2 ms. Pool 345.0 ms, of which jobs 287.3, GPU run 56.6, plan plus activation quantize 0.6. Host 0.02. Commit 0.07. Sum of those exclusive pieces 382.3 ms. Remainder 28.0 ms/round (6275 ms over the decode). The CLI does not print a draft timer. That remainder is the unassigned part of the round, which is where the MTP draft call sits.
+CPU experts 16.08 distinct and 20.09 routed per layer. PCIe experts 0.00. Drafts accepted 289 of 447 (0.647). Accepted-per-round counts 0:56 1:47 2:121 3:0 4:0. File tier 361612 MB, 1614 MB/round, read timer 538 ms/round at 3.00 GB/s, which is page-cache speed and overlaps the 410 ms round. Adaptive swaps 5356 experts, 12.5 ms/round, overlapped. Cache 816 slots, 17 per layer, 1.56 GiB. MTP weights 835 MiB on this GPU (experts 675). Free at verify capture about 506 to 612 MiB.
+
+STAGE M, fork engine 0.1.39, binary 79178630, same card and the same command
+215 rounds, 2.39 tokens/round, decode wall 91801.4 ms = 427.0 ms/round, 5.58 tok/s.
+Ring wait 39.0. Pool 359.5, of which jobs 295.9, GPU run 62.2, plan plus activation quantize 0.9. Host 0.02. Commit 0.30. Exclusive sum 398.8 ms. Remainder 28.2 ms/round (6056 ms). CPU experts 16.77 distinct and 21.23 routed per layer. PCIe 0.00. Drafts accepted 299 of 431 (0.694). Counts 0:44 1:43 2:128 3:0 4:0. File tier 360664 MB, 1678 MB/round, read timer 553 ms/round at 3.03 GB/s, overlapping. Adaptive 4912 swaps. Cache 652 slots, 13 per layer, 1.62 GiB. MTP 834 MiB on this GPU (experts 675).
+The 652 versus 816 slot gap does not change decode. Both still miss about 16 experts per layer. Token ids still diverge at index 5, so the expert pattern is not identical. The decode shape is the same anyway.
+
+STAGE J, not a matched row, fork with STRATA_TP=1 and CUDA2 decode cache, prefill 4096
+235 windows, 2.18 tokens/window, 99.36 ms/window, decode wall 23349.6 ms, 21.99 tok/s. CPU experts 1.81 per layer (2.04 entries) and VRAM hits 5.96. PCIe 0.00. GPU-reach wait 34.4, per-layer host 51.2, draft 9.2. That host term is 51 ms, not 287 ms. CUDA2 is a second card holding extra decode experts (the stage J log: 3961 additional experts). It is not a faster kernel on the same 8 GB card.
+
+WHAT MTP DID
+Both single-GPU runs loaded the draft layer and verified windows. --spec 3 is the MTP depth. With the default suffix drafter the verify cap becomes spec+2, which is why the line says rounds of 5. The offered drafts are about 2 per round, so the MTP window stayed at 3. Acceptance 0.65 and 0.69 is real speculation, not a configured flag that never hit. Suffix added 6 windows on L and 8 on M. A low-acceptance label does not fit. The draft's own 675 MiB sits on the same 8 GB card as the expert cache, which is why the cache is only 1.56 to 1.62 GiB after weights, KV streaming, and the 700 MiB reserve. How many of the 287 ms would move if those 675 MiB were given back to the cache was not measured.
+
+PUBLIC 42 TOK/S
+That figure is an RTX 2000 Ada 16 GB run of a smaller Coder model. This card is an 8 GB gfx900 Vega with no fp4/tensor path, running the ISTA IQ3_S 7501-token prompt. It is not a target for this model.
+
+NEXT MEASUREMENT, NOT STARTED
+One single-GPU arm of the fork, same argv as Stage M, plus only STRATA_MTP_EXPERTS_HOST=1, so the 675 MiB draft experts leave VRAM and the auto cache can grow. Record the same stdout lines. Stop if jobs/round does not fall by at least 30 ms from 296 ms, if card 05 free VRAM goes under 300 MiB, if 0c or 0f leaves idle, or if the process faults. No tok/s promise. A second-card decode cache is a different architecture and is not this test.
+
+Evidence: stage-l bench_pf2048_7501_512/stdout.txt, stage-m bench_7501_512/stdout.txt, stage-j grok_j_v1_off engine.log. Stopped.
+END.
