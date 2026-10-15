@@ -1,0 +1,49 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-three-vega-transition-readiness-20261015-ac
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-three-vega-transition-readiness-20261015-ac
+
+verdict: BASELINE_PRESENT
+next_run: BLOCKED_ON_OWNER_POWER_CONFIRMATION
+implementation: NOT_STARTED
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+Audit only. No build, no GPU job, no service change, no clock or power write. The three-card Strata baseline already exists and is faster than the best one-card resident run. It is not comparable token-for-token. Loading all three Vegas again waits on an owner confirmation of the power feeds.
+
+VERIFIED HARDWARE
+Three AMD devices 1002:687f are up. PCI 0000:05:00.0 is DRM card1. Its path is 00:02.0 to 03:00.0 to 04:00.0 to the GPU. Every hop in that path reads current and max link width 16 at 8.0 GT/s. amdgpu pp_dpm_pcie is starred at 8.0 GT/s x16. VRAM total 8573157376, used 16674816 while idle. Junction temp2 28 C. power1_cap 220000000.
+
+PCI 0000:0c:00.0 is DRM card0. Path 00:1c.4 to 0a:00.0 to 0b:00.0 to the GPU. The PCH root 00:1c.4 is width 1 at 5.0 GT/s, and that is also its max. The first switch hop 0a:00.0 negotiated width 1 at 5.0 GT/s even though its max capability reads 16 at 8.0 GT/s. The downstream switch 0b:00.0 and the GPU endpoint both read width 16 at 8.0 GT/s. amdgpu pp_dpm_pcie is starred at 5.0 GT/s x1. Idle VRAM used 8388608. temp2 25 C. power1_cap 220000000.
+
+PCI 0000:0f:00.0 is DRM card2. Path 00:1c.5 to 0d:00.0 to 0e:00.0 to the GPU. Same split: the PCH root and 0d:00.0 are width 1 at 5.0 GT/s, the local switch and the endpoint read width 16 at 8.0 GT/s, and pp_dpm_pcie is starred at 5.0 GT/s x1. Idle VRAM used 8388608. temp2 25 C. power1_cap 220000000.
+
+KFD GPU nodes are location_id 1280, 3072, and 3840, which are buses 05, 0c, and 0f, each simd_count 256. HIP 0,1,2 in that order is 05, then the x1 peer 0c, then the x1 peer 0f. An x1 Gen2 link at 5.0 GT/s is a 500 MB/s encoding ceiling per direction. That is a ceiling, not a measured copy rate.
+
+AER correctable, nonfatal, and fatal counters on the three GPU endpoints currently read zero. That is this boot's device counters, not a history of every past fault.
+
+ornith-server is inactive. Rechecked sha256: strata binary 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7, threecard.cmd 445e2c7aec8f45b699ae88926aab5ca78a3387a4bf2aec933dd3e3107b6fbb23, production llama-server 3db76a9103250117a41c8189c36fd2ae80057005b37e3793db9a465a89dfae2a. None of those files were started.
+
+VERIFIED THREE-CARD STRATA
+The PP 204.75 / TG 21.99 figure is Stage K OFF, not a different model. Result result_chatgpt-grok-strata-v1-gather-vs-submission-20261015-k.txt. Isolated binary sha256 8575cb1c5207db222c0ca6fecdd7ebeb8f3bd9f49be2bf5a133c21ec781e86a7. DONE 512 7501 36635.0 23282.8. PP 204.7496. TG 21.9905. Output sha256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046. Same ids as Stage I. Args matched Stage J: ISTA IQ3_S, two shards, PLE direct, --mmap-experts, --prefill 4096, --spec 3, --pool-workers 13, --expert-cache auto --expert-cache-per-layer, --expert-cache-device1 3700, --expert-cache-device2 auto, --remote-expert-opt, static profile, --kv int8 --kv-resident 16384, --max-context 131072, --vram-reserve-mib 700. HIP_VISIBLE_DEVICES=0,1,2. STRATA_TP=1, issuer 0. No layer-split numbers were passed. No --resident-cpu-experts. Min free VRAM on the Stage J pair, same argv, was 376/567/420 MiB on 05/0c/0f. Max used about 7800/7608/7755 MiB. Junction max on K was 64 C then 66 C.
+
+Stage J OFF is the same argv on the original binary 79178630. DONE 512 7501 36774.2 23349.6. PP 203.9745. TG 21.9276. Same output sha. PCI map recorded there: 05 primary x16, 0c the TP peer, 0f CUDA2. Stage Q, later the same day, repeated that argv on binary 02bb9446 and got PP 204.256 / TG 21.954 and PP 206.462 / TG 21.937, same sha, min free 375/567/420 MiB, busy max 100/99/20 and 100/99/18, junction max 63/41/34 C and 67/43/35 C. Power cap stayed 220000000. Those three results agree. They are the baseline.
+
+The one-card resident baseline is a different program shape. Stage T A, original binary, one GPU, --resident-cpu-experts, --prefill 2048, no remote expert cache, 13 workers plus host: decode 17.85 tok/s, prefill about 139 tok/s, output sha256 1109d0d7ba2e87c8a9bd7ff28c19b5c09d539dc9ee635fab6061234cf73b2de1. Stage Z on that shape measured waitCPU 53.79 ms/window and gate/up 46.025 ms, with 918 VRAM slots and a 46.12 GiB CPU complement. generate.cpp returns 2 if --resident-cpu-experts is combined with a remote expert cache or a layer split. The 17.85 tok/s run is not a slower version of the 21.99 tok/s run. Prefill chunk, peer GPUs, and where the experts sit all differ. The output ids differ between those two shapes. Both shapes repeated their own ids. No scored answer set was run. Logits stay unproved.
+
+Stage J's prefill timer is the transport evidence already in hand. With TP=1 the x1 peer on CUDA1 did about 28% of routed prefill rows. Its gemm bucket was 3490 ms and its transfer/setup bucket was 9775 ms. Its idle was 22774 ms. A second prefill peer was judged not to pay. That conclusion is about prefill placement, not about decode waitCPU.
+
+UNKNOWN POWER
+Software cannot see the PSU. A 2 Oct operator note in the mailbox says the two x1 cards sit on a separate EVGA 750 W supply, and a 26 Sep note says a 750 W supply with two Vegas dropped a card off the bus. This audit did not open a photo, did not measure a rail, and did not confirm that the October wiring is still the wiring. Three caps at 220 W are 660 W of GPU cap before the CPU. That is enough to require an explicit owner confirmation of which supply feeds which card before any three-GPU load. Historical Vulkan VM_L2_PROTECTION_FAULT notes are a different backend. The Strata J/K/Q result files do not record that fault. Current AER zeros do not retire the older power notes.
+
+HYPOTHESIS FOR THE ONE NEXT RUN
+The one-card limit is CPU experts that do not fit in 918 VRAM slots. The three cards cannot absorb the 46.12 GiB complement: Stage J already had the three cards near 7.6 to 7.8 GiB used, with a few hundred MiB free. The existing three-card command already places expert caches on the two peers and is the faster decode. The unknown is whether that decode's remaining time is CPU experts that missed both caches or the x1 copies.
+
+NEXT
+Do not start it from this result. After the owner confirms the feeds can hold all three cards at the present 220 W caps, run one 7501/512 shot of the Stage Z one-shot profile binary, argv copied from Stage K OFF, HIP_VISIBLE_DEVICES=0,1,2, no --resident-cpu-experts, no new cache size, no layer split, no clock or power write. Capture the GPU-stage line, PP, TG, the 512-id sha against ea1f0a23, per-GPU free VRAM, junction, and AER before and after. Stop on a fault, a reset, a card leaving the bus, AER leaving zero, or free VRAM under 300 MiB. No software temperature kill. If the ids leave ea1f0a23, record the index and do not treat that as a scored quality result. Keep the one-card resident command as the fallback. Do not tune from that single profile.
+
+Evidence: this audit's sysfs reads, Stage J/K/Q/T/Z outbox results, expert_cache refusal noted in the Stage R result. Stopped.
+END.
