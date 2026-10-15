@@ -1,0 +1,92 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: grok-q4-cpu-offload-stall-20261015
+source: GROK
+target: SUPERVISOR
+status: PAUSED
+in_reply_to: q4-3gpu-1cpu-async
+
+NOT SOLVED. Work is paused at Gorast's request. Do not treat any number below as a promoted CPU-offload result.
+
+The task was the same Q4 command with experts 5, 8, 20, and 35 on the CPU, three Vulkan GPUs, and the CPU busy together. That run still scores about 268-271 PP and 23.0 TG, overlapped 0, four 0. The text is a coherent <think>. It is slower than the pipeline-off placement rerun (365.37 PP / 25.61 TG) and below the "do not leave TG worse than ~26.2" line.
+
+An all-GPU pipe suite was run earlier by mistake and is NOT this result. Those numbers are listed at the bottom only so they are not confused with the CPU-offload scores. They were not sent before.
+
+HOST AND COMMAND
+
+Bench ubuntu@192.168.100.116. Binary only /home/ubuntu/c1-xdev/build/bin/llama-server. LD_LIBRARY_PATH is that bin directory. Production /opt/llama/llama-c1-v3mx2-20261013 was not replaced. ornith-server was not started (enabled, inactive, Restart=on-failure). /etc/ornith/threecard.cmd was not edited. No IQ3_S. The PC was not rebooted. Clocks, voltage, fans, and power were not written.
+
+Model /opt/ornith-models/Ornith-1.5-35B-A3B-AD-Q4_K-IQ4_XS.gguf
+-dev Vulkan0,Vulkan1,Vulkan2 -sm layer -ts 0.8,1,1 -ngl 99
+experts blk.(5|8|20|35).ffn_(up|down|gate)_exps.weight=CPU
+-c 131072 -ctk q8_0 -ctv q8_0 -b 2048 -ub 512 --no-op-offload
+-t 14 -tb 14 -fa on --load-mode dio -np 1 -lv 4 --temp 0.1 --jinja --no-webui --cache-ram 0
+host 127.0.0.1 port 8205, no draft
+ORNITH_PIPELINE_OT=1 GGML_VK_XDEV_ASYNC=1 GGML_VK_ASYNC_READBACK=1 ORNITH_CPU_WORKER=1 TURBOPREFILL=0
+MESA_VK_DEVICE_SELECT left unset, so Vulkan0 stays PCI 05 (the x16 card).
+Prompt /home/ubuntu/claude-ornith-logs/q32_512.json, 31619 tokens, n_predict 512, cache_prompt false.
+Runner /tmp/grok-q4-async.py. Live lines go to /home/ubuntu/fn_server.log and /home/ubuntu/claude-ornith-logs/live.log.
+
+Layer split ts 0.8,1,1: V0 layers 0-11, V1 12-26, V2 27-40. CPU experts 5 and 8 sit on V0, 20 on V1, 35 on V2. Every scored load: model 4614/6396/5994, KV 408/408/544, compute 866/765/735, sums 5888/7569/7273 MiB. All under the 8100 abort. Pipeline log: "pipeline parallelism enabled (tensor overrides kept)". xdev edge came up on the real prefill.
+
+CLOCKS (read only, 15 Oct 2026)
+
+All three cards (0c, 05, 0f) are manual. Power cap 220 W. smu_err 0.
+OD_SCLK: 852 MHz at 800 mV, then 991/1084/1138/1200/1401/1536/1536 MHz at 900 mV.
+OD_MCLK: 167 and 500 at 800 mV, 800 at 950 mV, 1000 at 900 mV.
+While a card was busy, gpumon showed 1536 MHz, HBM 1000 MHz, vddgfx 900 mV, about 72-109 W, junction about 43-49 C. A few busy samples stepped to 1401/1138/991, still at 900 mV. After the run, idle is the 852 MHz floor, HBM still 1000, 900 mV, about 5-6 W, junction about 33 C. The hwmon 26 MHz read is the clock gate. The cards were not stuck and were not the stall.
+
+CPU-OFFLOAD SCORES (the actual test)
+
+Each row is the same command, prompt 31619, predict 512, coherent <think>, edge 1, overlapped 0, four 0. GPU samples during prefill were one card near 99, sometimes two. CPU stayed about 8-11%. No sample had all three GPUs at or above 20 together with the CPU.
+
+Build | PP | TG | prompt_ms | predicted_ms
+build26, finished on its own | 270.85 | 22.96 | 116740 | 22252
+build27 relaunch | 270.24 | 22.96 | 117004 | 22259
+same command restarted | 269.77 | 23.00 | 117205 | 22213
+build28, copy/graph split timer | 269.79 | 22.95 | 117200 | 22269
+build29, ring cap 256 / 768 MB | 267.75 | 22.96 | 118089 | 22258
+
+Reference, same placement, pipeline off, earlier rerun: PP 365.37 TG 25.61. That is still the faster coherent CPU-expert number. Do not promote the ~270/23 runs.
+
+WHAT THE LOGS SHOWED
+
+vkQueueSubmit is about 1 ms. support_async is 1. The first real prefill graph is shader compile: Vulkan0 ~105 ms, Vulkan1 ~600 ms, Vulkan2 ~570 ms, submit_ms 1. Later graph_compute calls stay under 100 ms.
+
+The host stall was outside that. Scheduler splits on Vulkan1/Vulkan2 stayed ~600-890 ms with inputs 9. After a phase timer (build28), that time was copy_ms, not graph_ms. graph_ms fell to about 2 ms. copy_ms was an input-ring host wait of ~150 then ~570-860 ms. The ring log only prints "INPUT RING STALL" after a 5 s timeout, so these sub-second waits were silent until the timer was added. xdev slot wait 0, d2h slot miss 0, cpy-miss synchronize stayed at the warmup count during the prompt. input_ev 0, input_be 0.
+
+The ring holds a staging slot until the command buffer that signals it completes. That buffer also contains the scheduler event wait for the previous split, so the slot stays busy for the previous GPU graph. Nine uploads per split, and the host queues the next split as soon as it can, so 32 slots run out. Growing 32 to 33 dropped one Vulkan1 split from ~580 ms to 303 ms, then the next splits went back to ~800 ms. Build29 raised the cap to 256 slots and a 768 MB budget. That run logged 0 host waits and 0 RING STALL, and the ring grew to 96 slots (~40-100 MB per card). Prompt time did not move: still ~118 s.
+
+Per ubatch, from "ornith ubatch" on build29 (host_ms is graph build, compute_ms is graph_compute, both accumulated):
+
+ubatch 16: host_ms 93, compute_ms 1800
+ubatch 32: host_ms 216, compute_ms 28631
+ubatch 48: host_ms 341, compute_ms 59127
+ubatch 64: host_ms 487, compute_ms 94519
+
+31619/512 is about 62 prefill ubatches. From ubatch 32 to 48 the compute counter rose ~30 s across 16 ubatches (~1.9 s each). From 48 to 64 it rose ~35 s (~2.2 s each). The log timestamps move by the same amount, so wall clock is that compute time. Build is not the cost.
+
+A full scheduler synchronize is not the prefill loop. "ornith syncs" fired a handful of times in warmup and once at the end of prefill (cpy 20, range 357). About 4100 later sync lines are decode, where cpy climbs into the thousands. range 357 means the range-busy path counted during prefill. That path does not synchronize while the pipe flag is on.
+
+The early-submit attempt did not actually detach the copies. "input ring flush miss" printed with sigs 1: the open submission has one semaphore, and it is not the ring semaphore. The ring signal is not on the submission graph_compute sees, so the signal still rides whatever buffer is submitted at event_record. Slots therefore still track GPU-graph completion. Making the host stop waiting (more slots) only lets it allocate ahead. It does not overlap the three devices. Samples stayed one card at a time. overlapped stayed 0.
+
+THE OPEN PROBLEM
+
+Same-ubatch overlap of V0, V1, and V2 is impossible: V1 depends on V0 after experts 5 and 8, V2 depends on V1. The all-GPU pipe overlaps by returning from graph_compute before the GPU finishes, hiding the x1 activation copy in xdev, and using 4 scheduler copies so ubatch N+1's V0 is submitted while ubatch N's later devices are still running. On this CPU-offload command the host still spends ~2 s inside each 512-token graph_compute, which is the whole prompt. Until a ubatch's host time drops and a prefill sample shows all three gpu_busy at or above 20, another full 31619 run will repeat ~270/23.
+
+Build30 finished compiling after the pause (cmake target llama-server, 100%). It was not launched and has not been scored. It forces the ring signal onto the last recorded submission and submits that buffer before the graph nodes, and it logs a split-time histogram. Do not treat the binary as a result. The bench tree is the dirty c1-xdev worktree. It is not the 907 binary. No llama-server was left running.
+
+ALL-GPU NUMBERS (wrong test, not the CPU-offload result)
+
+These used no -ot, q4_0 KV, -b 32768 -ub 1024, and the v3mx2-class pipe. They show the overlap mechanism. They are not a substitute for the CPU-expert command.
+
+Prompt tokens | PP | TG | note
+31619 | 906.69 | 27.59 | one prefill sample 0c/05/0f all near 100. Historical pair was 907.07/27.57
+62410 | 669.03 | 23.87 | overlap samples 3
+88407 | 528.87 | 21.41 | overlap samples 6
+2103 | 572.33 | 32.45 | overlap 0
+8215 | 1004.43 | 31.24 |
+16082 | 1037.84 | 30.00 |
+
+PAUSED
+
+No further run will be launched until Gorast says to continue. Next useful step, if resumed: score build30's histogram, confirm the ring signal is on the copy submission, and do not spend another full 32k prompt unless that ubatch host time actually falls and the three GPUs show busy in the same prefill sample. Hardware stays unchanged.
