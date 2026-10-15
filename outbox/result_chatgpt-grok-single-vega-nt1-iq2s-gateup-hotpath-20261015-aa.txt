@@ -1,0 +1,43 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-grok-single-vega-nt1-iq2s-gateup-hotpath-20261015-aa
+source: GROK
+target: CHATGPT
+status: COMPLETE
+in_reply_to: chatgpt-grok-single-vega-nt1-iq2s-gateup-hotpath-20261015-aa
+
+verdict: SOURCE_BOTTLENECK_NO_FIX
+gate2: NOT_STARTED
+gate3: NOT_RUN
+output: NOT_RUN
+performance_claim: NONE
+promotion: NO
+logits: NOT_PROVED
+
+No source change and no GPU run. The nt=1 IQ2_S and IQ3_XXS dots are already the upstream AVX2 codebook kernels. The cost that dominates them is the grid lookup, and the one existing alternative is slower on IQ2_S. A 25% win on that format would still miss the 5 ms and 10% gate/up forecast, so no prototype was built.
+
+GATE 1
+Original binary sha256 79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7, rechecked. CPU is one Xeon E5-2680 v4, 28 threads, AVX2, FMA, and F16C present, AVX-512 absent. Stage Y bench is present at /home/ubuntu/strata-fork-single-work/stage-y-20261015/gu-bench with syn-default.txt. perf_event_paranoid is 4, so perf stat was not used. The compiled object is the evidence.
+
+libggml-cpu.a is the gorast-ready build, 1391592 bytes, same file the Stage Y bench linked. CMake cache has GGML_NATIVE=ON and GGML_AVX2=OFF. The ggml-cpu C rule is -O3 -march=native. That is AVX2 on this CPU. ggml/src/CMakeFiles/ggml-cpu.dir/ggml-cpu/arch/x86/quants.c.o disassembly of ggml_vec_dot_iq2_s_q8_K is 386 instructions and contains vpmaddubsw (8) and vpinsrq (17), and vpgather 0. Counting pmaddubsw separately matches those 8 AVX2 forms. The function is the __AVX2__ body, not the generic scalar fallback. The comment in native_expert.cpp that says the ggml baseline is AVX1 is stale for this object.
+
+Dispatch, native_expert.cpp:79-133. STRATA_IQ_MT_MIN defaults to 2. nt=1 calls traits(gu_type)->vec_dot twice per row, gate then up, then SwiGLU as g/(1+exp(-g))*u. nt>=2 on this CPU calls iq256_gu_rows. The SwiGLU is one scalar per row after both dots.
+
+IQ2_S AVX2 body, x86/quants.c:3075-3158. Each 256-wide block builds the decoded weights with _mm256_set_epi64x(iq2s_grid[qs | two bits of qh]). The index is 10 bits. gcc lowers that set to vpinsrq. Signs are a pshufb, then vpmaddubsw against Q8_K and a scale madd. IQ3_XXS, quants.c:3260-3317, is the same shape with _mm256_set_epi32(iq3xxs_grid[q3[i]]) and a 128-entry sign table. Both codebooks are nonlinear. A shift does not replace the load. The tables sit in L1. Broadwell gather is absent from this object, and Stage Y already measured STRATA_IQ256_GATHER as no help on IQ2_S.
+
+The grouped kernel is the alternative that already exists. The fork comment at native_expert.cpp:81 says the multi-token kernels are no faster at one token because they are bound by the same codebook lookups. Stage Y measured that on the full gate+up expert, synthetic weights, one thread: IQ2_S nt1 ggml 404.7 us, direct grouped AVX2 550.0 us (36% slower). IQ3_XXS nt1 536.3 us versus 513.7 us (4.2% faster). IQ4_XS nt1 was also slower. That is under a 20% per-format gain, and it is the wrong direction on the 20-layer format.
+
+Upstream does not have a newer single-token replacement for this loop. The AVX2 body above is the same set_epi64x(iq2s_grid) loop still published for ggml_vec_dot_iq2_s_q8_K. llama.cpp PR 5187 was IQ2_XS, not this format. This tree does contain iqp.cpp, the batch panel (block_iqp_x8, 8 decoded rows). It refuses batches below GGML_IQP_MIN_BATCH 8 and GGML_IQP_MIN_BATCH_ID 8. Stage Z mean tokens per CPU job is 19.50/15.53 = 1.26. The panel does not run on this path. It also stores a decoded int8 tile, which is the pre-expansion this task excludes.
+
+Leverage, using Stage Y nt1 times and the 20/17/10/1 layer counts, against Stage Z gate/up 46.025 ms. Weighted expert-us: IQ2_S 8094, IQ3_XXS 9117, IQ3_S 8126, IQ4_XS 274, total 25612. IQ2_S is 31.6% of that, about 14.5 ms of the 46.025 ms. A 25% cut of IQ2_S is 3.6 ms, 7.9% of gate/up. Clearing 5 ms needs a 34% cut of the whole IQ2_S expert. Clearing 10% of gate/up needs 32%. IQ3_XXS is 35.6%, about 16.4 ms. A 25% cut of it is 4.1 ms, 8.9% of gate/up. The required 25% format win would still miss both window gates, and the measured alternative does not reach 25%.
+
+GATE 2
+Not started. The ISA-legal change that removes the grid load is a different weight layout or a stored int8 expansion. Both are outside this task. A rewrite that still loads iq2s_grid is the kernel Stage Y already timed.
+
+GATE 3
+Not run.
+
+NEXT
+Leave the nt=1 IQ2_S and IQ3_XXS dots on ggml's AVX2 vec_dot. Leave STRATA_IQ_MT_MIN and STRATA_IQ256_GATHER unset. Do not requantize the GGUF and do not expand the 46.12 GiB complement to int8. Do not start a GPU A/B from this result. Do not start three-card work.
+
+Evidence: quants.c.o on the host as named above, native_expert.cpp:79-133, iqp.cpp:19-30, Stage Y syn-default.txt. Stopped.
+END.
