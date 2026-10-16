@@ -1,0 +1,86 @@
+SOL FULL-FLEET STORJ BALANCING —16 OCTOBER2026
+STATE: COMPLETE_VERIFIED. Supersedes CURRENT PLACEMENT sections of result_sol-storj-vps-redistribution-20261016.txt; earlier file remains history. This is the owner's correction of the earlier insufficient four-node-only redistribution.
+
+WHAT WAS EXECUTED
+16 placements across3 hosts:13 running nodes moved and verified,3 pre-existing stopped Cavka nodes reconfigured WITHOUT starting them. All104 monitor entries matched current runtime/config endpoints;96 remain reachable with identical node IDs and ZERO new outages. Storage/identity mounts preserved, same pinned Docker image IDs and application args retained except public contact endpoint/network namespace; original containers retained disabled for rollback. Native ASUS changed public config only after mounted-storage/cert checks. No old archived copy runs alongside a live identity.
+
+No suitable working VPS now has more than6 assigned nodes. The oversized11/11/9 groups are now5/4/6. Counts below are ASSIGNED;198.12.107.126 includes3 stopped Cavka entries, and pre-existing disk/service failures elsewhere remain visible. This is not a claim that paused nodes are healthy or consuming throughput.
+
+CHANGED VPS COUNTS (before this FULL balance -> now / healthy)
+23.94.206.82: 9 -> 6 / 5 healthy
+75.102.10.190: 4 -> 6 / 6 healthy
+172.245.33.167: 11 -> 4 / 4 healthy
+172.245.152.59: 3 -> 6 / 6 healthy
+172.245.214.89: 3 -> 6 / 6 healthy
+192.3.73.170: 4 -> 6 / 6 healthy
+192.3.101.168: 4 -> 6 / 6 healthy
+192.210.185.116: 11 -> 5 / 5 healthy
+198.12.107.126: 2 -> 6 / 3 healthy
+
+EXACT MOVES
+xeon storj-node37: 192.210.185.116:28971 -> 75.102.10.190:30037; local server port remains28971; running identity/satellite/QUIC verified
+xeon storj-node64: 192.210.185.116:28972 -> 75.102.10.190:30064; local server port remains28972; running identity/satellite/QUIC verified
+xeon storj-node63: 192.210.185.116:28973 -> 192.3.73.170:30063; local server port remains28973; running identity/satellite/QUIC verified
+xeon storj-node107: 192.210.185.116:28974 -> 192.3.73.170:30107; local server port remains28974; running identity/satellite/QUIC verified
+xeon storj-node12: 192.210.185.116:28967 -> 192.3.101.168:30012; local server port remains28967; running identity/satellite/QUIC verified
+xeon storj-node43: 192.210.185.116:28968 -> 192.3.101.168:30043; local server port remains28968; running identity/satellite/QUIC verified
+cavka storj-node42: 172.245.33.167:28950 -> 172.245.214.89:30042; local server port remains28967; running identity/satellite/QUIC verified
+cavka storj-node68: 172.245.33.167:28952 -> 172.245.214.89:30068; local server port remains28969; running identity/satellite/QUIC verified
+cavka storj-node105: 172.245.33.167:28953 -> 172.245.214.89:30105; local server port remains28970; running identity/satellite/QUIC verified
+cavka storj-node41: 172.245.33.167:28954 -> 198.12.107.126:30041; local server port remains28971; running identity/satellite/QUIC verified
+cavka storj-node38: 172.245.33.167:28955 -> 198.12.107.126:30038; local server port remains28972; STOPPED preserved; identity/storage mount bindings unchanged; not started
+cavka storj-node3: 172.245.33.167:28956 -> 198.12.107.126:30003; local server port remains28973; STOPPED preserved; identity/storage mount bindings unchanged; not started
+cavka storj-node8: 172.245.33.167:28957 -> 198.12.107.126:30008; local server port remains28974; STOPPED preserved; identity/storage mount bindings unchanged; not started
+asus storj-storj10.service: 23.94.206.82:28971 -> 172.245.152.59:31010; local server port remains28971; running identity/satellite/QUIC verified
+asus storj-storj4.service: 23.94.206.82:28984 -> 172.245.152.59:31004; local server port remains28984; running identity/satellite/QUIC verified
+asus storj-storj15.service: 23.94.206.82:28911 -> 172.245.152.59:31015; local server port remains28911; running identity/satellite/QUIC verified
+
+WHY THESE RECEIVERS / EXCEPTIONS
+All6 receivers are hostname-confirmed VPSHosting and already working. Additional25MB/8MB samples validated outbound75.102.10.19091.26Mbps,192.3.73.17096.84,192.3.101.168143.13. Prior172.245.214.89131.39 and198.12.107.126122.44.172.245.152.59 had2 invalid TLS1.3 upload attempts; a separate HTTP1.1/TLS<=1.2 diagnostic completed HTTP200/full8MB at82.57Mbps. NO TLS/system configuration was changed; not a claim TLS1.3 was repaired. Its3 original and3 new Storj nodes are healthy using their normal Go stack.
+ASUS selected Storj10/4/15 had the lowest recent traffic of its healthy9-node-source entries:61.29/64.66/65.04GiB over the reported last7 days. The remaining inactive Storj5 was not started. Short WAN samples are not port-capacity guarantees or proof of globally optimal end-to-end throughput.
+Left RackNerd192.3.239.16 at2 nodes and23.94.214.184 at3 rather than accelerate their monthly exhaustion (local meters ~947.7/1977.3GiB before tests). Left23.94.80.232 at3 after its11.66Mbps single-transfer outbound sample. Custom104.168.32.151 remains1 configured offline node99; provider remains UNCONFIRMED and its disk is missing. These explain the small-count exceptions; no11/9-node group was left untouched. No arbitrary cap threshold/thermal cutoff, hardware settings, model service, GPU inference/build or recurring AI job was introduced.
+
+TUNNELS / PERSISTENCE / SAFETY
+Each receiver got one isolated peer in10.254.16.0/24; existing peer preserved, fresh port ranges30000+Docker node label or31000+ASUS label mapped only to existing node listen ports. New receiver alias10.254.16.1/24, scoped TCP/UDP DNAT/forwarding/source NAT, backed-up existing config/firewall. Existing wg interface not restarted. All6 configs parse via wg-quick strip, all old peers still present, all existing wg boot units enabled.
+XEON new client namespaces:anchor-solbal-x75/x73/x101; Cavka:anchor-solbal-c214/c198. Kernel WG socket created in host namespace then link moved into isolated container namespace; bounded verification, own bridge-source return routing, console forwarding only for monitored ports. Native ASUS:solbala152, Table=off and source10.254.16.31 policy routing; no global default-route change. Private keys stay on owning hosts.
+New owned oneshot sol-storj-balance.service runs BEFORE existing storj-bringup on XEON/Cavka; both were actually started to exercise recovery without reboot or extra node restarts.3 ASUS units have Wants/After wg-quick@solbala152. No full reboot was performed. Cavka stopped markers gate BOTH storj-bringup and storj-drive-attach BEFORE any automatic node start.3 stopped nodes retain restart=no. All old copies restart=no.
+12 CPU safety tests passed (storage/identity bindings, no source mutation, pinned image/user/logging policy, port overrides, Docker network constraints, paused/start guards). First XEON attempt hit Docker400 exposed-port conflict and was fully rolled back; original container ID/route/QUIC proved before correcting only the redundant ExposedPorts create field and retrying. Failed attempt retained; eventual13 running moves all passed.
+
+FILES / OPERATIONAL ROLLBACK
+On XEON xeon@100.67.238.25 and Cavka cavka@100.91.9.110 (cluster_lan_secure), and ASUS asus@192.168.100.196 (gorast_ed25519):/srv/storj-balance-20261016 holds root-only plans, host_manager.py, peer profiles/keys and nodes/*.json records. Docker *.inspect-before.json contains ORIGINAL image/mount/args/restart metadata; .pre-solbalance-20261016 containers are stopped rollback copies. Native nodes/*.config.before are backups. Host recovery:python3 /srv/storj-balance-20261016/host_manager.py --recover (owned namespace/console restore only; does not start paused nodes).
+Receiver backups:/root/storj-balance-20261016/<tag>. Only SOL-tagged rules/peers may be removed on cleanup. Never restore whole old firewall snapshots or wipe identity/storage. A per-node rollback must first gracefully stop the new copy, then restore only its prior disabled container/restart policy/console routing; native rollback restores its backup config and restarts only that service. The prior copy is PRE-BALANCE TEMPORARY placement, not necessarily its ORIGINAL RackNerd home.
+
+CRITICAL NOVEMBER RETURN CORRECTION
+Fresh30xxx/31xxx public ports are NOT original RackNerd ports. Do NOT run older group move scripts blindly if they derive the destination port from current ADDRESS. Set BOTH original advertised IP:port and the correct original LOCAL server listen port/network namespace after verifying original VPS DNAT + handshake. Original YAML can be stale: use the archived original runtime endpoint evidence reflected below. Preserve private-port collision protections. Do not activate archived duplicates.
+There are21 recorded RackNerd-home return entries (including3 stopped Cavka entries that MUST stay stopped), plus3 legacy Cavka A homes whose provider is not proved RackNerd. Verify originals after1November; if unavailable retain healthy current placement. Custom Cavka A42/68/105 are a conditional legacy-home decision, not an automatic confirmed-RackNerd reset. ASUS Storj7/8 have no proven107.174 return and must not be guessed back. No scheduled November automation was created.
+
+When returning a node, also retire/update its SOL managed state and console persistence: after original-route health passes, mark /srv/storj-balance-20261016/nodes/<name>.json RETURNED_ORIGINAL (recover only reapplies COMPLETE records), remove ONLY its solbal-20261016-<group>-<label> source-host console rules, and persist console forwarding to the actual original anchor/current console port. Do not leave a stale COMPLETE record that will reassert the temporary console route on reboot. When a group has no remaining users, remove it from all-plans.json before disabling/removing its owned anchor/peer; otherwise recovery would recreate it. For ASUS remove only the3 SOL service drop-ins after verified return, daemon-reload, then disable solbala152 only when unused. Preserve Cavka stopped markers and BOTH stopped-start guards until owner explicitly resumes those disks; do not delete the whole state directory or restore whole pre-balance scripts. Receiver cleanup must not remove10.254.16.1 while any other peer still uses that pool.
+
+CURRENT -> VERIFIED ORIGINAL HOME RETURN MANIFEST
+Machine-readable copy:prepared/sol-storj-original-return-manifest-20261101.csv (current and original LOCAL listen ports included).
+box2 box2-storagenode1: 23.95.61.189:29067 (local28967) -> 104.168.46.78:28967 (restore local28967) | RackNerd recovery after1Nov | running | original verified config receipt /srv/box2/failover-20261016
+box2 box2-storagenode2: 23.95.61.189:29068 (local28968) -> 104.168.46.78:28968 (restore local28968) | RackNerd recovery after1Nov | running | original verified config receipt /srv/box2/failover-20261016
+box2 box2-storagenode3: 23.95.61.189:29069 (local28969) -> 104.168.46.78:28969 (restore local28969) | RackNerd recovery after1Nov | running | original verified config receipt /srv/box2/failover-20261016
+box2 box2-storagenode4: 23.95.61.189:29070 (local28970) -> 104.168.46.78:28970 (restore local28970) | RackNerd recovery after1Nov | running | original verified config receipt /srv/box2/failover-20261016
+xeon storj-node12: 192.3.101.168:30012 (local28967) -> 172.245.226.195:28967 (restore local28967) | RackNerd recovery after1Nov | running | archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML
+xeon storj-node43: 192.3.101.168:30043 (local28968) -> 172.245.226.195:28968 (restore local28968) | RackNerd recovery after1Nov | running | archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML
+xeon storj-node71: 192.210.185.116:28969 (local28969) -> 172.245.226.195:28969 (restore local28969) | RackNerd recovery after1Nov | running | archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML
+xeon storj-node84: 192.210.185.116:28970 (local28970) -> 172.245.226.195:28970 (restore local28970) | RackNerd recovery after1Nov | running | archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML
+xeon storj-node37: 75.102.10.190:30037 (local28971) -> 192.3.253.15:28967 (restore local28967) | RackNerd recovery after1Nov | running | archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML
+xeon storj-node64: 75.102.10.190:30064 (local28972) -> 192.3.253.15:28968 (restore local28968) | RackNerd recovery after1Nov | running | archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML
+xeon storj-node63: 192.3.73.170:30063 (local28973) -> 192.3.253.15:28969 (restore local28969) | RackNerd recovery after1Nov | running | archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML
+xeon storj-node107: 192.3.73.170:30107 (local28974) -> 192.3.253.15:28970 (restore local28970) | RackNerd recovery after1Nov | running | archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML
+cavka storj-node41: 198.12.107.126:30041 (local28971) -> 192.3.199.101:28971 (restore local28971) | RackNerd recovery after1Nov | running | archived original runtime ADDRESS/Cmd
+cavka storj-node38: 198.12.107.126:30038 (local28972) -> 192.3.199.101:28972 (restore local28972) | RackNerd recovery after1Nov | KEEP STOPPED | archived original runtime ADDRESS/Cmd
+cavka storj-node3: 198.12.107.126:30003 (local28973) -> 192.3.199.101:28973 (restore local28973) | RackNerd recovery after1Nov | KEEP STOPPED | archived original runtime ADDRESS/Cmd
+cavka storj-node8: 198.12.107.126:30008 (local28974) -> 192.3.199.101:28974 (restore local28974) | RackNerd recovery after1Nov | KEEP STOPPED | archived original runtime ADDRESS/Cmd
+cavka storj-node42: 172.245.214.89:30042 (local28967) -> 104.168.32.151:28967 (restore local28967) | Conditional legacy custom-provider home; not confirmed RackNerd | running | archived original runtime ADDRESS/Cmd
+cavka storj-node68: 172.245.214.89:30068 (local28969) -> 104.168.32.151:28969 (restore local28969) | Conditional legacy custom-provider home; not confirmed RackNerd | running | archived original runtime ADDRESS/Cmd
+cavka storj-node105: 172.245.214.89:30105 (local28970) -> 104.168.32.151:28970 (restore local28970) | Conditional legacy custom-provider home; not confirmed RackNerd | running | archived original runtime ADDRESS/Cmd
+asus storj-storj4.service: 172.245.152.59:31004 (local28984) -> 107.174.178.31:28984 (restore local28984) | RackNerd recovery after1Nov | running | actual saved vm1vps config backup
+asus storj-storj9.service: 23.94.206.82:28970 (local28970) -> 107.174.178.31:28970 (restore local28970) | RackNerd recovery after1Nov | running | actual saved vm1vps config backup
+asus storj-storj10.service: 172.245.152.59:31010 (local28971) -> 107.174.178.31:28971 (restore local28971) | RackNerd recovery after1Nov | running | actual saved vm1vps config backup
+asus storj-storj14.service: 23.94.206.82:28912 (local28912) -> 107.174.178.31:28912 (restore local28912) | RackNerd recovery after1Nov | running | actual saved vm1vps config backup
+asus storj-storj15.service: 172.245.152.59:31015 (local28911) -> 107.174.178.31:28911 (restore local28911) | RackNerd recovery after1Nov | running | actual saved vm1vps config backup
+
+CLAUDE: owner explicitly requested the corrected full balance and bridge notice. Update canonical current VPS/node map and November list using this report, superseding earlier current-placement details. Preserve all storage exclusions and paused markers. This is mode queue bookkeeping; do not interrupt or re-run your Strata GPU work. Whole-fleet monitor remains96/104 healthy, same8 pre-existing offline entries. Final CSV/JSON evidence is retained in SOL's outputs and root-only host metadata; no private keys or full sensitive configs were committed.

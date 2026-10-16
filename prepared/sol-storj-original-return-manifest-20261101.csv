@@ -1,0 +1,25 @@
+host,node,current,current_local_server_port,original,original_local_server_port,return_policy,was_running,evidence
+box2,box2-storagenode1,23.95.61.189:29067,28967,104.168.46.78:28967,28967,RackNerd recovery after1Nov,True,original verified config receipt /srv/box2/failover-20261016
+box2,box2-storagenode2,23.95.61.189:29068,28968,104.168.46.78:28968,28968,RackNerd recovery after1Nov,True,original verified config receipt /srv/box2/failover-20261016
+box2,box2-storagenode3,23.95.61.189:29069,28969,104.168.46.78:28969,28969,RackNerd recovery after1Nov,True,original verified config receipt /srv/box2/failover-20261016
+box2,box2-storagenode4,23.95.61.189:29070,28970,104.168.46.78:28970,28970,RackNerd recovery after1Nov,True,original verified config receipt /srv/box2/failover-20261016
+xeon,storj-node12,192.3.101.168:30012,28967,172.245.226.195:28967,28967,RackNerd recovery after1Nov,True,"archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML"
+xeon,storj-node43,192.3.101.168:30043,28968,172.245.226.195:28968,28968,RackNerd recovery after1Nov,True,"archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML"
+xeon,storj-node71,192.210.185.116:28969,28969,172.245.226.195:28969,28969,RackNerd recovery after1Nov,True,"archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML"
+xeon,storj-node84,192.210.185.116:28970,28970,172.245.226.195:28970,28970,RackNerd recovery after1Nov,True,"archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML"
+xeon,storj-node37,75.102.10.190:30037,28971,192.3.253.15:28967,28967,RackNerd recovery after1Nov,True,"archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML"
+xeon,storj-node64,75.102.10.190:30064,28972,192.3.253.15:28968,28968,RackNerd recovery after1Nov,True,"archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML"
+xeon,storj-node63,192.3.73.170:30063,28973,192.3.253.15:28969,28969,RackNerd recovery after1Nov,True,"archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML"
+xeon,storj-node107,192.3.73.170:30107,28974,192.3.253.15:28970,28970,RackNerd recovery after1Nov,True,"archived ORIGINAL runtime ADDRESS/Cmd, not stale YAML"
+cavka,storj-node41,198.12.107.126:30041,28971,192.3.199.101:28971,28971,RackNerd recovery after1Nov,True,archived original runtime ADDRESS/Cmd
+cavka,storj-node38,198.12.107.126:30038,28972,192.3.199.101:28972,28972,RackNerd recovery after1Nov,False,archived original runtime ADDRESS/Cmd
+cavka,storj-node3,198.12.107.126:30003,28973,192.3.199.101:28973,28973,RackNerd recovery after1Nov,False,archived original runtime ADDRESS/Cmd
+cavka,storj-node8,198.12.107.126:30008,28974,192.3.199.101:28974,28974,RackNerd recovery after1Nov,False,archived original runtime ADDRESS/Cmd
+cavka,storj-node42,172.245.214.89:30042,28967,104.168.32.151:28967,28967,Conditional legacy custom-provider home; not confirmed RackNerd,True,archived original runtime ADDRESS/Cmd
+cavka,storj-node68,172.245.214.89:30068,28969,104.168.32.151:28969,28969,Conditional legacy custom-provider home; not confirmed RackNerd,True,archived original runtime ADDRESS/Cmd
+cavka,storj-node105,172.245.214.89:30105,28970,104.168.32.151:28970,28970,Conditional legacy custom-provider home; not confirmed RackNerd,True,archived original runtime ADDRESS/Cmd
+asus,storj-storj4.service,172.245.152.59:31004,28984,107.174.178.31:28984,28984,RackNerd recovery after1Nov,True,actual saved vm1vps config backup
+asus,storj-storj9.service,23.94.206.82:28970,28970,107.174.178.31:28970,28970,RackNerd recovery after1Nov,True,actual saved vm1vps config backup
+asus,storj-storj10.service,172.245.152.59:31010,28971,107.174.178.31:28971,28971,RackNerd recovery after1Nov,True,actual saved vm1vps config backup
+asus,storj-storj14.service,23.94.206.82:28912,28912,107.174.178.31:28912,28912,RackNerd recovery after1Nov,True,actual saved vm1vps config backup
+asus,storj-storj15.service,172.245.152.59:31015,28911,107.174.178.31:28911,28911,RackNerd recovery after1Nov,True,actual saved vm1vps config backup

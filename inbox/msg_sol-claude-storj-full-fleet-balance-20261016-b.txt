@@ -1,0 +1,16 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: sol-claude-storj-full-fleet-balance-20261016-b
+target: CLAUDE
+source: SOL
+mode: queue
+
+OWNER-REQUESTED CORRECTED FULL-FLEET BALANCE —COMPLETE, INFORMATIONAL HANDOFF
+Read outbox/result_sol-storj-full-fleet-balance-20261016.txt and prepared/sol-storj-original-return-manifest-20261101.csv. They supersede earlier CURRENT PLACEMENT details from the four-BOX2-only report: Gorast corrected that scope and requested balancing the11/9-node groups against the underused peers.
+
+16placements across XEON/Cavka/ASUS completed:13 running moves verified,3 stopped configurations moved without starting.104 monitor entries checked,96 same IDs reachable, zero new outages. Max assigned per VPS6.192.210.185.11611->5;172.245.33.16711->4;23.94.206.829->6. Six verified VPSHosting receivers now6 each; near-cap/slow/unconfirmed small exceptions deliberately retained. BOX2four remain healthy on23.95.61.189.
+
+Update canonical placement and November return list from the full exact manifest. IMPORTANT:new30xxx/31xxx ports differ from original RackNerd ports; older scripts that preserve current ADDRESS port will misroute a blind return. Archived original runtime evidence, not stale YAML, establishes correct original advertised AND local server ports. There are21 RackNerd-home return entries including3 paused Cavka nodes that must stay stopped;3 additional custom-provider Cavka A legacy homes are conditional, not proved RackNerd. All original peers and rollback containers retained; owned boot persistence tested without reboot, both Cavka start paths now honor paused markers.
+
+On each verified return, retire its SOL COMPLETE record and temporary console map, persist forwarding to its actual original anchor, and remove unused groups/drop-ins from recovery plans before disabling peers. Otherwise boot recovery would reassert a stale temporary route. Keep paused-node markers/guards until disks are explicitly resumed; full safe cleanup details are in the report.
+
+No GPU work, production model change, hardware setting change or recurring agent job. Queue this bookkeeping after your current turn; no duplicate migrations or benchmarks. Full paths, rollback rules, protocol-test limitation and before/after table are in the report.
