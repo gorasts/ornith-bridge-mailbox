@@ -1,0 +1,74 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-strata-all-avenues-handoff-after-grok-exhausted-20261016-am
+source: SOL
+target: CHATGPT
+status: PHASE_COMPLETE
+phase: READ_ONLY_PREFLIGHT
+promotion: NO
+
+# Strata three-Vega takeover — evolving report, 16 October 2026
+
+Read-only preflight is complete. No GPU test, engine patch, build, hardware change or service change has been performed for this takeover. The next authorized step is one static-original/static-mirror 7501/1024 A/B, subject to an immediate recheck for competing work. No P1/P2 implementation or broad sweep is starting.
+
+## Evidence and ownership
+
+- Read the current supervisor rules and thermal policy, full AH/AI/J/K/P/I reports, Claude c1 and 13 October reports, AL's original task, and the prepared researched roadmap. The prior SOL 15 October audit is byte-identical to the copy already read/written in this conversation. AJ/AK tasks are being retained as later, gated work.
+- Current mailbox has no AJ, AK or AL result. A queued job is not COMPLETE. No Grok job was sent, restarted or cancelled.
+- Remote process inspection shows no Strata, llama-server, benchmark runner or build. GPU05/0c/0f are all 0% busy, with approximately 16/8/8 MiB VRAM used. Production service is inactive. Existing log followers and one old wait-only shell were left alone. Inspected remote job directories show AH/AI artifacts and no AJ/AK/AL run artifacts or active GPU-owner lock.
+- Local Grok state files inspected are stale September records; they are not evidence that October jobs completed. The mailbox's Ornith state is also stale. Local process inventory found no GrokWorker/HarnessBridge owner. The decision to proceed rests on fresh OS/GPU checks, with another check before each arm and a monitor that stops only SOL's arm if competing inference appears.
+- Reused control binary: `/home/ubuntu/strata-speedup/src-codex-opt-20261014/build-hip634-20261015/strata`, SHA256 `79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7`.
+- Reused mirror binary: `/home/ubuntu/strata-speedup/src-codex-ah-mirror-20261016/build-ah/strata`, SHA256 `d0e0764210abd4ba53a09f6a2c68166e234dcf03ddbda5c59d437481c96ad645`.
+- Both binary hashes, the fixture SHA `110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212`, and input profile SHA `4e76992d8f7b15475e11f174ae703d4379bf05d2198a9a478014e23ae564a3aa` match. The mirror resolves HIP6 under ROCm6.3.4 and not HIP5.
+
+## Adaptation source gate
+
+Saved AI token arrays independently reproduce length1024, first difference at index597 and the reported full hashes. Mirror summary records48 primary exchanges. The control and helper replacement totals were not captured; a complete runtime owner table cannot be reconstructed from those logs.
+
+The inspected mirror source matches the AH hashes for `expert_source.hpp` and `generate.cpp`. Primary adaptation stages the evicted expert into separate exchange storage and waits before publishing that override; it admits the incoming expert after the H2D completion event, then commits the RAM offset exchange. Helper adaptation synchronizes its fill before updating ownership. Helper experts remain in the pageable complement, and primary candidate selection excludes current helper ownership. No concrete invalid source pointer, overwrite-before-copy-complete or hard lifetime contradiction was found in these inspected paths.
+
+This is a source review, not proof of all execution schedules or numeric parity. GPU/CPU execution of an expert can round differently. AI lacks an exact token-position stamp for adaptation and forced-history logits, so index597 alone is not a proof of corrupted weights. The adaptation-off pair is the smallest authorized discriminator.
+
+## First experiment and its decision
+
+Reuse the unchanged binaries, fixture, input profile, all three caches, TP1, spec3, MTP-host experts, int8 KV, effective20,480-cell main QSA floor, context131072, reserve700 and prefill4096. Set `--adapt-every 0` in BOTH. Only the mirror arm adds the existing mirror flag and resident CPU experts. Run exactly one pair, 1024 outputs per arm, with native output IDs and first-logit artifacts saved. No engine build or compile load runs concurrently.
+
+Expected duration is roughly6–8 minutes including model loads and the mirror's one-time RAM copy, with no guaranteed speed gain. This step measures static parity, not a tuning sweep. Record actual start/ready clocks and avoid attributing a PP difference to code when clock/cache state differs. Preserve startup and ready-based TTFT separately.
+
+Keep passive temperatures, hotspot, real power, clocks, GPU/host memory and AER evidence. Enforce VRAM300MiB, MemAvailable8GiB, genuine GPU/AER/OOM/device-loss/process/cancellation guards and the existing bounded arm deadline. No temperature stop, clock/fan/voltage/power write, page-cache drop, reboot or production change. Publish progress to the existing SSH log view.
+
+- Equal full arrays with clean guards: STATIC_PARITY_CANDIDATE only. Later semantic and long-context validation still required.
+- Different arrays: ADAPT_OFF_DIVERGENCE; save the first difference, investigate source/artifacts, and stop further mirror performance experiments.
+- Concrete source or runtime safety fault: SOURCE_BLOCKED; no further GPU action.
+
+## Configuration evidence table
+
+Rates below are historical measurements unless a later phase explicitly adds new SOL results. A dash means unmeasured. No entry is promoted.
+
+| Configuration | PP7.5K | PP32K /90K /120K | TG | TTFT/startup | Quality/faults | Headroom |
+|---|---:|---|---:|---|---|---|
+| AH original, adaptive |204.2066|— /— /—|21.9359 TG512|See saved AH artifacts|512 IDs match reference; no reported faults|VRAM375/568/420MiB; RAM71.94GiB|
+| AH mirror, adaptive before first swap |209.6030, clock-confounded|— /— /—|27.6243 TG512|Mirror copy42.47s; full startup95.01s|512 IDs match; logits unproved; no reported faults|VRAM370/567/420MiB; RAM25.53GiB|
+| AI original, adaptive |157.3454, cold-clock-confounded|— /— /—|20.5901 TG1024|TTFT start136.635s /ready47.729s|First512 reference IDs match; full pair differs597|VRAM375/568/420MiB; RAM71.93GiB|
+| AI mirror, adaptive |207.562, clock-confounded|— /— /—|26.781 TG1024|TTFT start132.112s /ready36.192s|BLOCKED; first difference597; no reported faults|VRAM369/566/419MiB; RAM25.52GiB|
+| Static original /static mirror |PENDING|— /— /—|PENDING|PENDING|One authorized pair next|PENDING|
+| Mirror-adaptive corrected |—|— /— /—|—|—|No fix or validation|—|
+| True MTP OFF |—|— /— /—|—|—|AJ missing, gated on static safety and source feasibility|—|
+| MTP relocated |—|— /— /—|—|—|AK missing, gated on prior stage and pointer ownership|—|
+| Safe async ring/gather |—|— /— /—|—|—|P blocked naive design; new design requires separate gate|—|
+| True layer pipeline |—|— /— /—|—|—|Feasibility/budget only before any implementation|—|
+
+AH output hash for both512 arrays: `ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046`. AI full hashes: original `76dc794724810d71358d1921f8d470ca54efdde23bba9c7c427aed8860de5fb5`, mirror `7f005689635a5958818db89e78640a0f837742aede0bc94dd02a85a55f28d786`.
+
+## Sequential avenues and limits
+
+1. **Mirror correctness first.** Resolve static parity before AJ/AK or more performance work. Static equality would isolate an adaptation-dependent difference, not prove the adaptive math wrong or establish semantic accuracy.
+2. **True MTP OFF, conditional.** Review AJ/AK arrivals again before duplicating work. Source must support a narrow non-speculative serving path with no drafter allocations. Only about159MiB remains on HIP0 after675MiB of draft experts were moved to host. Extra expert slots may not repay the loss of roughly2.2 accepted tokens/window. Broad rewrites are a source blocker, not permission to implement a new decoder.
+3. **MTP relocation, conditional.** Verify `Verifier.final_R_all` and native head pointer/device ownership, host staging costs and helper headroom before code. No cross-device pointer reuse, duplicate large head, or assumption that x1 transport is cheap.
+4. **Primary safe ring/gather, highest-evidence prefill avenue.** K measured0.630s actual gather span versus5.739s outside-kernel gaps. Removing all gaps is only an upper bound: about204.75→242.8 PP. P proved naive deferred flush unsafe with the96-slot ring. A future bounded lease/event design must demonstrate immutable slot lifetime and forward progress before a CPU/synthetic gate and one7501/512 pair. Do not revive compact I: PP+0.42%, TG−4.26%, first token difference40 and no net VRAM saving.
+5. **True pipeline feasibility before implementation.** Current TP1 is expert parallelism on one x1 peer. A real layer pipeline needs stage-owned dense/state/scratch, bounded microbatch handoffs and a changed RAM-mirror ownership model. Budget expert-cache displacement and two/three-stage x1 transfer before building. AH explicitly refuses layer split. Claude's Q3 Vulkan gains do not predict Flash-Next HIP gains. No unsafe host-set GPU wait/event.
+6. **MMQ/HC and useful grouping.** Main GU/down buckets total about13.87s; optimize a measured kernel/row layout with numerical proof, not the mislabeled dequant bucket. Gather arithmetic alone has only about1.7% PP ceiling here.
+7. **Decode after mirror.** Separate CPU arithmetic from helper launch, kernel, readback and finish waits. Helpers already overlap CPU work, and remote expert optimization already reduces returns. Avoid redundant overlap implementations and driver-starving host polls. Then consider placement by time saved/MiB, CPU grouping and draft acceptance/cost.
+8. **Representative validation.** A safe winner gets512-output task/retrieval checks, then32K,64/90K and120–126K prompt tests with one chat template and room for output. Record PP, TG512, both TTFT definitions, residency, KV traffic, native IDs, semantic score, faults and memory. No19-task sweep without a quality reason.
+9. **Practical TTFT.** Persistent mirror amortizes its42-second copy. Prefix/KV reuse is useful but must be reported separately from cold PP. Main int8 KV is about247.5MiB plus33MiB draft; Q4 does not free multi-GiB here. Historical single-GPU U/W/X/Z results remain separate controls.
+
+Before speculative/invasive P1/P2 work expected to exceed30 minutes, report the bounded source-backed recommendation, expected range, runtime and decode/correctness loss risk and wait for guidance as requested. Production promotion always requires explicit owner approval, with original binaries and rollback preserved.
