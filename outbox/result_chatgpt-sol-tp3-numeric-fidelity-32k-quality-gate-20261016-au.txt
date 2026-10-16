@@ -1,0 +1,76 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-tp3-numeric-fidelity-32k-quality-gate-20261016-au
+target: CHATGPT
+source: SOL
+status: COMPLETE
+verdict: NUMERICALLY_DIFFERENT_QUALITY_GATE_PASS
+source_gate: NO_CONCRETE_DEFECT_IDENTIFIED
+gpu_runs: ONE_MATCHED_32768_512_PAIR
+production_promotion: NO
+next_action: STOP_FOR_SUPERVISOR_REVIEW
+
+KEEP TP3 AS AN EXPERIMENTAL CANDIDATE. Both arms independently retrieved137/211/389 and computed737 correctly, produced coherent readable continuations with valid UTF8, and finished512 tokens without faults. TP3 improved real32K PP5.15%; observed TG512 fell1.67% on differing output histories. This passes the revised factual-quality gate, not numerical equivalence or broad quality validation. AS TP1 stays preserved as baseline; original AH production is untouched.
+
+|32768 input /512 output|A AS TP1|B AS TP3|
+|---|---:|---:|
+|PP tok/s|234.7016|246.7877|
+|TG512 tok/s|25.5701|25.1439|
+|READY from process s|151.705|150.232|
+|TTFT from READY s|139.680|132.844|
+|TTFT from process s|291.385|283.076|
+|One-time mirror copy s|47.009|47.946|
+|DONE prompt ms|139615.6|132778.1|
+|DONE decode ms|20023.4|20362.8|
+
+PP +5.1496%, prompt wall saved6.8375s; TG512 -1.6668%. Native DONE values are used without profiler/cold-clock correction. A single ordered pair is not a statistical confidence interval. Startup/mirror costs are separate; no startup causal gain is inferred.
+
+INDEPENDENT FACTUAL AND TEXT CHECKS
+Both outputs start exactly: AUDIT: V64-017=137; V64-043=211; V64-071=389; TOTAL=737. Output extraction requires one occurrence of each field on the answer line and matches all four provided ground-truth values; independently recomputed137+211+389=737. This scoring does not use sample equality.
+Both512-ID outputs were reconstructed independently with the tokenizer byte vocabulary and strict UTF8 decoding. No replacement/NUL characters or repeated-paragraph loop was observed. Bounded reader review of beginning/middle/end and paragraph structure found readable, connected technical-review prose in both. Both finish=length/rc0; reviews are incomplete at the requested512 cap (A ends at a heading fragment, B mid-sentence), not natural-EOS completions. No EOS-ignore or generation-minimum change. Review readability is not verification of all engineering assertions; the scored factual scope is three-record retrieval plus integer addition.
+Full sample equality is NOT an AU gate. First divergence index154 (155th token), A ID87567/B ID321; first154 IDs match. All ledger answers precede this divergence. A matches the saved fixture reference; B differs.
+A512 output SHA256 ade26c22496134b6d6fdd89b44682dc19b8062e1a6ab23176323ea3860f2737e
+B512 output SHA256 8f99e096dbada867a9d553bed984ff01e74448e142e409062cf53fa3fa174714
+
+IDENTICAL-HISTORY NUMERICAL DIAGNOSTIC
+A first FP32-logit SHA256 bab182f6818b2c90ba74c7aa8ed456eeaf7a7374d7923cc711c6f7c104f3807f
+B first FP32-logit SHA256 343ba3f8118f6a274718efa9482a9b7c1ee83068d5d7d560f26584bc897cba6c
+All248320 first-token values are finite;248319 differ. Maxabs 1.016472816; RMS 0.185222558; mean B-A -0.019640897. Top1 is ID59208 in both, also the emitted first token of the correct AUDIT prefix. Untempered softmax p(top1) 0.99428088->0.99481688; top5 ranks match. KL(A||B) 0.000128366 nats; total variation 0.000715173.
+No wrong selected high-probability FIRST token is observed. These probabilities concern syntax at the first output token, not confidence in the retrieved numbers. Number-token logits and later forced-history distributions were not captured. Actual ledger values are correct in both; no extra forced-history inference was needed or run. The small first-token distribution shift under a strong AUDIT instruction does not establish that all logit drift is harmless.
+
+SOURCE ARITHMETIC / OWNERSHIP RECONCILIATION
+Reviewed unchanged source and exact AT/AS/AO reports plus supervisor/owner policies. No concrete omission, doubled contribution, wrong scale, stale input or cross-peer race was found in this bounded review.
+For routed pair i=t*K+k, expert ownership is disjoint: primary-held rows remain local; first-peer rows are marked first; second-peer selection excludes those and primary-held experts. Contiguous per-expert/owner offsets define slot[i], src[row]=t and peer pair[row]=i. tp_gather_w reads original w_all[pair] without rescaling. Unique top10 expert IDs prevent duplicate destinations within an expert; sequential expert scatter kernels use fmaf(w,expert_output,acc) once per contribution. Primary zeros both peer-owned row blocks before moe_combine, adds the shared sigmoid branch once, then adds each peer partial sum once. This conserves contributions algebraically, not bitwise.
+Both peers own their output/metadata buffers. Peer2 shares peer1 staged activation/router input only when peer1 is active. Input copies precede ev_in; helper waits precede reads; ev_done precedes primary output read/add. The next layer host grouping calls cudaStreamSynchronize(primary), including prior waits/adds, before CPU rewriting of input/index staging. That CPU synchronization closes the host-buffer lifetime issue; mere host enqueue would not suffice. Existing AS gather leases remain unchanged.
+Numerical differences are MORE than final association: peer inputs pass FP32->FP16->FP32 before Q8 quantization, while moved primary rows otherwise avoid this narrowing; peer expert-order FMA grouping changes; per-token peer sums are narrowed to FP16 before addition. Q8 thresholds, discrete routing and later GDN/QSA layers can propagate changes. The AT/AU logit magnitudes are credible as possible mixed-precision propagation, but no derived global error bound or universal benignness proof exists. The limited oracle pass supplies empirical evidence, not exact numerical fidelity.
+Relevant source: generate.cpp:5006; prefill.cpp:1488,2611-2731,2761-2985,3437-3454; kernels.cu:618-650,704-714,978-1004. Full reconciliation and source snapshots are in the evidence archive. Native STRATA_TP=3 means BOTH peers;2 means only second. No source/dispatch fix, compile or parameter sweep.
+
+WORK / DECODE / ACTIVITY
+A light counters: AR_LEASE device=0 tokens=32761 wall_ms=138966.923 groups=9453 max_span=30 room_flush=0 fences=10709 streamed_h2d=166216 streamed_bytes=340578508800 hist 1:24 2:23 3:23 4:27 5:27 6:29 7:22 8:21 9:23 10:21 11:28 12:28 13:26 14:19 15:30 16:9082
+B light counters: AR_LEASE device=0 tokens=32761 wall_ms=132108.246 groups=7491 max_span=32 room_flush=0 fences=8750 streamed_h2d=134528 streamed_bytes=276424704000 hist 1:26 2:24 3:23 4:23 5:21 6:27 7:33 8:24 9:31 10:20 11:23 12:28 13:19 14:19 15:23 16:7127
+Main prefix32761 tokens: primary streamed blobs166216->134528 (-19.06%); logical payload340,578,508,800->276,424,704,000 bytes (-18.84%). These are expert payload counters, not physical PCIe measurements. Both actual peer-setup/cache checks pass: A[1], B[1,2], caches918/3700/3961. Static46.12GiB mirror stays pageable; no extra weight mirror or cache shrink.
+Decode A241 windows at83.08ms/window versus B253 at80.49ms/window; draft acceptance272/376 versus259/371. CPU expert-job bucket0.45->0.44ms/window; CPU/helper-wait bucket26.90->25.96ms/window (not pure CPU compute). More verification windows offset the lower observed per-window time. Histories differ after154, so -1.67% is not a clean intrinsic TP3 decode regression. Both decode complement expert-file reads/bytes zero; RAM expert reads31832->29676.
+Exact per-helper prefill rows/math/transfer times are not exported without the forbidden prefill profiler. Passive samples show use, not a critical-path decomposition:
+|Arm|Prefill samples|Primary/HIP1/HIP2 busy mean%|
+|---|---:|---|
+|A|69|86.33 / 28.65 / 0.33|
+|B|65|80.66 / 52.17 / 51.88|
+No overlapping host/peer intervals are added as wall savings.
+
+RESOURCES / CONTROL
+|Arm|Min free VRAM MiB 05/0c/0f|Peak used MiB 05/0c/0f|Min MemAvailable GiB|READY clocks MHz|Peak sampled watts|Peak hotspot C|
+|---|---|---|---:|---|---|---|
+|A|321.74 / 567.02 / 419.92|7854.26 / 7608.98 / 7756.08|25.690|852.0 / 849.0 / 849.0|162.0 / 56.0 / 24.0|81.0 / 45.0 / 35.0|
+|B|300.14 / 567.34 / 101.34|7875.86 / 7608.66 / 8074.66|25.615|851.0 / 849.0 / 849.0|156.0 / 59.0 / 64.0|79.0 / 45.0 / 49.0|
+Free memory is observed, not a300MiB gate. Actual allocations completed; no OOM/device/reset/AER/stall/thermal-stop event or guard reason. Passive power peaks are per-device samples, not simultaneous PSU totals.
+Same AS executable SHA256975852b5501a0c47e92053c4e6ae0988da4df8ed8871351aa1a3ba3030ffe526, source commit1480566585cb3ea88cea4b71763b9abcd56fae26. One change: STRATA_TP1 vs3. Both STRATA_GATHER_LEASE=1, static RAM mirror/adapt0, unchanged918/3700/3961 caches, issuer0,13workers, spec3/MTP experts host, remote-expert-opt, prefill4096, max-context131072, INT8 KV CLI16384/effective20480, reserve700 preset, mmap experts, PLE DIRECT IO. Actual argv/env equality checked except peer setting and output paths. STRATA_PREFILL_TIMING absent both; matched existing light host/decode counters and first-logit capture retained. ldd HIP6/no HIP5.
+Input32768 token SHA8bfdfcb000f5e3d215f69ea0dde560c447522b6406cdf300377488f6655acf2a. Immutable private/profile seed SHA4e76992d8f7b15475e11f174ae703d4379bf05d2198a9a478014e23ae564a3aa. No cache drop, reboot, model/profile write, clocks/voltage/fan/power/driver/service changes. Fresh bridge/lock/process/GPU checks before each arm; no parallel inference/compile or other owner interrupted. Genuine allocation/fault/AER/host-capacity/cancel/stall/watchdog protections retained; no arbitrary thermal cutoff or fixed free-VRAM stop. Existing SSH view carried live results.
+All hardware/AER/production comparisons unchanged. Final no inference/build, GPUs idle, ornith-server stays inactive. AH/AS/AR binaries and AS source/private seed/production hashes unchanged. No131K prompt measurement is implied by the configured limit.
+
+DECISION / NEXT ACTION
+Retain TP3 as NUMERICALLY_DIFFERENT_QUALITY_GATE_PASS experimental configuration of the unchanged AS binary; preserve AS TP1 and original AH. This is a useful measured PP gain with a small observed, history-confounded TG difference and a limited factual PASS, not a production or universal correctness sign-off.
+One worthwhile later quality check, only after supervisor authorization: a held-out code-repair task with an executable deterministic test oracle, to test a different skill than ledger retrieval/addition. No new task, run, forced-history experiment, tuning sweep or promotion was started. STOP.
+
+ARTIFACTS
+Remote /home/ubuntu/strata-speedup/src-codex-as-early-fence-20261016/codex-work/stage-au-20261016/evidence.tgz
+Archive SHA25600869b04c228125b585f583d3afb3ebc3bed6a4b612fe357dadcca5d9251d326
+Archive includes exact settings/runtime env/peer-cache checks, native512 arrays, raw FP32 logits, independent oracle/strict UTF8 text, bounded coherence review, protocol/DONE, counters, passive/clock/power/memory, hardware/AER, source reconciliation/snapshots, ldd and protected-hash integrity. Local analysis JSON additionally contains full first-token distribution diagnostics. Engine diff NONE.
