@@ -1,0 +1,72 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-strata-second-prefill-peer-bounded-speed-gate-20261016-at
+target: CHATGPT
+source: SOL
+status: COMPLETE
+verdict: NO_GO_TOKEN_PARITY_AND_TG
+gpu_runs: ONE_7501_512_PAIR
+run32K: NOT_RUN_GATE_FAILED
+promotion: NO
+
+AT completed the requested one-change experiment on the unchanged AS binary. Both prefill peers activated and decode cache slots stayed918/3700/3961. Prefill improved7.86%, but full output parity failed at zero-based token40 and observed TG512 fell3.25%. Stop: no32K pair, tuning, engine edit, compile or production promotion. AS TP1 remains the new experimental baseline per supervisor decision; AH production and rejected AR are preserved.
+
+|7501 input /512 output|A: one helper|B: both helpers|
+|---|---:|---:|
+|Native setting|STRATA_TP=1|STRATA_TP=3|
+|PP tok/s|216.4291|233.4389|
+|TG512 tok/s|27.7853|26.8830|
+|READY from process s|154.504|151.273|
+|TTFT from READY s|34.715|32.190|
+|TTFT from process s|189.219|183.463|
+|One-time mirror copy s|46.310|47.826|
+|Prompt ms|34658.0|32132.6|
+|Decode ms|18427.0|19045.5|
+
+Same-pair PP change +7.8593%; observed TG512 change -3.2475%. Prompt wall saved2.5254s. These are fresh same-binary comparisons, not AS/J/K historical controls. TG follows different histories after token40 and is not a clean attribution of decode-cache performance. Regardless, this pair fails both the full-ID requirement and the observed<=2%TG gate.
+
+CORRECTNESS
+A512 IDs SHA256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046
+B512 IDs SHA256 d854a52f7215441a82352b88c7a468d110c27cdabbb4187fb3dc8c92ec15fdea
+First divergence: zero-based index40 (41st token), A ID33513, B ID30260. First40 IDs match. Both generated512 and finished length/rc0. A matches the independent saved512 reference; B does not. No independent factual oracle exists for this7501 continuation fixture. The32K ledger was NOT run in AT.
+A first-logit SHA256 be630cad7fdc9bf2cc7b5b5ec3436a4ef76e77bd81e2a2d5aab422f362585343
+B first-logit SHA256 4dfe5482b2a4cd276a6b6a8413aab933cf69eb567b7b35aa9e3aabc3090322ea
+All248320 FP32 first-token logits are finite in both; all differ. Max absolute difference0.753457308, RMS0.144635775; top1 ID27775 in both. The difference already exists under identical prompt history, before autoregressive output divergence. Full-ID parity, not exact first-logit equality alone, was the advance gate. No additional logit/probability run was performed.
+Moving expert contributions into an additional FP16 partial sum changes arithmetic grouping. This is a plausible source of numerical differences, not a proven benign-roundoff explanation or a diagnosed implementation defect. Do not call the candidate corrupt weights, bit-exact, or quality validated. No forced-history investigation or further candidate change followed the failure.
+
+EXISTING SUPPORT / SOURCE GATE
+Reviewed supervisor rules/owner thermal policy, exact AS result, J peer implementation report and AO fixture/oracle. Current source commit1480566585cb3ea88cea4b71763b9abcd56fae26 unchanged. src/program/generate.cpp:5006 defines native STRATA_TP=1 first tier,2 second tier only,3 both. Therefore the requested two-peer comparison uses value3, not2.
+src/prefill/prefill.cpp:1488 set_tp_peer references existing RemoteExperts; it creates peer scratch without resizing experts. At2656 the second peer takes eligible rows not assigned to the first or held on primary; source streaming also skips those peer-held experts. At2761 peers use correctly selected router-weight rows and independent scatter/partial sums. The second peer shares immutable host-staged input when the first is active. Completion events order both consumers before staging reuse. Primary zeros peer rows then adds both partial sums at3437-3454. Source ordering supports the experiment; it did not promise numerical parity.
+Approximate extra source budget:20MiB primary,358MiB helper arrays plus context/pool effects,60.5MiB pinned staging. These were estimates; actual sampled resources below govern the result. No new weight mirror or model allocation scheme. Real allocation/fault guards remained. No fixed300MiB stop, no software thermal kill or hardware control writes.
+The inherited runner had a TP3 cache-reduction branch. AT removed that branch so device2 stayed auto/3961, with device1 fixed3700. This was a harness correction to preserve the requested control, not an engine dispatch change. Before GEN, both arms verified actual peer setup and918/3700/3961 cache counts; silent TP fallback was forbidden. A active peers[1]; B[1,2]. Both checks passed.
+
+MEASURED WORK / LIMITS
+A primary lightweight counters: AR_LEASE device=0 tokens=7494 wall_ms=33991.331 groups=2269 max_span=30 room_flush=0 fences=2725 streamed_h2d=41554 streamed_bytes=85144627200 hist 1:3 2:8 3:7 4:7 5:9 6:6 7:3 8:4 9:10 10:1 11:6 12:7 13:5 14:8 15:7 16:2178
+B primary lightweight counters: AR_LEASE device=0 tokens=7494 wall_ms=31464.746 groups=1780 max_span=31 room_flush=0 fences=2202 streamed_h2d=33632 streamed_bytes=69106176000 hist 1:2 2:4 3:6 4:6 5:9 6:9 7:6 8:10 9:7 10:6 11:5 12:6 13:5 14:6 15:3 16:1690
+Primary streamed blobs fell41554->33632 (-19.06%); logical expert H2D payload85,144,627,200->69,106,176,000 bytes (-18.84%). Counters cover7494-token main prefix, not the whole7501 protocol prompt. These are logical payload bytes, not physical PCIe measurements. The source and effective peer setup plus reduced primary traffic support useful third-GPU work.
+The unchanged binary only prints exact per-prefill-peer row/math/transfer counters with STRATA_PREFILL_TIMING. It stayed absent in both actual environments. To preserve the exact executable and fairness, no profiling event trace or print-only rebuild was added. Thus exact per-helper routed rows, math milliseconds and x1 transfer milliseconds are UNMEASURED. Do not claim a measured transfer-versus-compute critical path or add overlapping intervals.
+Light passive samples in the READY-to-first-token interval:
+|Arm / sample count|Primary busy mean%|HIP1 busy mean%|HIP2 busy mean%|
+|---|---:|---:|---:|
+|A/17|80.18|53.18|0.29|
+|B/16|77.44|21.31|21.25|
+Sampled driver utilization is not a row count or kernel-time decomposition. Both x1 helpers were active in B; HIP2 was essentially idle in A. Source demand per active helper is about3.68GB of FP16 activation+sum transport for the7494-token prefix, before metadata; historical0.24-0.40GB/s x1 bandwidth gives~9.2-15.3s link demand if applied, not measured extra wall. Here the peer configuration was faster, so a claim that x1 caused a prefill regression would be false.
+Decode draft acceptance A279/371, B273/377; cache hits/lookups67188/90012 versus66068/90884; RAM expert reads20255 versus21619. Both had zero decode complement-file reads/bytes. Changed history and speculation/window counts confound TG attribution; cache capacity was preserved.
+
+RESOURCE / FAIRNESS / SAFETY
+|Arm|Min free VRAM MiB 05/0c/0f|Min MemAvailable GiB|READY clocks MHz|Peak sampled watts 05/0c/0f|Peak hotspot C|
+|---|---|---:|---|---|---|
+|A|370.30 / 567.29 / 420.19|25.786|851.0 / 849.0 / 849.0|156.0 / 54.0 / 24.0|66.0 / 42.0 / 36.0|
+|B|350.34 / 567.31 / 101.31|25.709|851.0 / 849.0 / 849.0|147.0 / 43.0 / 50.0|63.0 / 41.0 / 42.0|
+The third GPU used available VRAM successfully, reaching101.31MiB sampled free without an allocation error or fault. No arbitrary free-memory cutoff was applied. Passive peaks are sampled per-device values, not simultaneous PSU totals.
+Both arms: exact AS binary SHA256975852b5501a0c47e92053c4e6ae0988da4df8ed8871351aa1a3ba3030ffe526, STRATA_GATHER_LEASE=1, static46.12GiB pageable mirror/adapt0, TP1 versus3, issuer0,13workers, caches918/3700/3961, spec3/MTP experts host, remote-expert-opt, prefill4096, max-context131072, INT8 KV CLI16384/effective20480, reserve700 preset, expert mmap and PLE DIRECT IO. Argv is identical except private output path; runtime environment is identical except STRATA_TP and logit output path. Exact settings/env and actual peer JSON are archived.
+Prompt SHA110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212; same immutable private profile SHA4e76992d8f7b15475e11f174ae703d4379bf05d2198a9a478014e23ae564a3aa. AS binary ldd HIP6/no HIP5. No compilation or engine edit. No parallel inference/build. Fresh bridge/process/GPU/lock checks before each arm; no Grok/Claude/Ornith process interrupted. Existing SSH log carried progress. Single ordered pair, sampled clock/cache conditions, not repeated statistical confidence. No startup-time causal win inferred from process TTFT.
+All hardware/AER/production comparisons unchanged, no guard reason, both rc0. Final no inference/build, all GPUs idle, ornith-server remains inactive. AH/AS/AR/original binaries, AS source hashes, private/shared profile and production command/server hashes verified unchanged. No voltage/clocks/fans/power/driver/service/reboot actions.
+
+DISPOSITION / ONE NEXT RECOMMENDATION
+Retain AS TP1 as experimental baseline. Reject this TP3 result for advancement; no32K, cache/ring sweep, FP32 rerun or automatic promotion. If supervisor authorizes follow-up, isolate the identical-history first-token numerical difference in the two-peer FP16 sum/router-weight path before doing any further speed tuning. Existing artifacts are sufficient to begin that source review; this turn performs no further experiment.
+
+EVIDENCE
+Remote /home/ubuntu/strata-speedup/src-codex-as-early-fence-20261016/codex-work/stage-at-20261016/evidence.tgz
+Evidence SHA256 e3195e16a23d95d2952125aee797c430f7fceb542593238b6c119dde0c46bdcb
+Archive includes source snapshots/hashes, immutable seed, exact runner/preflight/gate, native arrays/first logits/decoded outputs, setup/cache JSON, settings/env/protocol, lightweight counters, telemetry/passive/hardware/AER, ldd and integrity. No model weights/binary copied into the archive. Engine diff: NONE. Source hashes: {"src/prefill/gather_lease.hpp": "c4afb11548ecf124e64a7b0778be670ab846dff6f96d6cd711d6949a6c4cff16", "src/prefill/prefill.cpp": "3bb7786f553b49c79c41cff57c51bade63ff900e8a9e2f37841dd6e0c360d8a5", "src/program/generate.cpp": "eb172702e2b4bffc317cbdb1e7e2ca8fc3e4183209d6bb1d6af3759bfd3cfbf7"}
+STOP_FOR_SUPERVISOR_REVIEW
