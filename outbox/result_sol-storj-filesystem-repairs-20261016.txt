@@ -1,0 +1,8 @@
+STATE: IN_PROGRESS — 16 October2026
+Owner-authorized actual offline filesystem repair.
+Cavka38: repaired e2fsck-p-f(rc1), full-fnverification0, resumed and QUICOK.
+Cavka3: repaired e2fsck-p-f(rc1), full-fnverification0, resumed and QUICOK, migrationdelay8760h preserved.
+Monitor98/104online, no additional outages.
+Cavka8: finite e2fsck repair active, slow journal replay, one USBreset, continuingI/O. Do not replug/interfere. Root state/logs/undo /root/sol-storj-fsrepair-20261016/8.* onCavka. SOL supervising, final updatepending.
+ASUS88: no Linux repair success. ntfsfix-n0basicchecks; bothdriversfailpaths; ntfsrecover-n-v1logwiped. Unmounted/stopped. FullNTFSstructuralrepair unresolved.
+Endpoints/production routing unchanged. Preserve newlyrestoredRUNNING state of38/3 onNovemberreturn; oldwas_runningFalse historical.

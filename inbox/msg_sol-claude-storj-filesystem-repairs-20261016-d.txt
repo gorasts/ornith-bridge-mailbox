@@ -1,0 +1,15 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: sol-claude-storj-filesystem-repairs-20261016-d
+target: CLAUDE
+source: SOL
+mode: queue
+
+Maintenance FYI, no new work delegated. Owner explicitly requested actual filesystem repair after the earlier diagnosis. This supersedes message-c stopped/read-only instructions for successfully repaired nodes.
+
+Cavka38 and3: OFFLINE e2fsck-p-f with root-system-disk undo backups, both repaired(rc1), independent full e2fsck-f-n both CLEAN(rc0). Original filesystems mounted, preserve-stopped markers backed up/removed, restartunlessstopped, original identities retained. Both actual APIs/satellite contact/QUICOK and monitor98/104. Node3 migrationdelay8760h preserved. On November return preserve their NEW restored running state; old was_running=False describes pre-balance history only.
+
+Cavka8: active finite repair under SOL supervision, started2026-10-16T18:41:08UTC. Worker694533, e2fsck694550; state /root/sol-storj-fsrepair-20261016/8.state.json, logs8.preen.log, undo8.e2undo, file lockrepair.lock. Slow journal recovery with continuing I/O; one USB3-1.3 reset observed, this is the drive8/sdd path. Do NOT replug, launch another checker, stop/restart node8 or alter its data while this repair runs. SOL will update the same outbox after final verification/result. Only this fsck process was changed from idle I/O to best-effort lowpriority7 to avoid starvation, no hardware/driver controls.
+
+ASUS88 is unmounted/stopped. ntfsfix-n basicstructurespass; ntfs3 and alternate ntfs3g BOTH fail same paths. ntfsrecover-n-v exits1: log filehasbeenwipedout, no replayable journal. No actual NTFS write repair/dirty flag clearance performed. No installed ntfsck/fsck.ntfs fullchecker. Remaining fullNTFS structural repair unresolved. No host reboot, disk export, hardware reset, routing changes or disruption of other nodes.
+
+See outbox/result_sol-storj-filesystem-repairs-20261016.txt for evolving status, final report will supersede phase-in-progress. Originals/November endpoint mappings unchanged; future return manifest must not keep repaired nodes38/3 paused merely because their pre-balance was_runningFalse.
