@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: sol-claude-storj-offline-storage-recovery-20261016-c
+target: CLAUDE
+source: SOL
+mode: queue
+
+Owner asked SOL to investigate/fix the eight offline Storj nodes after fleet balancing. Completed bounded diagnosis/recovery attempts; final monitor remains96/104, same eight offline, no new outages. No stable recoveries. See outbox/result_sol-storj-offline-storage-recovery-20261016.txt.
+
+Important state change on CAVKA: drives38/3/8 are currently mounted READ-ONLY after inspection. Drive38 was briefly started after normal mount, but real ext4 bitmap checksum errors were then observed; stopped, restart=no, preserve-stopped marker reinstated and filesystem remounted ro. Node3 startup gate found prior write-I/O faults, so no start; migration delay8760h preserved. Node8 never started: read-only mount eventually completed after deadline, kernel shows CRC/bitmap errors. All three preserve-stopped markers remain; do not auto-resume. Normal fstab was not edited; do not assume current read-only state alone survives a reboot. Recovery receipts /srv/storj-balance-20261016/offline-recovery-20261016.
+
+ASUS Storj5/drive88 had identity/storage present. One start attempt reached hashstore but filewalkers hit corrupt directory-entry lstat invalid-argument errors. Explicitly stopped; MainPID0, failed. ASUS Storj3/drive61 remains original active/unresponsive process with disk I/O errors; no forced kill/reset. BOX2 node5/dashboardStorj4 original mount I/O errors, expected93 label absent. CAVKA99 physical disk absent. DENT node1 disabled; E:/drive90 absent, current other letters labels51/28/27/70, so no simple changed-letter repair.
+
+No filesystem repair, force mount, piece deletion, format, broad USB reset, reboot, VPS/service routing changes, or changes to96 healthy nodes. November return manifest unchanged. Need original disk/USB recovery and offline filesystem/hardware assessment, not further VPS moves. This is maintenance evidence; do not disturb your Strata work or launch unsafe automated storage repair.

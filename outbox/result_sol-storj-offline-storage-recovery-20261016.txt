@@ -1,0 +1,31 @@
+# Storj offline-node recovery — 16 October 2026
+
+**Result: 96/104 online before and after. No stable recoveries; no additional offline nodes.** All eight pre-existing offline nodes were investigated. The failures are local storage problems; changing VPS routes will not repair them.
+
+| Computer / dashboard node | Actual service/container | Finding | Action and remaining requirement |
+|---|---|---|---|
+| BOX2 / Storj4 | box2-storagenode5 | Original storage mount /mnt/box2-drives/node5 returns input/output errors. Kernel reports failed NTFS volume reads on sdd1. Expected drive93 is absent from current disk-label links. | Left stopped. Reconnect/check the original drive and USB path, then assess filesystem health before starting. |
+| CAVKA / Storj99 | storj-node99 | Original drive99 absent from /dev/disk/by-label and not mounted. | Left stopped; original physical disk must return. |
+| CAVKA / Storj38 | storj-node38 | Drive38 present with matching UUID, identity and verification file. Filesystem header says clean, but mount/recovery exposed corrupt inode/block bitmap checksums. | Attempted normal mount/start, then stopped when kernel faults were found. Restart policy restored to no, stopped marker restored, filesystem remounted read-only. Needs offline filesystem assessment/repair and storage-path health checks. |
+| CAVKA / Storj3 | storj-node3 | Drive3 present with matching UUID, identity and verification file. Full kernel history contains write I/O errors on its sde1 filesystem. | Startup gate rejected it; no container start. Remains stopped and read-only. Original migration delay 8760h remains unchanged. Needs disk/filesystem assessment. |
+| CAVKA / Storj8 | storj-node8 | Drive8 present. Read-only mount took longer than the initial deadline and eventually completed; kernel reported filesystem CRC and bad block bitmap checksum errors. | Container never started. Remains stopped, filesystem read-only. Needs offline filesystem assessment/repair. |
+| DENT / Storj1 | storagenode1 | Service disabled. Last failure: missing E:\storagenode2\identity.cert. Current letters C/D/H/J/K have labels system/51/28/27/70; original drive90/E: is absent. Broad storage-provider queries stall. | Left disabled. Confirmed this is not simply drive90 moving to another available letter. Reconnect original disk/check hardware path. |
+| ASUS / Storj3 | storj-storj3.service | Service process is active but node unresponsive. Hashstore reads on drive61 return input/output errors. | Left unchanged; no forced kill, USB reset or restart against blocked storage. Original drive61/USB path requires attention. |
+| ASUS / Storj5 | storj-storj5.service | Drive88 mounted, identity and data/database directories present. Startup reaches existing hashstores, then filewalkers report unrecoverable directory-entry lstat errors (invalid argument), indicating filesystem damage. | Attempted start, then explicitly stopped after failure. Final MainPID=0, failed state; no active restart loop. Needs offline NTFS/disk assessment/repair. |
+
+## Work performed
+
+- Read original container mounts, systemd units, runtime state, disk labels/UUIDs, mount tables and bounded error logs. No replacement identity or empty data directory was created.
+- Mounted Cavka drives38/3/8 read-only using ro,noload for inspection. A clean filesystem header did not establish integrity: later full kernel evidence showed faults.
+- On drive38, unmounted the diagnostic mount and performed a normal original-fstab mount/start. After observing checksum errors, stopped the node, disabled its restart policy, reinstated its stopped guard and remounted it read-only. No further writable recovery was attempted.
+- Drive3's guarded recovery stopped before startup because existing kernel write-I/O faults were found. Drive8 was never started.
+- ASUS Storj5 received one operator start attempt and was stopped after corruption became evident. Its startup logs establish that merely restarting cannot provide stable service.
+- No fsck repair, chkdsk, formatting, forced filesystem mount, piece deletion/quarantine, broad USB reset, disk-letter reassignment or reboot was performed. Existing healthy nodes and VPS routing remain unchanged.
+
+## Verification and handoff
+
+The final live monitor reports **96 online out of 104**, with exactly the same eight offline labels as before. No recovered node is counted as healthy merely because a process started. Existing VPS placement and November return requirements remain unchanged.
+
+The next useful work is storage recovery: restore missing drives90/93/99 or their USB paths; assess failing drive61; and perform offline filesystem/hardware assessment for Cavka38/3/8 and ASUS88. Aggressive repair without assessing the original storage may discard metadata or pieces. Do not restart these nodes against an empty mount point.
+
+Detailed local evidence is saved under work/storj-failover-20261016/: offline-diagnostic-*.json, offline-phase2-*.json, offline-phase3-*.json, isolated-errors-*.json, cavka38-recovery-result.json, cavka3-recovery-result.json, dent-volume-labels.json and monitor-offline-recovery-final.json. These contain bounded diagnostics, not private keys. Cavka's recovery receipts and prior marker backup are in /srv/storj-balance-20261016/offline-recovery-20261016 on that computer. Its preserve-stopped markers remain in force for nodes38/3/8.
