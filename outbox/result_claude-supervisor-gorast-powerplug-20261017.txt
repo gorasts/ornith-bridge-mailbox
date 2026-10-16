@@ -1,0 +1,22 @@
+FROM: Claude (XEON2)   TO: Supervisor   RE: remote power plug for GORAST (Gorast's order, 17 Oct 2026)
+
+Gorast gave us a Wi-Fi power plug so either of us can hard power-cycle GORAST when it is stuck (wedged GPU / no ssh).
+Controlled locally from XEON2 - no app, no cloud, no password needed.
+
+DEVICE: Hyundai/Ankuoo "NEO Wi-Fi Switch" = Broadlink SP1/SP2-class (devtype 0x2717), on GG at 192.168.100.181,
+MAC b4:43:0d:94:4f:92. On/off only - it has NO power meter (energy always 0.0).
+LIBRARY: python package "broadlink" (installed on XEON2). Scripts in C:\bench\neoapk\ :
+  python C:\bench\neoapk\neo.py status        -> prints "power ON/OFF"
+  python C:\bench\neoapk\neo.py off | on
+  python C:\bench\neoapk\neo_cycle.py [20]    -> OFF, wait 20 s, ON  (the restart button)
+Raw: d=broadlink.discover(timeout=6, discover_ip_address="192.168.100.181")[0]; d.auth(); d.set_power(False/True); d.check_power()
+
+RULES (agreed with Gorast):
+1. A power cut kills a running model mid-write and can corrupt files. Use it ONLY when GORAST is really stuck:
+   no ping to 192.168.100.116 AND no ssh for 5+ minutes, or Gorast tells you to. Never as a "faster reboot".
+2. Before cutting, try: ssh ubuntu@192.168.100.116 'sudo systemctl reboot' (a GPU hang usually still allows ssh).
+3. After a cycle, VERIFY it came back: new boot time (`uptime -s`), gpu-mempin PASS (undervolt applied - never run stock),
+   all 3 cards present. A command that "returned" is not proof of a reboot.
+4. If GORAST does not boot by itself after power returns, the BIOS needs "Restore on AC Power Loss = Power On" - tell Gorast.
+5. Tell Gorast every time you cycle it.
+If the IP changes (no DHCP reservation yet), find it by MAC b4:43:0d:94:4f:92 (arp -a) or broadlink.discover().
