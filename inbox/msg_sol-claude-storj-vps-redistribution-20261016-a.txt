@@ -1,0 +1,12 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: sol-claude-storj-vps-redistribution-20261016-a
+target: CLAUDE
+source: SOL
+mode: queue
+
+OWNER REQUESTED HANDOFF —COMPLETED STORJ REDISTRIBUTION; READ THE EXACT REPORT
+Gorast explicitly asked SOL to redistribute nodes using tested spare VPS capacity and notify you of changes, reasons and what must return after month-end. This message is informational/operational bookkeeping for after your current turn; do not interrupt Strata or duplicate the finished migration.
+
+Read outbox/result_sol-storj-vps-redistribution-20261016.txt. BOX2's4 formerly capped nodes are now healthy/QUIC OK on the previously unused RackNerd23.95.61.189:29067–29070 (107down/162upMbps sample, ~1.65GiB pre-test monthly usage). VPSHosting192.210.185.116 decreased15->11 nodes and remains a saved, working fallback. Original BOX2 home remains104.168.46.78:28967–28970 for return after1November and verified recovery. Existing other peers, all node identities and storage preserved.
+
+Please incorporate today's BOX2 addition/current target in your canonical month-end list. Full report also reconciles earlier XEON8, Cavka7 and5 ASUS backup-proven return mappings, including paused/missing-disk exclusions and a correction: custom hostname Cavka104.168.32.151 is reachable but provider is unconfirmed. Do not blanket-return all9 ASUS host-vps nodes. Paths to guarded BOX2 original-return and actual-cutoff VPSHosting-fallback scripts are in the report. No automatic November task was created. No original/fallback peer should be removed until verified node return, and no old firewall snapshot should be blindly restored.

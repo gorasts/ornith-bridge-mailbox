@@ -1,0 +1,61 @@
+SOL STORJ VPS REDISTRIBUTION AND CLAUDE HANDOFF —16 OCTOBER2026
+STATE: COMPLETE_VERIFIED; bridge publication receipt is separate. No automatic November job was created.
+
+OWNER AUTHORIZATION
+Gorast instructed SOL to stop inference work because Claude took over; recover capped RackNerd nodes; test unusable/underused VPSs; redistribute for optimization; and notify Claude through the bridge with changes, reasons and the month-end return list. No GPU inference/build work was resumed.
+
+COMPLETED CHANGES
+1. Identified BOX2's four healthy local nodes with stale satellite contact on104.168.46.78. The original box2a handshake and VPS SSH were stale/unreachable.
+2. Initially recovered them onto verified VPSHosting192.210.185.116 using a new independent box2e peer10.0.0.3, TCP+UDP29067–29070, unchanged node identities/storage/local listen ports28967–28970. All4 regained fresh satellite contact and QUIC OK.
+3. At owner's redistribution instruction, moved those same4 nodes to previously unused RackNerd23.95.61.189 (racknerd-e15945b). Its pre-test physical NIC RX+TX month meter was only1.65GiB, passive traffic ~0.001Mbps, and short WAN sample107.23Mbps receive/162.40Mbps send. This uses idle capped allowance rather than adding more load to unlimited fallback. It is a capacity/quota allocation decision, not proof of faster end-to-end Storj traffic.
+4. Added BOX2's existing public key as a SEPARATE10.0.0.3 peer on23.95.61.189 and ONLY TCP+UDP29067–29070 DNAT to10.0.0.3:28967–28970. Original INTEL peer10.0.0.2 and existing port range retained. No INTEL node, config or service was changed. wg0 was not restarted on either VPS.
+5. Switched BOX2's independent box2e peer to23.95.61.189 and changed only these4 public node addresses; graceful stop/start, mounted-storage checks and identity validation. All4 have fresh satellite contact/QUIC OK. Current23.95.61.189=4/4 healthy,192.210.185.116=11/11 healthy. All other placements preserved. No storage deletion/recreation, model/hardware changes, migrations unpaused, or unrelated service restart.
+
+CURRENT BOX2 MAPPING
+Docker container / monitor name / current temporary / ORIGINAL HOME AFTER RESET:
+box2-storagenode1 / BOX2 Storj /23.95.61.189:29067 ->104.168.46.78:28967
+box2-storagenode2 / BOX2 Storj1 /23.95.61.189:29068 ->104.168.46.78:28968
+box2-storagenode3 / BOX2 Storj2 /23.95.61.189:29069 ->104.168.46.78:28969
+box2-storagenode4 / BOX2 Storj3 /23.95.61.189:29070 ->104.168.46.78:28970
+
+BOX2 SAFETY / FALLBACK / RESTORE
+Host gg@100.99.10.34, existing cluster_lan_secure key. Original configs/backups/identity receipts:/srv/box2/failover-20261016. Redistribution receipt and saved working VPSHosting client+configs:/srv/box2/rebalance-20261016. Current updated receipts retain original104.168.46.78 targets.
+If the NEW temporary RackNerd23.95.61.189 is actually cut, not merely near2TB: owner-supervised fallback is sudo python3 /home/gg/fallback_box2_vpshosting.py. It restores the saved working192.210.185.116 route; verify original IDs, fresh satellite contact and QUIC after running. Script is prepared, not scheduled. Do not trigger solely at arbitrary byte usage.
+On/after1 NOVEMBER2026, after ORIGINAL104.168.46.78 SSH and box2a handshake recover: sudo python3 /home/gg/restore_box2_after_20261101.py. Date/network/identity guards and per-node fallback are present; it was not executed early. Original box2a tunnel remains untouched. Keep healthy temporary placement if original connectivity still fails.
+Both VPSs have additive config/iptables backups under/root/box2-failover-20261016. After verified original return, remove ONLY SOL-tagged box2-failover-20261016 DNAT rules and the BOX210.0.0.3 peer on the temporary/fallback VPSs if unused. Do not blanket-restore old firewall snapshots or remove the existing INTEL/XEON10.0.0.2 peer. Disable/remove box2e only after no node uses it.
+
+COMPLETE KNOWN MONTH-END RETURN LIST FOR CLAUDE
+These are earlier moves plus today's addition; none of the earlier placements below were changed today:
+A. BOX2 four nodes above: temporary23.95.61.189 (fallback192.210.185.116) -> original RackNerd104.168.46.78.
+B. XEON nodes12/43/71/84: current192.210.185.116:28967–28970 -> original RackNerd172.245.226.195. Existing ~/xeon_move_vps.sh B on XEON; retain collision checks/private ports. Verify original tunnel first.
+C. XEON nodes37/64/63/107: current192.210.185.116:28971–28974 -> original RackNerd192.3.253.15:28967–28970. Earlier saved pre-vpsC containers and console-DNAT cleanup instructions are in racknerd_move_back_list.md. Node64 stays drive25 (/mnt/storj/64), never old drive86. Do not start archived duplicate containers alongside live ones.
+D. CAVKA: current7 moved nodes42/68/105/41/38/3/8 advertise172.245.33.167:28950/28952/28953/28954/28955/28956/28957. Restore42/68/105 to original104.168.32.151 (custom hostname Cavka; provider UNCONFIRMED, currently TCP22 reachable). Restore41/38/3/8 to original RackNerd192.3.199.101 once recovered. Node99 is already configured on104.168.32.151 and offline; do not start it without healthy storage. Nodes38/3/8 are currently exited with pre-existing disk/migration issues; returning network config is NOT authorization to bypass storage exclusions or force-start them. Existing ~/cavka_move_vpsC.sh, storj-bringup.sh backups and pre-vpsC containers record mappings; remove only matching console-DNAT and temporary kol10.70.0.6 peer/rules after verified return.
+E. ASUS: current23.94.206.82 hosts9 nodes. Exact saved backups PROVE original107.174.178.31 for Storj4:28984,Storj9:28970,Storj10:28971,Storj14:28912,Storj15:28911. Return those5 ONLY after original vm1vps/SSH recover and source backups are verified. Storj14/15 backups config.yaml.bak-vm1vps-20261014* are retained; Storj14 graceful stop may take ~3min. Storj7/8 also currently use23.94.206.82 but no107.174 origin was proven by the inspected named backups; do NOT guess/return all9. The other host-vps nodes should remain unless source evidence warrants a change.
+
+INVENTORY / QUALITY OF EVIDENCE
+All104 monitored node entries were matched to actual service/container configs.100 use VPSs;4 are direct gorast3.ddns.net nodes. Runtime ADDRESS overrides on XEON/Cavka override stale YAML; archived containers and retired unmonitored services excluded. There remain8 separate offline node entries (7 VPS-hosted,1 direct) tied to pre-existing disk/stopped-service/paused-migration issues; no additional VPS outage was inferred from them.
+Of26 recorded/current VPS IPs,21 accept TCP22.5 remain unreachable:104.168.46.78,107.174.178.31,172.245.226.195,192.3.199.101,192.3.253.15. All5 are recorded RackNerd cutoffs; fresh tests confirm unreachable, not today's billing-panel cause.104.168.32.151 is reachable again but provider remains unconfirmed; do not repeat the earlier unsupported unlimited claim.
+
+BOUNDED SPEED TESTS (Mbps receive/send, pre-redistribution assignment counts)
+Official Cloudflare endpoints,25MB down/8MB up, one sample each; complete HTTP200 byte counts required. Small WAN samples, not peak port guarantees or real Storj end-to-end throughput.3-second passive counters and current-month physical NIC vnStat captured; do not double-count WG traffic. Approximately272MB total payload including one failed-upload retry. No additional speed sweeps.
+23.94.80.232 | VPSHosting | nodes before=3 | down=275.47 up=11.66 | month RX+TX=2716.43GiB
+23.94.214.184 | RackNerd | nodes before=3 | down=457.74 up=42.51 | month RX+TX=1977.29GiB
+23.95.61.189 | RackNerd | nodes before=0 | down=107.23 up=162.4 | month RX+TX=1.65GiB
+104.168.32.151 | Unconfirmed | nodes before=1 | down=99.89 up=93.0 | month RX+TX=1746.54GiB
+104.168.46.78 | RackNerd (recorded) | nodes before=0 | down=None up=None | month RX+TX=NoneGiB
+107.174.178.31 | RackNerd (recorded) | nodes before=0 | down=None up=None | month RX+TX=NoneGiB
+172.245.152.59 | VPSHosting | nodes before=3 | down=152.88 up=None | month RX+TX=2859.22GiB
+172.245.214.89 | VPSHosting | nodes before=3 | down=219.87 up=131.39 | month RX+TX=2923.31GiB
+172.245.226.195 | RackNerd (recorded) | nodes before=0 | down=None up=None | month RX+TX=NoneGiB
+192.3.199.101 | RackNerd (recorded) | nodes before=0 | down=None up=None | month RX+TX=NoneGiB
+192.3.239.16 | RackNerd | nodes before=2 | down=406.54 up=159.1 | month RX+TX=947.7GiB
+192.3.253.15 | RackNerd (recorded) | nodes before=0 | down=None up=None | month RX+TX=NoneGiB
+198.12.107.126 | VPSHosting | nodes before=2 | down=183.97 up=122.44 | month RX+TX=2609.1GiB
+
+172.245.152.59 upload failed TWICE with TLS bad-record-MAC; exclude its printed curl rate, no valid outbound result. Do not move extra nodes there based on that test.23.94.214.184 had1977.29GiB month RX+TX; no extra nodes added. Existing rule: no proactive2000GiB hard stop; act when genuine cutoff happens.
+
+CLAUDE HANDOFF REQUEST
+This is owner-authorized bookkeeping/operational handoff, mode queue; do not interrupt current Strata GPU work or rerun benchmarks. Update your canonical Storj move-back inventory with the current BOX2 placement and the distinctions above. Keep existing storage exclusions. At the calendar reset, verify each original RackNerd recovered before returning working nodes. No fresh recurring jobs were created by SOL. Do not interpret this as production-model promotion or permission to restart unrelated services.
+
+PROVENANCE
+Read-only current Windows WinRM configs, Linux runtime public ADDRESS/env/config fields, live monitor localhost:8765, VPS SSH hostnames and bounded Cloudflare tests. Prior-return provenance: Claude memory racknerd_move_back_list.md and vps_bandwidth_cap_plan.md; ASUS original-address proof was extracted from actual saved config backups. Remote script/private-key/config-backup contents were NOT published. Private key material stays on owning hosts.
