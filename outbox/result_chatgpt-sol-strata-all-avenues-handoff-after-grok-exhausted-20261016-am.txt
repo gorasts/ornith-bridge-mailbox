@@ -3,12 +3,12 @@ message_id: chatgpt-sol-strata-all-avenues-handoff-after-grok-exhausted-20261016
 source: SOL
 target: CHATGPT
 status: PHASE_COMPLETE
-phase: READ_ONLY_PREFLIGHT
+phase: STATIC_DISCRIMINATOR_COMPLETE_BROADER_WORK_DEFERRED
 promotion: NO
 
 # Strata three-Vega takeover — evolving report, 16 October 2026
 
-Read-only preflight is complete. No GPU test, engine patch, build, hardware change or service change has been performed for this takeover. The next authorized step is one static-original/static-mirror 7501/1024 A/B, subject to an immediate recheck for competing work. No P1/P2 implementation or broad sweep is starting.
+Initial read-only preflight was completed and published before GPU work. The later explicit AN directive authorized exactly one static-original/static-mirror7501/1024 pair and required STOP afterward. That pair is complete: STATIC_PARITY_CANDIDATE, all1024 IDs equal, byte-identical first logits, TG20.20→27.66 (+36.94% observed), clean guards. Full result: outbox/result_chatgpt-sol-static-ram-mirror-adaptation-discriminator-20261016-an.txt. No source/binary/production/hardware change or build occurred. ALL broader AM implementation and tests are DEFERRED for supervisor review; the future plan below is not an active dispatch.
 
 ## Evidence and ownership
 
@@ -28,9 +28,9 @@ The inspected mirror source matches the AH hashes for `expert_source.hpp` and `g
 
 This is a source review, not proof of all execution schedules or numeric parity. GPU/CPU execution of an expert can round differently. AI lacks an exact token-position stamp for adaptation and forced-history logits, so index597 alone is not a proof of corrupted weights. The adaptation-off pair is the smallest authorized discriminator.
 
-## First experiment and its decision
+## First experiment — design executed under AN
 
-Reuse the unchanged binaries, fixture, input profile, all three caches, TP1, spec3, MTP-host experts, int8 KV, effective20,480-cell main QSA floor, context131072, reserve700 and prefill4096. Set `--adapt-every 0` in BOTH. Only the mirror arm adds the existing mirror flag and resident CPU experts. Run exactly one pair, 1024 outputs per arm, with native output IDs and first-logit artifacts saved. No engine build or compile load runs concurrently.
+Reuse the unchanged binaries, fixture, input profile, all three caches, TP1, spec3, MTP-host experts, int8 KV, effective20,480-cell main QSA floor, context131072, reserve700 and prefill4096. Set `--adapt-every 0` in BOTH. Only the mirror arm adds the existing mirror flag and resident CPU experts. AN executed exactly one pair, 1024 outputs per arm, with native output IDs and first-logit artifacts saved. No engine build or compile load runs concurrently.
 
 Expected duration is roughly6–8 minutes including model loads and the mirror's one-time RAM copy, with no guaranteed speed gain. This step measures static parity, not a tuning sweep. Record actual start/ready clocks and avoid attributing a PP difference to code when clock/cache state differs. Preserve startup and ready-based TTFT separately.
 
@@ -50,7 +50,8 @@ Rates below are historical measurements unless a later phase explicitly adds new
 | AH mirror, adaptive before first swap |209.6030, clock-confounded|— /— /—|27.6243 TG512|Mirror copy42.47s; full startup95.01s|512 IDs match; logits unproved; no reported faults|VRAM370/567/420MiB; RAM25.53GiB|
 | AI original, adaptive |157.3454, cold-clock-confounded|— /— /—|20.5901 TG1024|TTFT start136.635s /ready47.729s|First512 reference IDs match; full pair differs597|VRAM375/568/420MiB; RAM71.93GiB|
 | AI mirror, adaptive |207.562, clock-confounded|— /— /—|26.781 TG1024|TTFT start132.112s /ready36.192s|BLOCKED; first difference597; no reported faults|VRAM369/566/419MiB; RAM25.52GiB|
-| Static original /static mirror |PENDING|— /— /—|PENDING|PENDING|One authorized pair next|PENDING|
+| AN static original |181.4202, state-confounded|— /— /—|20.1990 TG1024|TTFT start152.530s /ready41.407s|1024 IDs equal to mirror; clean guards|VRAM375/568/420MiB; RAM71.89GiB|
+| AN static mirror |207.7413, state-confounded|— /— /—|27.6607 TG1024|TTFT start132.951s /ready36.164s; copy43.104s|STATIC_PARITY_CANDIDATE; no promotion or semantic/long-context pass|VRAM370/567/420MiB; RAM25.74GiB|
 | Mirror-adaptive corrected |—|— /— /—|—|—|No fix or validation|—|
 | True MTP OFF |—|— /— /—|—|—|AJ missing, gated on static safety and source feasibility|—|
 | MTP relocated |—|— /— /—|—|—|AK missing, gated on prior stage and pointer ownership|—|
@@ -72,3 +73,6 @@ AH output hash for both512 arrays: `ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d6
 9. **Practical TTFT.** Persistent mirror amortizes its42-second copy. Prefix/KV reuse is useful but must be reported separately from cold PP. Main int8 KV is about247.5MiB plus33MiB draft; Q4 does not free multi-GiB here. Historical single-GPU U/W/X/Z results remain separate controls.
 
 Before speculative/invasive P1/P2 work expected to exceed30 minutes, report the bounded source-backed recommendation, expected range, runtime and decode/correctness loss risk and wait for guidance as requested. Production promotion always requires explicit owner approval, with original binaries and rollback preserved.
+
+
+AN postscript: static full1024 SHA 1a889735f59e318f82e63334879d6fbd8749bd53955768429f88d9473c6fefe1. First logits SHA be630cad7fdc9bf2cc7b5b5ec3436a4ef76e77bd81e2a2d5aab422f362585343. No further GPU work. See AN for the exact scope, adaptive comparison, artifacts and qualification of PP/TTFT.
