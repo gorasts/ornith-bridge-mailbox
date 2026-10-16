@@ -1,8 +1,45 @@
-STATE: IN_PROGRESS — 16 October2026
-Owner-authorized actual offline filesystem repair.
-Cavka38: repaired e2fsck-p-f(rc1), full-fnverification0, resumed and QUICOK.
-Cavka3: repaired e2fsck-p-f(rc1), full-fnverification0, resumed and QUICOK, migrationdelay8760h preserved.
-Monitor98/104online, no additional outages.
-Cavka8: finite e2fsck repair active, slow journal replay, one USBreset, continuingI/O. Do not replug/interfere. Root state/logs/undo /root/sol-storj-fsrepair-20261016/8.* onCavka. SOL supervising, final updatepending.
-ASUS88: no Linux repair success. ntfsfix-n0basicchecks; bothdriversfailpaths; ntfsrecover-n-v1logwiped. Unmounted/stopped. FullNTFSstructuralrepair unresolved.
-Endpoints/production routing unchanged. Preserve newlyrestoredRUNNING state of38/3 onNovemberreturn; oldwas_runningFalse historical.
+# Storj filesystem repairs — 16 October 2026
+
+**Two Cavka disks repaired, independently verified and their nodes restored. Fleet 98/104 online; baseline96/104. Drive8 and ASUS88 remain unresolved.**
+
+| Drive | Offline repair | Independent verification | Undo metadata bytes | Node / QUIC |
+|---|---|---|---:|---|
+| Cavka38 | e2fsck preen exit1 (corrected) | full read-only check exit0 (clean) | 39,727,104 | storj-node38: OK |
+| Cavka3 | e2fsck preen exit1 (corrected) | full read-only check exit0 (clean) | 72,740,864 | storj-node3: OK |
+| Cavka8 | Incomplete; phase preen | Not performed | 17,297,408 | Node remains stopped |
+
+## What changed
+
+- The original UUIDs and storage identities were checked. Each node remained stopped while its filesystem was unmounted and repaired. Only one filesystem repair ran at a time.
+- Completed repairs used `ionice -c 3 nice -n 19 e2fsck -p -f -C 1 -z <undo-file> <original-device>`, followed by a separate full `e2fsck -f -n` verification. Automatic preen mode corrected filesystem metadata; no blanket yes-to-all repair was used.
+- The checker repaired inconsistent bitmap checksums and stale orphan-file metadata. Logs and undo files are retained on Cavka’s system disk under `/root/sol-storj-fsrepair-20261016`. These are changed-block undo records, not a full data backup or protection against every power-loss failure.
+- Each filesystem was then mounted through its original fstab entry. Kernel errors were checked after mount/start. The stopped marker was backed up and removed for each successfully repaired node; Docker restart policy is now unless-stopped. The actual API, satellite contact and QUIC were verified.
+- Node3/node8 retain their original migration delay8760h. Existing routing, identities, data locations and November return endpoints are unchanged.
+
+## Cavka8: incomplete repair and active cancellation
+
+Drive8 has had two USB resets on its confirmed USB3-1.3 path, with prolonged blocked I/O. Its journal replay was making slow progress but has not completed. A graceful SIGINT cancellation was requested at19:00:20UTC; at the last check the checker was STILL ACTIVE. **Do not replug drive8 until checker exit and no active repair writes are confirmed.** The filesystem is unmounted and its node remains stopped with its preserve-stopped guard. The partial undo file and logs are retained. No independent verification or node restart occurred. The repair process alone received low best-effort I/O priority7 after initially using idle priority; no hardware settings changed. Connection stabilization and completion of filesystem repair are still required.
+
+## ASUS88: Linux alternatives tested
+
+- The node is stopped and drive88 is unmounted. Boot metadata was preserved under `/root/sol-storj-fsrepair-20261016` on ASUS.
+- `ntfsfix -n` exits0: the basic MFT/MFTMirr and boot-sector checks pass. That does not validate all directory indexes.
+- The original ntfs3 driver returns invalid-argument errors on specific piece paths. The alternative ntfs-3g driver was tested read-only; the same paths return input/output errors. A driver switch did not resolve the fault.
+- `ntfsrecover -n -v` exits1 and reports: **The log file has been wiped out**. There is no surviving journal for that Linux tool to replay. No journal replay or forced dirty-flag clearance was performed.
+- `ntfsinfo` reports the volume is scheduled for a check. SMART access through the present USB bridge did not succeed, so physical health of88 is not established.
+- The remaining task is full NTFS structural/index repair, with Windows chkdsk a known supported route. The available Linux checks/recovery tools did not fix this fault. Rebooting ASUS or moving its disk was not silently undertaken because other healthy nodes use that computer.
+
+The upstream [ntfsfix documentation](https://github.com/tuxera/ntfs-3g/blob/edge/ntfsprogs/ntfsfix.8.in) distinguishes its limited fixes from a full consistency check. [ntfsrecover](https://github.com/tuxera/ntfs-3g/blob/edge/ntfsprogs/ntfsrecover.8.in) replays surviving Windows transactions; it cannot reconstruct a wiped log.
+
+## Remaining offline nodes
+
+- BOX2-VPN / Storj4
+- cavka / Storj99
+- cavka-VPN / Storj8
+- DENT / Storj1
+- ASUS / Storj3
+- ASUS-VPN1 / Storj5
+
+The previous offline-diagnosis report remains historical. Its stopped/read-only instructions for Cavka38/3 are superseded by these successful repairs. Their November return must preserve the newly restored running state; the old was_running=False records describe the pre-balance state only.
+
+Evidence: local fsrepair-*-status.json, fsrepair-*-resume.json, node*-repaired-readiness.json, asus88-ntfs-check.json, asus88-ntfsrecover-check.json and monitor-fsrepair-final.json. Root repair logs/undo files remain on the respective host.
