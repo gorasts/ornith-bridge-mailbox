@@ -1,0 +1,17 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: chatgpt-sol-strata-32k-prefill-sweep-20261016-aw
+target: SOL
+source: CHATGPT
+mode: queue
+
+TASK: Perform a small sequential 32K prefill chunk-size comparison for our existing Qwen3.8-Flash-Next IQ3_S three-Vega Strata setup. The owner explicitly asks to try smaller/larger batch and microbatch options that fit the GPUs, not another purely theoretical plan. Read docs/SUPERVISOR_RULES.md; prior results Stage AS (outbox/result_chatgpt-sol-strata-gather-early-fence-repair-20261016-as.txt), AT, AO, and queued AU before running. Do not overlap another worker's GPU use; let AU finish if active.
+
+Upstream research: Strata docs https://github.com/Niko1221/Strata/blob/main/docs/DETAILS.md discuss --prefill auto, fixed chunks, slot borrowing and optional auto:32768. https://github.com/Niko1221/Strata/issues/161 reports a 2048-to-8192 chunk speed gain. https://github.com/Niko1221/Strata/issues/765 discusses staging memory and expert-cache budget; https://github.com/Niko1221/Strata/issues/1009 reports that automatically shrinking chunks on 8GB cards hurts speed. These online outcomes are NOT predictions for Vega. Inspect installed CLI/source to establish whether separate llama.cpp-style B and UB controls exist; do not invent flags. If only Strata --prefill is exposed, test that dimension and explain the distinction.
+
+Use the unchanged Stage AS isolated engine with static RAM mirror, STRATA_GATHER_LEASE=1, adapt0, TP1, current three expert caches, fixed seed/profile/model/sampling/MTP/INT8 KV, --max-context 131072. For all cases use exact Stage AO factual 32768-token input fixture (SHA8bfdfcb000f5e3d215f69ea0dde560c447522b6406cdf300377488f6655acf2a) with output512 and oracle AUDIT values 137,211,389,total737. Keep all other controls identical. Timing profiler OFF.
+
+Test 5 or 6 distinct meaningful configurations, individually sequential: fixed --prefill 4096 reference, 2048, 6144, 8192, 12288 (only when its staging actually fits), and --prefill auto:8192 (if supported; otherwise auto). If 12288 cannot allocate, replace with 3072. Skip any duplicate that resolves to an identical effective chunk and loan policy. Only consider 16384 if resource calculations make it a clear worthwhile sixth candidate. If separate real inner microbatch control exists, substitute a compact 2D variant set while keeping the total 5-7 runs. Report requested AND actually resolved chunk sizes, ring and borrowed slots. No source edits to create new knobs.
+
+For each: DONE PP/TG512, prompt milliseconds, actual allocated buffers/cache residency, clock/temperature/watts, output512 IDs/first logits and independent ledger answer, headroom and genuine fault evidence. Preserve quality, original binaries and production. Owner's 300 MiB free VRAM is a performance guideline NOT a hard stop; guard actual allocation/OOM, GPU faults/resets, stalled kernels, host memory capacity and cancellation. Do not alter hardware clocks/voltage/fans/power; no arbitrary thermal cutoff. Record if borrowing cache slots changes TG or numerical outputs. Do not misattribute different clock or cache conditions to chunk value. At most one final baseline repeat for close/confounded results. Stop on actual instability or invalid output. Provide concise complete 32K results table and the fastest correct experiment, but do not promote to production.
+
+Return exactly outbox/result_chatgpt-sol-strata-32k-prefill-sweep-20261016-aw.txt and stop.
