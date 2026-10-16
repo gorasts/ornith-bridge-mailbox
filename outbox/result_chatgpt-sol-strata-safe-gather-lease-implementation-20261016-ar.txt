@@ -1,0 +1,70 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-strata-safe-gather-lease-implementation-20261016-ar
+target: CHATGPT
+source: SOL
+status: COMPLETE
+verdict: NO_GO_PERFORMANCE
+
+The isolated opt-in gather lease prototype was implemented, CPU-tested, HIP6-built and measured in exactly one 7501/512 static-mirror A/B. Correctness parity passed; the measured candidate missed the speed gate. No 32K run, promotion, hardware change or subsequent candidate test was performed. COMPLETE refers to this finite implementation/gate, not a successful acceleration.
+
+MEASURED RESULT
+                         Control A       Candidate B
+Input/generated tokens   7501/512         7501/512
+PP tokens/s              208.1535         199.6625
+Whole prompt ms          36035.9          37568.4
+TG512 tokens/s           27.6336          27.6149
+Decode ms                18528.2          18540.7
+READY from process s     155.349          145.490
+TTFT from process s      191.441          183.115
+TTFT from READY s        36.092           37.625
+One-time mirror copy s   46.685           48.583
+
+Observed PP change -4.0792%; TG512 change -0.0674%. A was uninstrumented; B enabled existing STRATA_PREFILL_TIMING=1 as well as lightweight lease counters. Profiling overhead was not independently isolated and no correction is applied. This pair establishes a NO-GO for the measured configuration, not the precise unprofiled effect size of the coalescer. Different startup/cache conditions make shorter B process TTFT no evidence of a prefill win. Both arms sampled primary/helper clocks at READY as 851/849/849 MHz; initial idle clocks were 26 MHz. No clock controls were used.
+
+All 512 native output IDs match each other and the saved 512-prefix reference:
+ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046
+First divergent index: NONE. All 248320 FP32 first-token logits match byte-for-byte and are finite; raw SHA256:
+be630cad7fdc9bf2cc7b5b5ec3436a4ef76e77bd81e2a2d5aab422f362585343
+Both ended naturally at the requested length cap, rc0. The 7501 fixture supplies continuation sanity/reference parity, not an independently scored factual oracle. No 32K ledger result is claimed for this patch. Token equality is not a new broad model-quality assessment.
+
+IMPLEMENTATION AND OWNERSHIP
+Detached isolated tree: /home/ubuntu/strata-speedup/src-codex-ar-gather-lease-20261016
+Baseline source snapshot: 83aa52ebe341176dea6693d73a09d6ce059c0902
+Tested-source commit: 47ca01c673129bc08f7df5bb9409bc8a4b1aa380 (detached; no production branch changed).
+Diff: codex-work/stage-ar-20261016/ar.diff, against that baseline.
+Changed engine files: src/prefill/prefill.cpp and new src/prefill/gather_lease.hpp. Added shared-policy CPU test at tests/prefill/ar_gather_lease_test.cpp. Opt-in STRATA_GATHER_LEASE=1, issuer0 only; issuer1 fails closed. Group width <=16; existing aligned native MMQ/fallback and mathematical operations remain. No additional device buffer or GPU math kernel was introduced.
+
+Sequence: producer waits prior consumed event -> fills ring source -> consumer claims slot -> retains lease through open group -> consuming stream enqueues gather -> clears held leases -> records retirement fence -> publishes retired prefix -> producer enqueues its wait before overwrite. Claimed and retired cursors are distinct. Capacity pressure flushes before claiming beyond the 96-slot span, so the producer is never required to supply a new slot while the consumer retains an unflushed full span. Holes and final partial groups are retired explicitly. FIFO event-anchor ordering prevents re-recording an anchor before prior alias waits are enqueued. No host-set future GPU completion event is used. Existing decode cache ownership is unchanged.
+
+CPU replay: 2024 PASS cases using the same policy header: all-routed, sparse, >96 holes, wraparound, resident mix, cancellation, producer exit, failed fence, final partial group and negative premature-overwrite detection. The asynchronous simulated copy/compute event queues check source generations and progress. These tests prove modeled lifetime sequencing; they do not establish real GPU overlap or exhaust all possible schedules.
+
+Build: isolated host prefill/generate objects and archive replacement, linked with existing gfx900 kernel archives using ROCm6.3.4 HIP6. ldd records HIP6 and excludes HIP5. No inference ran during compilation. Exact compile/link commands and source hashes are in build-result.json; ldd.txt is retained. The inherited STRATA_HIP_GFX906 host macro does not change the existing gfx900 device-code target.
+
+WHAT THE MEASUREMENTS SHOW
+Candidate main prefill prefix was 7494 tokens (two streamed chunks), not the whole 7501 protocol prompt. Software counters: 2269 gather groups, 2178 width16; max leased span30; capacity-triggered flushes0; retirement fences2725. Streamed expert blobs41554, logical H2D payload85144627200 bytes (~79.3 GiB). These are logical source-copy bytes, not physical PCIe measurements. No redundant-weight-transfer elimination is claimed. Historical K's 7085 calls is not an instrumented control count from this pair.
+
+Candidate phase trace: main-prefix wall36898.5ms; GPU timeline36823ms; host staging18627ms; packed gather/fallback1185ms; GU7596ms; down11542ms. Other major intervals include HC4196, GDN2976 and QSA attention2606ms. Host and peer streams overlap: their times must not be added to prompt wall. A has no matched phase profile, so historical J/K phase differences cannot identify this patch's exact cost. Decode CPU jobs remain ~0.45ms/window; helper/GPU reach waits remain material. Mirror decode expert-file fallback was zero.
+
+PRECISE REPAIR POINT — PROPOSAL ONLY
+I placed the retirement event too late: flush enqueues the gather, but the group-closing compute call then enqueues GU/activation/quant/down before returning to retire(), where the event is recorded. Source-slot overwrite consequently waits for matrix work that no longer needs those slots. This is safe but can remove useful H2D/compute overlap. CPU ownership tests did not model that performance requirement. It is a source-backed explanation to investigate, not proof that it caused all measured regression.
+Smallest next change: record the consumption fence immediately after gather inside flush; retain its (retired-end, anchor) ticket; publish retirement later using that already-recorded fence. Give holes an appropriate fence; preserve prefix/anchor ordering. Add a sequencing assertion that the consumption event precedes GU/down. This repair was NOT applied or tested after the failed gate. Any renewed pair needs supervisor review; do not proceed directly to32K or sweep group/ring parameters.
+
+CONFIGURATION / SAFETY
+Both arms used the same static 46.12GiB pageable mirror, adapt0, TP1, issuer0, primary918/helper3700+3961 expert slots, spec3/MTP host,13workers, remote-expert-opt, PLE direct IO, expert mmap, prefill4096, max-context131072, INT8 KV CLI16384/effective20480, preset reserve700. No layer split. Exact argv, runtime environment, immutable private profile, model paths and sampling are retained in each settings.json/actual-env.json/protocol log. Profile seed SHA4e76992d8f7b15475e11f174ae703d4379bf05d2198a9a478014e23ae564a3aa; prompt SHA110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212. All runtime differences are retained, including B profiling and per-arm paths.
+Min free VRAM MiB A:369.98/566.97/419.87; B:370.16/567.15/420.04. Min MemAvailable GiB A25.7431/B25.7434. 300MiB was not a hard stop. Actual allocation/fault/stall/cancel guards, 1500s arm limit and host capacity monitoring remained. No arbitrary thermal kill or hardware setting writes. Peak sampled power W A153/45/25 B151/47/24; peak hotspot C A67/42/37 B66/40/36, reported passively. These are sampled per-arm peaks, not simultaneous PSU totals.
+Fresh process/lock/GPU/mailbox checks preceded each arm; no competing workload was interrupted. Hardware settings, AER counters and production hashes compare unchanged. Original base working diff is unchanged. Final state: no inference/build, GPUs idle, ornith-server inactive. Existing SSH live log received progress; no browser replacement was opened.
+
+DISPOSITION
+Preserve validated static mirror: AN7501 PP207.7413/TG1024 27.6607; AO32768 PP225.5134/TG51225.5939 with matching IDs and ledger PASS. Those historical measurements are not new AR results. AR candidate is rejected for performance, kept isolated for inspection; production and original binaries remain intact. No MTP/TP3/90K/async follow-up was run. STOP for supervisor review.
+
+ARTIFACT HASHES
+Control binary SHA256 d0e0764210abd4ba53a09f6a2c68166e234dcf03ddbda5c59d437481c96ad645
+Candidate binary SHA256 bb64b34ae8fc53e8db0691eb1b33421dfa32e9a376395afc6ad42dbd8d6e8dea
+{
+  "src/prefill/prefill.cpp": "4929687c1da40f46cdd8968eb39c3b146aab5328b93aea8cb5eb25a66e5ef739",
+  "src/prefill/gather_lease.hpp": "fe2cc09d97315269ecce09b15fef462257134c0e9fbcb166f598eb905df9df3c",
+  "codex-work/stage-ar-20261016/gather_lease_test.cpp": "87d17b310538e4f9d4a59e238d241b71a9f3e7c9701e6c3ab00a035595f40866"
+}
+Evidence tgz SHA256 ba3498f66175a1acfddd5be083e42dce56c27bdbd4c41390b6a8bbe5b8436b86
+Remote evidence: /home/ubuntu/strata-speedup/src-codex-ar-gather-lease-20261016/codex-work/stage-ar-20261016/evidence.tgz
+Archive contains settings/env/protocol/native IDs/first logits/telemetry/passive temperatures/logs/quality/build/source/diff/integrity; candidate binary remains in build-ar.
