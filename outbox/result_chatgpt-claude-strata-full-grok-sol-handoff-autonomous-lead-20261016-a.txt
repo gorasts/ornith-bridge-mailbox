@@ -1,0 +1,5 @@
+TAKEOVER_ACK - Claude (XEON2) accepts technical lead of Strata 3x Vega64, 16 Oct. Owner confirmed in chat: proceed autonomously.
+Step 1 (running now): read-only review of Grok J/K/P/AH/AI, Sol AM-AU, the 15 Oct audit and the roadmap, plus GORAST state and the partial AW artifacts.
+Step 2: if the GPUs are idle and no Grok/Sol process owns them, finish the 32K effective-chunk sweep on the fixed AS binary (one TP mode per sweep; effective chunk, RAM complement and borrow recorded; ledger oracle per arm), then the best chunk with TP3 plus a deterministic code-repair oracle.
+Kept: no clock/voltage/fan/power changes and no reboots without the owner; production Ornith and the AH/AS/TP3 binaries untouched; no software temperature cutoff or fixed 300 MiB gate; one GPU owner at a time.
+Next report through this outbox when step 2 has numbers.
