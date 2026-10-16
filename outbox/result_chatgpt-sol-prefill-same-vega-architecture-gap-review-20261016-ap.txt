@@ -1,0 +1,81 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-prefill-same-vega-architecture-gap-review-20261016-ap
+source: SOL
+target: CHATGPT
+status: READ_ONLY_REVIEW_COMPLETE
+gpu_run: NOT_RUN
+engine_changes: NONE
+promotion: NO
+
+# Same-Vega prefill gap: engine architecture, not a 200-PP hardware ceiling
+
+**The earlier hardware-only ceiling claim was wrong.** Claude measured substantially higher PP on the same three Vega64 host. Different active-model sizes, graphs, quantization and workloads prevent transferring those speeds to Flash-Next. Current evidence identifies Strata scheduling, streaming and kernel work; it does not establish its ultimate hardware limit.
+
+**Owner correction received during this audit:**300MiB free VRAM is a performance guideline, NOT a hard safety floor. AO's300MiB guard is a historical fact, not future policy.322MiB free does not itself block optimization or longer context. Future work must budget actual pending allocations/lifetimes and retain allocation/OOM/illegal-address/hang/reset/AER, host-capacity, watchdog and cancellation protections. No thermal software kill or hardware control change. No GPU run, compilation, engine source/config/service change occurred in AP. A separately requested local bridge spam repair interrupted the audit; it did not touch the inference host.
+
+## Same host, different work
+
+| Saved measurement | Actual input/output | PP /TG tokens/s | Placement and interpretation |
+|---|---|---|---|
+| Ornith35B-A3B Q3 c1 production reference |16421 /natural EOS ledger; report also compares TG at2420 output tokens|~673.6 /32.29|Three contiguous layer stages, but blocking cross-device scheduler copy serialized prefill; b2048/ub2048. No draft, no CPU expert-bank -ot. Exact total output per arm is not specified in the c1 summary.|
+| Same Ornith Q3 c1 async |16421 /natural EOS,20-row oracle PASS|~1152.6 /32.09|b32768/ub1024; per-edge8-slot driver staging/relay/timeline handoff; actual three-GPU overlap.|
+| Ornith Q3 v3mx oracle, included in13Oct v3mx2 summary |16421 /2686 natural EOS|966.137 /41.189|Original v3mx_oracle.out: correct20-row ledger; first token difference versus production145, not full-token parity.|
+| Ornith Q3 v3mx2 ladder |31619 /512|857.81 /36.44|Original ladder-20261013j.out, label32768. Same layer pipeline + async draft readback, draft on x16 GPU. first_diff_vs_prod=null in this record.|
+| Same v3mx2 ladder |88407 /512|533.35 /30.15|Same log, label90000. Context labels are not exact input lengths.|
+| Flash-Next ISTA IQ3_S static mirror AN |7501 /1024|207.7413 /27.6607|All48 layers on HIP0; HIP1 is expert-row prompt peer; HIP2 decode expert cache. Exact1024 IDs/first logits match static control; no factual oracle for this fixture.|
+| Flash-Next static original /mirror AO |32768 /512|220.2174 /18.1238;225.5134 /25.5939|Same new ledger+documentation fixture,512 IDs/first logits equal, factual oracle PASS. A/B PP order/cache-confounded.|
+
+The host is x16/x1/x1, not three x16 links. c1 prefill duty samples changed40/40/34%→74/80/56%; all3≥50% samples0→44.6%. The966-PP original oracle reports48.8/69.2/68.5%. These are sampled GPU busy, not ALU occupancy. Strata TP1 computes about28% routed rows on HIP1, while HIP2 is not a prompt peer. Busy primary GPU or low helper watts alone cannot locate idle shader lanes or prove TurboPrefill is broken.
+
+Flash-Next has roughly6B active parameters versus Ornith's~3B,48 layers,512 experts/top10,36 GDN+12 QSA layers, hyperconnections and a28.8GiB direct-I/O PLE table. Its expert complement is streamed/mapped from host and mirror; Ornith c1 used a different GGML graph with GPU layer weights and f16 KV. There is no justified simple2× normalization. A readily available CPU-involved~600PP reproducible record was not found in the named reports; that recollection remains unverified. The report does contain a different35B Q4 hybrid380PP/24.5TG at32K, not evidence for Flash-Next600PP.
+
+Provenance caveat: the13Oct summary's “oracle-identical tokens” wording overstates the readily located966-PP raw oracle, which records divergence145 while passing the factual oracle. No v3mx2-named16K oracle file was found in that directory. c1 v4's host-set GPU event hung a card; later long xdev runs also had a rare timeout. These are not safety-validated drop-in Strata components.
+
+## Prefill budget: wall versus overlapping work
+
+K control7501/36.635s gives4.884ms/input token,204.75PP. J's separate timing arm sums36.397s on the primary stream, with36.473s inside prefill and37.399s server prompt time. Use each denominator correctly; do not splice them into one exact run.
+
+| J exclusive primary-stream interval | Seconds | ms/input token |
+|---|---:|---:|
+| Gate/up, including tail memset/MMQ/activation |7.804|1.040|
+| Down, including H quantization/MMQ |6.069|0.809|
+| Packed gather mixed bucket |6.022|0.803|
+| Hyperconnection read |4.171|0.556|
+| GDN-labelled projection interval |2.979|0.397|
+| Additional GDN conv/gates+recurrence+out |2.476|0.330|
+| QSA projection/index/select/attention |4.030|0.537|
+| Other exclusive intervals |2.846|0.379|
+
+These are stream intervals, not all measured kernel ALU time. In particular K splits its6.369s gather interval into only0.630s kernel and5.739s outside-kernel gaps,7085 launches over96 layer passes, versus0.473s host enqueue time. Do not subtract host enqueue again. Removing every5.739s gap gives7501/(36.635−5.739)=242.8PP, +18.6% mathematical ceiling; accelerating the0.630s kernel alone caps near1.75%. Neither explains a path to1000PP.
+
+J host-staging16.909s overlaps device execution; adding it to36.397s double-counts. HIP1's parallel36.039s timeline comprises22.774s idle,5.041s input,3.490s math,4.734s output. Those intervals cannot be added to primary wall or all treated as removable stall. Only the primary copy-wait bucket is0.104s. The measured gate/up+down13.873s is a much larger investigation target than gather arithmetic, but its irreducible compute versus launch/memory overhead has not been isolated.
+
+P proves naive gather deferral unsafe: pointers in an open group outlive96-slot issuer reuse unless used-events/leases fence them; holding slots indiscriminately can deadlock. A faster gather patch cannot recover unrelated matrix/HC/GDN/QSA cost. Algorithmic reuse across prompt chunks can address repeated expert staging and improve grouped rows; it requires a different dependency/lifetime proof, not deleting flush().
+
+## Three-stage first-pass resource model — no GPU run
+
+Read actual GGUF tensor headers only and pack index; no payload benchmark. NativeDense eligibility yields300 projection matrices,2018.882MiB, matching AO's runtime. Packed non-native weights add1466.785MiB; output Q5_K head497.314MiB is separate, embedding322.07MiB stays mapped on host, MTP adds~159MiB on its device. “~2GB dense” alone therefore undercounts fixed GPU weights. Header offset-span rounding is at most alignment padding; stage estimates are not an allocator fit certificate.
+
+Source stage trimming is opt-in (generate.cpp:2214–2247); without it, stages duplicate the full dense model. PLE tensors remain on every device, primary retains foreign routers for lookahead, last stage holds head/draft. session.cpp:54–70 is stage-aware for recurrent layers but duplicates shared work buffers. Geometry: N2560,HC4; each GDN layer's recurrent+conv state is3.117MiB,36 total112.219MiB. Resident raw QSA KV is~20.625MiB per QSA layer,247.5MiB total at20480 cells; indexer/workspace/graph buffers and draft KV are additional. Full131K host history~1.55GiB is not all GPU KV.
+
+| Layer fractions | Native projection MiB by stage | Packed per-layer MiB by stage | Approx helper slots displaced before unpriced scratch* |
+|---|---|---|---|
+|16/16/16|641/702/675|527/464/464|~410 /810|
+|24/12/12|988/524/506|758/348/348|~242 /650|
+|32/8/8|1344/342/333|990/232/232|~74 /484|
+
+*Include retained PLE/global weights, stage GDN/raw KV, and last-stage head+159MiB draft; subtract all currently free567/420MiB, NOT a300MiB floor; divide remaining cost by~1.94MiB/helper slot. They are lower-bound approximate displacements, not configured slot counts. Prompt, verifier, graph, pinned relay and session scratch remain unpriced; moved/replaced old helper buffers may offset some. Primary can reclaim foreign dense weights and cache more experts, so the TG outcome depends on per-layer placement and weighted misses, not simply total slot loss. Current918/3700/3961 decode caches cannot be assumed unchanged by this design.
+
+Actual Prefill::set_stage handoff is FP32 hyperconnection residual R, T×(4×2560), not just the2560-wide mixed vector. One boundary at2K/8K/32K is80/320/1280MiB. At0.24–0.40GB/s, two ideal boundaries require0.42–0.70 /1.68–2.80 /6.71–11.18s of link service. Current explicit host relay involves one slow H2D leg for0→1 and slow D2H+H2D for1→2: non-overlapped slow-leg sums0.63–1.05 /2.52–4.19 /10.07–16.78s, plus fast x16 leg. These are service envelopes; overlap/shared links change wall. Direct HIP P2P support was not queried or assumed.
+
+With8 chunks, three perfectly balanced equal-speed compute stages alone have ideal speedup3×8/(8+2)=2.4 before transfers, expert reloads, imbalance and scratch;24/12/12 bottleneck≤2× and32/8/8≤1.5× before bubbles. More seriously, helper stages must stream their missing weights over x1. An illustrative9GiB missing per16-layer helper stage, reloaded8 times, costs193–322s of x1 service, already larger than AO145s prefill. This is a stated scenario, not measured traffic. Layer-major reuse could change that break-even; naive layer splitting is not an established win.
+
+Existing source already has asynchronous stage handoff via two host buffers/thread (prefill.cpp:3428–3446), not a missing generic “turn on pipeline” flag. AH generate.cpp:1621–1627 explicitly rejects layer split under the full RAM-mirror mode. Safe stage ownership/cache/mirror adaptation, device timelines and allocation budgets are prerequisites. It is NOT a drop-in Claude binary or TP flag.
+
+## Bounded decision
+
+No demonstrated low-risk single patch currently promises gains beyond the18.6% stream-gap ceiling. **Choose one cross-chunk expert-reuse prototype source gate**, as separately authorized by AQ, ahead of a three-device layer rewrite or blind TP3. Measure actual repeated expert IDs/bytes from current Source/issuer counters first; then retain weights across two ordered chunks only if a bounded residual/issuer lifetime design preserves GDN/QSA/PLE/HC and restores every decode cache. Do not promise a speedup before those counts and dependencies. Existing32K mirror TG25.59,7.5K TG27.66 and static correctness are the comparison baseline.
+
+If that source gate exposes a fundamental multi-subsystem rewrite, return its exact blocker and one smaller implementation, rather than run a parameter sweep. Any future GPU validation belongs to AQ's separate finite gates, with actual allocation capacity and genuine fault protection; AP itself stops here. No90K run, promotion or engine change in this review.
+
+Evidence: exact AO/AM, J/K/P, c1 and13Oct reports, prepared roadmap; original /home/ubuntu/ornith-q3-c1-prodref-20261009/v3mx_oracle.out and ladder-20261013j.out; AH src/program/generate.cpp, src/core/native_dense.cpp/session.cpp, src/prefill/prefill.cpp and include/strata/prefill/prefill.hpp; actual ISTA IQ3_S index and GGUF headers. Local resource-model JSON records all three fractions and formula inputs. AP complete; subsequent AQ is separately authorized.
