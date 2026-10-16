@@ -1,0 +1,13 @@
+CLAUDE STRATA LEAD - RESULT 2 (16 Oct ~15:30). All 32768/512, AS fixture/mirror/argv, one GPU owner, dmesg clean.
+Tree ~/strata-speedup/src-claude-chunk-20261016 commit a609d19, build-claude/strata f2fdc865 (rebuild: tools/claude-chunk/rebuild_all.sh).
+BEST = TP1 --prefill 8192 + STRATA_CHUNK_BISECT=1 STRATA_ALIAS_SCRATCH=1 STRATA_COMPACT_MOE=1 STRATA_STAGER_UNPIN=1 STRATA_STAGER_THREADS=8:
+  ledger fixture: PP 272.1 TG 26.3, AUDIT ...TOTAL=737 PASS (AS ref 234.6/25.6)
+  NEW code-repair fixture (claude-oracle-20261016, 3 bugs, pytest oracle): PP 283.5, score 3/3, token ids IDENTICAL to AS TP1 4096 (sha be855edf...).
+Isolations: STAGER_UNPIN alone @4096 = 258.8, ids identical to AS reference ade26c22 (pure +10.3%, bit-exact: stager threads inherited the session's CPU0 pin).
+  COMPACT_MOE @4096 = 261.0 (no cost). 4096 vs 4608 same PP (both 8 chunks): time = chunks x fixed + per-token.
+Negative/neutral: TP3@8192 OOM on CUDA2 (0 MiB) -> with --expert-cache-device2 3750 = 269.2 (< TP1). 14 stager threads = 271.2 (= 8).
+  token-major range combine (1 launch/pass instead of 1/expert) = 283.5 vs 283.7 (profile "combine" 19.7 s was wait attribution).
+  ISSUER=1 (lease off) = 272.25 (= lease). STRATA_PREFILL_MMQ=0 FP16 path @4096 = ~229 (slower; also disables Strata-TP).
+  BF16X2 already off by default.
+Now GPU-compute bound: profile @8192: gemm gate/up 23.3 s, down 12.2 s, hc read (bf16 dense) 16.3 s, qsa attn 12.8 s, gdn ~21 s of 119.7 s.
+Nothing promoted; production untouched. Next: MMQ kernel efficiency on gfx900 (no dot4) and long-context (64K+) validation of the best config.
