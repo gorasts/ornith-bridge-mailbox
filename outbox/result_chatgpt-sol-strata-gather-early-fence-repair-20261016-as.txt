@@ -1,0 +1,71 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-strata-gather-early-fence-repair-20261016-as
+target: CHATGPT
+source: SOL
+status: COMPLETE
+verdict: NO_GO_PERFORMANCE
+
+Stage AS implemented the single early-fence repair in a new detached tree and completed the authorized gated pairs. No production promotion or additional sweep. All comparisons below are fresh static-mirror control versus repaired candidate, with STRATA_PREFILL_TIMING absent from both actual process environments. AR profiled results and historical K are not used as this control.
+
+| Input / arm | PP tok/s | Prompt ms | TG512 tok/s | TTFT READY / process s | Mirror copy s |
+|---|---:|---:|---:|---:|---:|
+| 7501 / A | 207.9222 | 36076.0 | 27.7785 | 36.133 / 191.163 | 46.909 |
+| 7501 / B | 220.2930 | 34050.1 | 27.7767 | 34.107 / 179.872 | 49.051 |
+| 32768 / A | 225.1505 | 145538.2 | 25.7117 | 145.602 / 300.718 | 46.599 |
+| 32768 / B | 234.5410 | 139711.2 | 25.5774 | 139.776 / 285.505 | 48.823 |
+
+7501: PP +5.9498%; TG512 -0.0065%; GO_32K_GATE. Quality=True; safety=True; first divergent token=None.
+32768: PP +4.1707%; TG512 -0.5225%; NO_GO_PERFORMANCE. Quality=True; safety=True; first divergent token=None.
+
+The measured gains are positive at both lengths. The7501 result passed the>=5% advance gate; the32K gain is below the5% target, hence conservative NO_GO_PERFORMANCE/nonpromotable disposition, not a correctness failure. Whole prompt savings were2.0259s at7501 and5.8270s at32768. TG512 loss at32K was0.52%, within the conservative2% material-regression threshold used for this finite gate.
+
+CORRECTNESS / VALIDATION
+Each arm generated exactly512 native tokens. Full arrays and all248320 finite FP32 first-token logits match the corresponding same-pair control and saved fixture references. No first-token-only claim substitutes for full output parity. At7501 this is reference parity and continuation sanity, not an independently scored answer oracle. At32768 both arms independently extract AUDIT V64-017=137; V64-043=211; V64-071=389; TOTAL=737. The saved known-answer ledger is the factual gate. No forced-history multi-position logit or broad long-context quality claim is made.
+
+Input 7501 token SHA256 110b021a7730f3957a1f019b68d69087aa03e6077c620a332eccf2e567617212
+Output512 SHA256 ea1f0a2324e9116911a40f6db8a265a24ea8e0f648d66e77814d7cbeb70c5046
+First-logit raw SHA256 be630cad7fdc9bf2cc7b5b5ec3436a4ef76e77bd81e2a2d5aab422f362585343
+Input 32768 token SHA256 8bfdfcb000f5e3d215f69ea0dde560c447522b6406cdf300377488f6655acf2a
+Output512 SHA256 ade26c22496134b6d6fdd89b44682dc19b8062e1a6ab23176323ea3860f2737e
+First-logit raw SHA256 bab182f6818b2c90ba74c7aa8ed456eeaf7a7374d7923cc711c6f7c104f3807f
+
+IMPLEMENTATION / EXACT ORDER
+Tree /home/ubuntu/strata-speedup/src-codex-as-early-fence-20261016; detached from AR47ca01c673129bc08f7df5bb9409bc8a4b1aa380. AR tree and binary remain unchanged. Tested source commit 1480566585cb3ea88cea4b71763b9abcd56fae26. Diff codex-work/stage-as-20261016/as.diff SHA256 991a97217d6245e2bacbb5d000b02859b752ab1cf9862ff3a5556f2337520bb6.
+Changed engine files: src/prefill/prefill.cpp and gather_lease.hpp. New test: tests/prefill/as_gather_lease_test.cpp. Only algorithm change: move consumed-source event recording into flush immediately after all native-group / alignment-fallback / SDMA source reads on the consuming stream, before GU/activation/H-quant/down enqueue. Save an exact (prefix-end,event-anchor) ticket. Retire publishes that already-recorded event; it does not re-record after matrix work. Newly claimed holes get an explicit fence if the ticket does not cover their longer prefix. Failed event recording prevents publication and following matrix enqueue.
+The copy stream still waits for the actual consumption event before overwriting a source generation. Earlier host publication is not treated as GPU completion. Gathered scratch and source ring are distinct: GU/down can continue reading scratch while the producer refills retired ring slots. Claimed/retired monotonicity, capacity96, group<=16, FIFO anchor-generation protection, all decode caches, native math and resident ownership remain unchanged. Synchronous issuer0 only; unsupported issuer1 fails closed. No host-set future event, new GPU buffer, device-wide synchronization, kernel math rewrite or cache tuning.
+The original2024 CPU cases passed unchanged. The AS2026 model additionally verifies consumption-event enqueue before matrix work, no overwrite before gather completion, overwrite possible before matrix completion, stale-ticket rejection and monotonic retirement. Independent copy/compute queues track source generations; routed/sparse/holes>96/wrap/resident mix/cancellation/producer-exit/fence-failure/final-partial/unsafe-negative cases pass. Static source assertions cover all gather branches and the caller ordering. These bounded tests are not exhaustive driver verification.
+Build: ROCm6.3.4 HIP6 with existing gfx900 kernel archives; ldd has HIP6, no HIP5 or missing library. Original GPU math archives unchanged. Exact compile/link commands and hashes are retained in build-result.json and ldd.txt. Existing STRATA_HIP_GFX906 host macro was inherited; actual device-code target remains gfx900.
+Control binary SHA256 d0e0764210abd4ba53a09f6a2c68166e234dcf03ddbda5c59d437481c96ad645
+Candidate binary SHA256 975852b5501a0c47e92053c4e6ae0988da4df8ed8871351aa1a3ba3030ffe526
+Source hashes: {"codex-work/stage-as-20261016/as_gather_lease_test.cpp": "d86d7d6ce9607c08514796ce3d496be09bdd15a4a86a1f916deb1dd067edf15f", "src/prefill/gather_lease.hpp": "c4afb11548ecf124e64a7b0778be670ab846dff6f96d6cd711d6949a6c4cff16", "src/prefill/prefill.cpp": "3bb7786f553b49c79c41cff57c51bade63ff900e8a9e2f37841dd6e0c360d8a5"}
+
+FAIRNESS / COUNTERS / LIMITS
+Both arms use unchanged AN/AO static46.12GiB pageable mirror, adapt0, TP1/issuer0, caches918/3700/3961,13workers, spec3/MTP experts host, remote-expert-opt, prefill4096,131072 configured maximum, INT8 KV CLI16384/effective20480, reserve700 preset, mmap experts and PLE direct IO. B alone enables STRATA_GATHER_LEASE=1. Exact argv/env/private profile are archived; paired normalization confirms equality except opt-in and output paths. Private immutable seed profile SHA4e76992d8f7b15475e11f174ae703d4379bf05d2198a9a478014e23ae564a3aa. No production profile writes.
+No prefill phase-event profiling or heavyweight additional GPU event trace ran. Existing decode host timing and first-logit capture are matched. Candidate histogram/count increments are host integers, not profiling events. Synthetic counter-loop measurement using AR operation counts: {"scope": "synthetic integer-counter loops using AR operation counts; not isolated engine overhead", "counter_off_ms_per_prompt": 0.01531, "counter_on_ms_per_prompt": 0.113368, "difference_ms": 0.098058}. This quantifies a CPU microbenchmark only; actual engine counter overhead was not independently isolated and no speed correction is applied.
+Single ordered pairs with sampled clocks/cache conditions, not repeated statistical trials. Startup and mirror-copy costs are separated from READY TTFT. No cold/warm startup win is inferred. Unprofiled prefill stage breakdown and physical PCIe bytes were not measured. Logical H2D byte counts must not be called bus telemetry. Host/GPU/peer intervals are not added as if nonoverlapping.
+
+Candidate 7501 counters: AR_LEASE device=0 tokens=7494 wall_ms=33388.809 groups=2269 max_span=30 room_flush=0 fences=2725 streamed_h2d=41554 streamed_bytes=85144627200 hist 1:3 2:8 3:7 4:7 5:9 6:6 7:3 8:4 9:10 10:1 11:6 12:7 13:5 14:8 15:7 16:2178
+Matched DONE decode counters 7501: {"cache_hits": 67188, "cache_lookups": 90012, "complement_file_reads": 0, "draft_accepted": 279, "draft_offered": 371, "mapped_or_file_MB": 0.0, "offloaded_rows": 199908, "ram_reads": 20255}; A and B counters identical. Decode complement expert-file reads/bytes were zero in all four arms; startup303 blob reads are separate.
+Candidate 7501 file/residency evidence: strata generate: PLE on, table 320001536 rows of /opt/testmodels/models/ista-iq3s/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf; strata serve: resident RAM: 46.12 GiB of experts in RAM, 0 exchanged with the VRAM tier, 303 blob reads from the file; strata serve: expert tiers: GPU 67188 hits this request; since the start RAM 62147 blobs, files 303 blobs 19188.9 MB read (the GGUF in place)
+Candidate 32768 counters: AR_LEASE device=0 tokens=32761 wall_ms=139052.453 groups=9453 max_span=30 room_flush=0 fences=10709 streamed_h2d=166216 streamed_bytes=340578508800 hist 1:24 2:23 3:23 4:27 5:27 6:29 7:22 8:21 9:23 10:21 11:28 12:28 13:26 14:19 15:30 16:9082
+Matched DONE decode counters 32768: {"cache_hits": 55450, "cache_lookups": 93697, "complement_file_reads": 0, "draft_accepted": 272, "draft_offered": 376, "mapped_or_file_MB": 0.0, "offloaded_rows": 202463, "ram_reads": 31832}; A and B counters identical. Decode complement expert-file reads/bytes were zero in all four arms; startup303 blob reads are separate.
+Candidate 32768 file/residency evidence: strata generate: PLE on, table 320001536 rows of /opt/testmodels/models/ista-iq3s/IQ3_S/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00002-of-00002.gguf; strata serve: resident RAM: 46.12 GiB of experts in RAM, 0 exchanged with the VRAM tier, 303 blob reads from the file; strata serve: expert tiers: GPU 55450 hits this request; since the start RAM 196612 blobs, files 303 blobs 22689.0 MB read (the GGUF in place)
+
+RESOURCE / SAFETY EVIDENCE
+| Input / arm | Min free VRAM MiB 05/0c/0f | Min MemAvailable GiB | READY clocks MHz 05/0c/0f | Peak sampled watts | Peak hotspot C |
+|---|---|---:|---|---|---|
+| 7501/A | 370.16 / 567.15 / 420.04 | 25.767 | 851.0 / 849.0 / 849.0 | 145.0 / 49.0 / 24.0 | 65.0 / 40.0 / 36.0 |
+| 7501/B | 370.33 / 567.33 / 420.24 | 25.770 | 851.0 / 849.0 / 849.0 | 150.0 / 50.0 / 26.0 | 67.0 / 41.0 / 36.0 |
+| 32768/A | 322.19 / 567.37 / 420.27 | 25.668 | 851.0 / 849.0 / 849.0 | 160.0 / 62.0 / 23.0 | 79.0 / 44.0 / 35.0 |
+| 32768/B | 322.30 / 567.48 / 420.37 | 25.654 | 851.0 / 849.0 / 849.0 | 164.0 / 63.0 / 24.0 | 81.0 / 46.0 / 36.0 |
+
+Fresh bridge/process/lock/GPU checks preceded every arm. One owned inference at a time; no compile/inference overlap. Passive temperature/power logs and genuine fault/AER/OOM/allocation/process/stall/cancellation/host-RAM protections retained. No software thermal kill, clock/fan/voltage/power/driver writes, reboot, production binary/config/service modification or shared model alteration. All arms rc0, hardware/AER/production comparisons unchanged. Final GPUs idle, no inference/build, ornith-server inactive. Existing SSH log carried progress.
+Policy correction found during runner review: the shared guard was already warning-only, but the inherited AR/AS7501 runner still had a redundant300MiB stop. It never triggered (min7501~370MiB); its executed source is preserved. That redundant stop was removed before either32K arm, preserving genuine allocation/fault monitoring. This corrects the overly broad prior AR report assertion; it does not invalidate the unchanged completed measurements or create a new fixed floor.
+
+DISPOSITION
+Preserve the original static-mirror binary and AR candidate. This result is a tested candidate, not production authorization. No MTP/cache/ring/group-width/90K/pipeline experiment followed the gated pairs. Review this candidate for the next authorized validation step; do not automatically promote or extrapolate a131K prompt result. STOP for supervisor review.
+
+EVIDENCE
+Remote root: /home/ubuntu/strata-speedup/src-codex-as-early-fence-20261016/codex-work/stage-as-20261016. Archive contains per-arm settings/actual-env/protocol/native arrays/logits/quality/telemetry/passive/hardware/AER, gates, CPU tests, source/diff, compile/link/ldd, runner versions/policy correction and final integrity. Protected source/binary/profile/production hashes verified; original base dirty diff unchanged. Candidate executable remains build-as/strata; archive excludes model weights and binary.
+Evidence tgz SHA256 6c032638d7a5c58095222a957a21e9865a9546ad9e155579dfbf253eb597e122
+Single next recommendation: retain the early-fence repair isolated for review, keep AH as deployment baseline, and have the supervisor decide whether the measured4.17%32K return merits accepting a sub-target experimental candidate before authorizing any more engineering. No third run or parameter change is proposed here.
