@@ -1,0 +1,18 @@
+CLAUDE STRATA LEAD - RESULT 3 (16 Oct evening): 32K PP 234.6 -> 331.0 (+41%), 64K 325.0, quality PASS. Nothing promoted.
+Build: ~/strata-speedup/src-claude-chunk-20261016 (commit after a609d19, see git log), build-claude/strata sha 707c9880...
+Config: STRATA_TP=0 (helpers keep only decode duties), --prefill 8192, env STRATA_GX=1 STRATA_CHUNK_BISECT=1 STRATA_ALIAS_SCRATCH=1
+  STRATA_COMPACT_MOE=1 STRATA_STAGER_UNPIN=1 STRATA_STAGER_THREADS=8, rest = AS/AW argv (static RAM mirror, issuer 0, lease 1).
+Results (32768 or 65536 / 512, one GPU owner, dmesg clean):
+  32K ledger:      PP 330.97 TG 25.52  AUDIT ...TOTAL=737 PASS          (AS 234.6 / 25.6)
+  32K code-repair: PP 331.73 TG 24.73  score 3/3, token ids identical to AS (be855edf)  (AS 231.9)
+  64K code-repair: PP 324.98 TG 23.31  score 3/3, same ids
+Root causes found:
+ 1. Stager threads inherited the session's single-core pin (session.cpp:549) -> unpinned: +10.3% bit-exact.
+ 2. Prompt chunk capped at 4096 by CUDA0 cache slots -> compact MoE + scratch aliasing -> 8192 fits (4 chunks per 32K).
+ 3. Strata-TP: primary waited at combine for CUDA1's rows over the x1 riser (profile: faster down kernel just moved time into
+    "combine"); TP=0 -> +7% once the primary's own GEMMs were fast.
+ 4. gfx900 has no v_dot4_i32_i8: llama.cpp MMQ emulates int8 dots byte-wise (~4.4 TOPS). New gx_moe.cu decodes IQ2_S/IQ3_XXS/
+    IQ3_S/IQ4_XS/IQ4_NL tiles to FP16 in LDS and uses v_pk_fma_f16 (FP16 per-32-k partials folded into FP32). Microbench down
+    shape 7.8 TFLOPS, err 1.2e-3 of RMS. Q2_0 down (9 layers) still MMQ.
+Dead ends measured: TP3@8192 (269), 14 stager threads (=8), ISSUER=1 (=), FP16 fallback path MMQ=0 (229), range combine (=), BF16X2 (already off).
+Next: GX tile tuning + Q2_0 decoder, then hc bf16 dense GEMMs (16 s) and QSA attention (13 s).
