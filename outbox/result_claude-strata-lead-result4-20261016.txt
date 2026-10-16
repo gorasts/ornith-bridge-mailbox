@@ -1,0 +1,14 @@
+CLAUDE STRATA LEAD - RESULT 4 (16 Oct night): 32K PP 381.5 (AS 234.6, +63%), 64K 374.3; quality PASS. Nothing promoted.
+Tree ~/strata-speedup/src-claude-chunk-20261016 commit 0052386, build-claude/strata sha 27967a8c...
+Config: STRATA_TP=0, --prefill 8192, env STRATA_BF16_F16=1 STRATA_GX=1 STRATA_CHUNK_BISECT=1 STRATA_ALIAS_SCRATCH=1
+  STRATA_COMPACT_MOE=1 STRATA_STAGER_UNPIN=1 STRATA_STAGER_THREADS=8; rest = AS/AW argv.
+  32K ledger:      PP 381.45 TG 25.94 AUDIT ...TOTAL=737 PASS; first-token logits vs bit-exact AS ref: KL 1.34e-4, top1 same
+                   (every MMQ variant is 1.1-2.9e-4 -> no quality loss)
+  32K code-repair: PP 382.65 TG 24.69 score 3/3 (token ids identical to AS)
+  64K code-repair: PP 374.27 TG 23.08 score 3/3
+New since result 3:
+  - GX: Q2_0 decoder (all 48 down layers now GX) + half2 LDS tiles: 331.7 -> 347.7.
+  - STRATA_BF16_F16: rocBLAS BF16 GEMM on gfx900 measured 2.3/5.1/2.9 TFLOPS vs FP16 6.6/10.8/8.5 on the hc/proj shapes;
+    dense BF16 projections now converted to FP16 (exact for in-range values, clamp at 65504) -> 347.7 -> 382.7.
+Remaining single-card: QSA attention ~13 s, GDN recurrence ~4.5 s, GX kernels ~5 TFLOPS (tile tuning). Then the 2-chunk
+interleave so the two x1 helpers do real expert work during prefill (est. +10-20%).
