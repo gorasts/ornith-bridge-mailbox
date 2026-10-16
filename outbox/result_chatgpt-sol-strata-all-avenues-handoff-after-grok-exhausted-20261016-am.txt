@@ -3,10 +3,12 @@ message_id: chatgpt-sol-strata-all-avenues-handoff-after-grok-exhausted-20261016
 source: SOL
 target: CHATGPT
 status: PHASE_COMPLETE
-phase: STATIC_DISCRIMINATOR_COMPLETE_BROADER_WORK_DEFERRED
+phase: STATIC_32K_QUALITY_GATE_COMPLETE_BROADER_WORK_DEFERRED
 promotion: NO
 
 # Strata three-Vega takeover — evolving report, 16 October 2026
+
+AO update (16 October): approved one32768/512 static A/B COMPLETE, 32K_VALIDATED_CANDIDATE. Both ledger answers correct, all512 IDs and first logits equal, TG18.1238→25.5939 (+41.22% observed), PP220.2174/225.5134 order-confounded. Mirror minimum primary VRAM322.11MiB. No faults, hardware/source/production change or promotion. Full evidence: outbox/result_chatgpt-sol-static-mirror-32k-quality-slope-gate-20261016-ao.txt. STOP for supervisor review; all broader engineering remains DEFERRED.
 
 Initial read-only preflight was completed and published before GPU work. The later explicit AN directive authorized exactly one static-original/static-mirror7501/1024 pair and required STOP afterward. That pair is complete: STATIC_PARITY_CANDIDATE, all1024 IDs equal, byte-identical first logits, TG20.20→27.66 (+36.94% observed), clean guards. Full result: outbox/result_chatgpt-sol-static-ram-mirror-adaptation-discriminator-20261016-an.txt. No source/binary/production/hardware change or build occurred. ALL broader AM implementation and tests are DEFERRED for supervisor review; the future plan below is not an active dispatch.
 
@@ -52,6 +54,7 @@ Rates below are historical measurements unless a later phase explicitly adds new
 | AI mirror, adaptive |207.562, clock-confounded|— /— /—|26.781 TG1024|TTFT start132.112s /ready36.192s|BLOCKED; first difference597; no reported faults|VRAM369/566/419MiB; RAM25.52GiB|
 | AN static original |181.4202, state-confounded|— /— /—|20.1990 TG1024|TTFT start152.530s /ready41.407s|1024 IDs equal to mirror; clean guards|VRAM375/568/420MiB; RAM71.89GiB|
 | AN static mirror |207.7413, state-confounded|— /— /—|27.6607 TG1024|TTFT start132.951s /ready36.164s; copy43.104s|STATIC_PARITY_CANDIDATE; no promotion or semantic/long-context pass|VRAM370/567/420MiB; RAM25.74GiB|
+| AO static original /mirror |See AN above|220.2174 /225.5134 at32768;90/120K unmeasured|18.1238 /25.5939 TG512|Start259.886/242.490s; ready148.867/145.368s; mirror copy43.361s|512 IDs+first logits equal; ledger factual PASS; no faults|VRAM326/568/420 vs322/567/420MiB; RAM71.779/25.645GiB|
 | Mirror-adaptive corrected |—|— /— /—|—|—|No fix or validation|—|
 | True MTP OFF |—|— /— /—|—|—|AJ missing, gated on static safety and source feasibility|—|
 | MTP relocated |—|— /— /—|—|—|AK missing, gated on prior stage and pointer ownership|—|
@@ -76,3 +79,5 @@ Before speculative/invasive P1/P2 work expected to exceed30 minutes, report the 
 
 
 AN postscript: static full1024 SHA 1a889735f59e318f82e63334879d6fbd8749bd53955768429f88d9473c6fefe1. First logits SHA be630cad7fdc9bf2cc7b5b5ec3436a4ef76e77bd81e2a2d5aab422f362585343. No further GPU work. See AN for the exact scope, adaptive comparison, artifacts and qualification of PP/TTFT.
+
+AO postscript: new32768-token fixture SHA8bfdfcb000f5e3d215f69ea0dde560c447522b6406cdf300377488f6655acf2a;512 output SHAade26c22496134b6d6fdd89b44682dc19b8062e1a6ab23176323ea3860f2737e. Static mirror is a32K candidate;90K/131K and general reasoning quality remain unvalidated. Historical stop notes above describe previous phases; the current directive is STOP after AO.

@@ -1,0 +1,85 @@
+ORNITH_BRIDGE_RESULT_V1
+message_id: chatgpt-sol-static-mirror-32k-quality-slope-gate-20261016-ao
+source: SOL
+target: CHATGPT
+status: COMPLETE
+verdict: 32K_VALIDATED_CANDIDATE
+gpu_run: ONE_STATIC_32K_AB
+promotion: NO
+next_action: STOP_FOR_SUPERVISOR_REVIEW
+
+# AO — 32K static mirror quality and TG512 gate, 16 October 2026
+
+**PASS for this gate:** both unchanged binaries produced the same 512 native IDs from exactly 32,768 input tokens, both answered the independent ledger oracle correctly, and both exited rc0 without a guard trip or fault. All 248,320 first-token FP32 logits are finite and byte-identical. The static mirror remains a validation candidate; it is not promoted or validated at 90K/131K.
+
+## Fixture and ownership gate
+
+Reviewed full AN and updated AM, the already-read unchanged AH/AI, roadmap and supervisor rules including the 9 October thermal policy. Refreshed origin/main immediately before each arm: no completed AJ/AK/AL reports appeared. Fresh process, GPU and fcntl-lock checks found no competing inference/build/owner; three GPUs were idle and ornith-server inactive. Old AN owner.json was a stale record with a free lock, not active work. No Grok job was sent, restarted or cancelled.
+
+The saved tok32k_chat.tokens is actually31,631 tokens, contains unrelated handoff material, and has no independent factual oracle. It was rejected for this quality gate. No vetted same-model long-context factual fixture was found in the scoped saved Strata benchmark/data/tools locations. The directive explicitly permitted routine deterministic construction, so this test uses a **new** fixture rather than silently relabeling the old7.5K task.
+
+Construction: a103,708-character prefix of existing unique English Strata documentation (README, MULTI_GPU and DETAILS, with source inventory also recording AMD_HIP/HOW_IT_WORKS), interleaved with80 deterministic synthetic audit records in three excerpts. Target records occur in different excerpts. The instruction requests the audit answer first, followed by a substantive900-word technical review, providing a naturally long continuation. These benchmark ledger facts are not claims about actual hardware. Documentation is explicitly quoted reference data; no embedded operational commands were executed.
+
+Native packaging matches tools/batch_test.py: one user turn and one assistant prefix with closed thinking, using the same ISTA IQ3_S tokenizer and parse_special=True. Verified actual special-token IDs (two im_start, one im_end), full encode round-trip with original newline bytes, and exact32,768 count. A CPU-only draft caught during packaging checks was preserved and excluded from runs. No EOS-ignore or generation/sampling change was introduced.
+
+Fixture token-file SHA256: `8bfdfcb000f5e3d215f69ea0dde560c447522b6406cdf300377488f6655acf2a`. Independent parsing of the finished prompt recovered137,211,389; sum737. Both outputs begin exactly:
+
+`AUDIT: V64-017=137; V64-043=211; V64-071=389; TOTAL=737`
+
+Both continued with coherent technical-review prose and reached the512-token cap with finish=length; no early EOS. Saved outputs also pass independent strict UTF-8 byte-vocabulary decoding. The review is incomplete at the cap and has not been fully fact-checked. The factual quality PASS is specifically three-record retrieval plus integer addition, distinct from native parity and from a general reasoning/engineering-accuracy score.
+
+## Exact pair and measurements
+
+Control A ran first; mirror B started only after A's512-token finish, factual oracle and safeguards passed. Reused A SHA `79178630b8fdaf5602ca33dcbe4af8be48c87d27262051395c97f2d091f24ab7` and B SHA `d0e0764210abd4ba53a09f6a2c68166e234dcf03ddbda5c59d437481c96ad645`. Both private read-only profile seeds match `4e76992d8f7b15475e11f174ae703d4379bf05d2198a9a478014e23ae564a3aa`; shared profile unchanged. No engine/source/model build or modification.
+
+Exact argv and child environment are preserved in settings.json/actual-env.json; independent analysis confirms they match AN after removing artifact paths. Both retain adapt0, TP1, issuer0, remote-expert-opt,13 workers, spec3/spec-min-p0.5, MTP host experts, prefill4096, context131072, int8 KV, CLI resident16384/runtime20480, reserve700, PLE direct I/O and GGUF expert mmap. Caches remain918/3700/3961. Only B adds --resident-cpu-experts and STRATA_REMOTE_RAM_MIRROR=1. HIP0/1/2 map to PCI05/0c/0f; LD_LIBRARY_PATH resolves ROCm6.3.4 with no HIP5 dependency. GEN512 uses the existing AN server sampler/protocol.
+
+| Metric | A static original | B static mirror |
+|---|---:|---:|
+| Actual input/generated |32768/512|32768/512|
+| Server PP tokens/s |220.2174|225.5134|
+| Server TG512 tokens/s |18.1238|25.5939|
+| Prompt/decode seconds |148.7984/28.2501|145.3040/20.0048|
+| Process to READY, seconds |111.019|97.121|
+| TTFT process/READY, seconds |259.886/148.867|242.490/145.368|
+| One-time RAM copy, seconds |—|43.361|
+| Min MemAvailable, GiB |71.779|25.645|
+| Min free VRAM05/0c/0f, MiB |326.36/567.51/420.41|322.11/567.31/420.20|
+| Verification windows |243|241|
+| Accepted/offered drafts |270/374|272/376|
+| Total ms/window |116.26|83.01|
+| GPU-reach wait ms/window |34.90|35.07|
+| CPU jobs ms/window |39.90|0.50|
+| CPU/helper bucket ms/window |20.92|26.51|
+| Draft ms/window |10.16|10.16|
+
+Observed TG512 gain **+41.22%**. These rates come from each server's DONE512, not an estimated stream prefix. Both512-ID arrays SHA256 `ade26c22496134b6d6fdd89b44682dc19b8062e1a6ab23176323ea3860f2737e`; first divergence none. First-logit SHA256 `bab182f6818b2c90ba74c7aa8ed456eeaf7a7374d7923cc711c6f7c104f3807f`, max/mean difference0. No forced-history all-position logits claim. AN's different prompt has a different512 hash; equality with that fixture is not expected.
+
+Both started at26/26/26MHz, HBM1000; READY samples were851/849/849MHz. A was first, B followed a loaded/cached run; no page-cache drop or hardware write was used. **The observed2.4% PP difference and process-TTFT difference do not establish a mirror prefill gain.** Cold-start TTFT includes B's43.36-second copy. READY-based TTFT excludes startup. Persistent-server copy amortization is a separate deployment question.
+
+B retained46.12GiB pageable experts,0 pinned. Measured decode counters:31,832 RAM reads, **0 complement-file reads and0.0MB file-byte delta**. Its303 lifetime file reads occurred during startup, not decode fallback. A's51,424.1MB mapped-GGUF counter is logical data access, not measured physical SSD traffic. PLE direct I/O remains enabled and is not covered by the expert-fallback counter. Primary exchanges0; adapt0 source excludes adaptation/helper swaps, with no new helper-swap instrumentation. Timing buckets overlap; the CPU/helper bucket is not pure AVX arithmetic and must not be summed with unrelated GPU intervals.
+
+## Context slope and evolving winner table
+
+| Configuration/gate | PP7.5K | PP32K | TG7.5K | TG32K/512 | Quality |
+|---|---:|---:|---:|---:|---|
+| AH adaptive original |204.2066|—|21.9359/512|—|512 parity only|
+| AH adaptive mirror |209.6030*|—|27.6243/512|—|512 parity before swap; no oracle|
+| AI adaptive mirror |207.562*|—|26.781/1024|—|BLOCKED: divergence597|
+| AN/AO static original |181.4202*|220.2174|20.1990/1024|18.1238|AN1024 parity; AO ledger PASS|
+| AN/AO static mirror |207.7413*|225.5134|27.6607/1024|25.5939|AN1024 parity; AO32K parity+ledger PASS|
+| Adaptive corrected /MTP OFF /relocated /async ring /true pipeline |—|—|—|—|Not implemented or validated here|
+
+*Historical clock/cache/order caveats remain. Against AN, observed TG is10.27% lower for A and7.47% lower for B; CPU jobs change33.49→39.90ms/window(A),0.44→0.50(B), mirror GPU-reach34.32→35.07 and draft9.18→10.16. Draft acceptance is about72% here versus about76% in AN. These are **different prompt contents and512 versus1024 generation lengths**, so this is an observed workload/context comparison, not an isolated context-only slope or a prediction for90K/131K. No90K/120K/131K prompt was tested.
+
+## Safeguards, evidence and stop
+
+No guard trip, competing work, fault/reset/OOM or AER increase. Each arm used300MiB GPU/8GiB host headroom guards, fresh kernel logging and1500s cap. Hardware/production snapshots unchanged, production service inactive, no inference/build remains, source/binary/profile hashes still match AN and boot ID unchanged. No software temperature kill, control write, cache drop or reboot.
+
+Whole-arm real-power ranges05/0c/0f: A7–163/3–58/4–22W; B6–161/3–57/4–25W. Junction maxima A74/43/32C, B75/44/33C. Peak sampled clocks A1439/1089/849MHz, B1414/1088/849MHz; HBM1000. These include startup/prefill/decode, not phase-average utilization or proof of no throttling. Passive telemetry is durable. Low helper wattage alone is not a pipeline diagnosis.
+
+**Memory caution:** B's primary minimum322.11MiB leaves only22.11MiB above the300MiB guard, versus about370MiB in AN. This is not permission to reduce the guard or reserve. Conditional next recommendation: supervisor review this margin and the fixture/oracle, then consider one separately authorized higher-context quality/TG512 gate only after a source-backed memory budget. No automatic longer-context, MTP, async or TurboPrefill work.
+
+Remote stage: /home/ubuntu/strata-speedup/src-codex-ah-mirror-20261016/codex-work/sol-ao-32k-20261016. Runner PIDs A3216243/B3246793. Existing fn_server.log SSH view received live progress/results. Evidence archive2109605 bytes, SHA256 `9a7e9c4d5de0bb0340f00119a003e53a0a0666a2fd5e28041b7cae5b0c38b9d6`, downloaded, hash-verified and safely extracted. Contains native IDs/logits, full argv/env, fixtures/source inventory/builder, oracle scores, profiles, logs, hardware/AER and telemetry. Independent UTF-8 decode addendum was saved afterward. Full GGUF files were not rehashed or rewritten to avoid perturbing cache; exact same model paths and binaries were reused.
+
+**Decision: 32K_VALIDATED_CANDIDATE. STOP for supervisor review; no promotion.**
