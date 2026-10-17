@@ -1,0 +1,242 @@
+CLAUDE -> SUPER, 17 Oct 2026 18:55 - GORAST full tuning report (llama.cpp Ornith + Strata Flash-Next), owner asked me to send everything.
+
+HEADLINE
+- New patch MTP_SHARE_OUTPUT=1: the MTP draft (shisa12k standalone) carries an output.weight byte-identical to the target model (md5 270c2f03c058, Q3 and Q4). Draft now borrows the target tensor -> frees 515 MB on the draft card -> MTP fits at full 131K on 3 Vegas.
+- Compute buffer per card = ubatch x context scratch (ub1024@131K 1195 MB, ub512 598, ub1024@32K 427) -> -ub is the memory knob; it pays for q8/f16 KV.
+- PRODUCTION (verified via switcher :8091, accuracy 10/10 known-answer math/code on both):
+  Ornith Q3 131K (was 102K) f16 KV + MTP on x16 last: 1247 PP / 46.2 TG @16K + 1536-token answer.
+  Ornith Q4 131K q8 KV ub512 + MTP on converter (last): 946 PP / 45.6 TG (was 1107 / 34.5 no MTP) -> TG +32%, full turn -14%.
+- MTP draft must be on the LAST card of the -dev chain (first-card draft: 2-card 16 TG, 3-card 21.8 TG; last-card: 33 / 46.8).
+
+Full reports follow (also on XEON2: C:\OpenInterpreterAgent\CLAUDEeports\).
+
+==================== LLAMA_LEVERS_REPORT.md ====================
+
+# llama.cpp on GORAST — every lever, every result (Ornith Q3 / Q4)
+
+**Read this before any llama.cpp test on GORAST.** Maintained by Claude; last update 17 Oct 2026 18:40.
+Companion: `STRATA_LEVERS_REPORT.md` (Flash-Next / Strata engine).
+
+## 0. Hardware (as of 17 Oct 2026)
+
+| Vulkan id | PCI | link | role |
+|---|---|---|---|
+| Vulkan1 | 05 | PCIe3 x16 (CPU) | fastest card |
+| Vulkan2 | 09 | PCIe3 x4 via NVMe->PCIe converter on CPU port 03.2 | "converter" |
+| Vulkan0 | 0e | PCIe2 x1 riser (chipset) | slowest |
+
+3x Vega 64 8 GB (8176 MiB each, gfx900, RADV), undervolted (900 mV, 1536-1600 MHz, HBM 1000, REF 15600),
+E5-2680 v4 14c, 78-80 GB DDR4 4-way interleave. Undervolt gate `/usr/local/sbin/gorast_undervolt_check.py` - NO STOCK RUNS.
+Model switcher: `llama-swap` 127.0.0.1:8090 behind `loopguard` 0.0.0.0:8091 (Ornith | Ornith-Q4 | Flash-Next, one at a time).
+
+## 1. PRODUCTION NOW (17 Oct 18:30, verified through :8091)
+
+| model | command file | context | PP @16K | TG (1536-tok answer) |
+|---|---|---|---|---|
+| Ornith Q3 (IQ3_S-IQ3_XXS) | `/etc/ornith/threecard.cmd` | **131072** (was 102144) | **1247** | **46.2** (acc 0.89) |
+| Ornith Q4 (AD-Q4_K-IQ4_XS) | `/etc/ornith/q4-allgpu-131k.cmd` | 131072 | **946** | **45.6** (acc 0.95) |
+
+Binary for both: `/opt/llama/llama-claude-gx-share-20261017` (source `~/orn-claude-src`).
+Env: `TURBOPREFILL=0 GGML_VK_XDEV_ASYNC=1 GGML_VK_ASYNC_READBACK=1 GGML_VK_GX=1 GGML_VK_MMID_ROWLIST=1 CKPT_TAIL_ONLY=1 MTP_SHARE_OUTPUT=1`.
+- Q3: `-dev Vulkan0,Vulkan2,Vulkan1 -ts 1.05,1.1,0.85 -b 32768 -ub 1024 -ctk f16 -ctv f16 -fit off -md shisa12k-mtp-standalone.gguf -devd Vulkan1 -ngld 99 --spec-draft-n-max 1`
+- Q4: `-dev Vulkan1,Vulkan0,Vulkan2 -ts 1.05,1,0.85 -b 32768 -ub 512 -ctk q8_0 -ctv q8_0 -fit off -md ... -devd Vulkan2 -ngld 99 --spec-draft-n-max 1`
+Backups: `threecard.cmd.bak-20261017-preshare`, `q4-allgpu-131k.cmd.bak-20261017-premtp` (old Q4 = 1107.6 PP / 34.5 TG, no MTP).
+
+**Accuracy verified 17 Oct 18:50** (`~/orn-claude-20261017/known10.py`, 10 known-answer math/code questions, temp 0.6 seed 42,
+through :8091): Ornith Q3 production **10/10** (51-53 t/s short ctx), Ornith-Q4 K4 production **10/10** (50-53 t/s).
+
+Full-turn view (16K prompt + 1536-token answer): Q4 old 59.3 s -> **K4 50.9 s (-14%)**; TG +32%.
+
+## 2. Levers that moved numbers (chronological, with measured deltas)
+
+| # | date | lever | effect | notes |
+|---|---|---|---|---|
+| 1 | 26 Sep | `--load-mode dio` + raised GTT (`amdgpu.gttsize`, `ttm.pages_limit`) | PP +27..120% when experts live in RAM | GTT default = half RAM; dio pins CPU experts in GTT |
+| 2 | 19 Sep | f16 KV vs q4 | +12-15% TG at long ctx (crossover ~20K) | dequant cost scales with KV read per step |
+| 3 | 2 Oct | MTP draft (shisa12k standalone, depth 1) | TG +11..17% | depth 2/3 lose (acceptance falls) |
+| 4 | 9 Oct | **xdev async copy patch** `GGML_VK_XDEV_ASYNC=1`, TURBOPREFILL=0, `-b 32768 -ub 1024` | Q3 PP 673 -> 1152 (**+71%**) | Vulkan cross-device copies were synchronous -> no pipeline overlap |
+| 5 | 13 Oct | `GGML_VK_ASYNC_READBACK=1` | fixed MTP PP collapse (457 -> normal) | draft reads t_h_nextn from last GPU every ubatch; pinned memory only on devices[0] |
+| 6 | 17 Oct | GX shader + MMID row lists (`GGML_VK_GX`, `GGML_VK_MMID_ROWLIST`) | 3-card +several %; one card +1-3% (noise) | |
+| 7 | 17 Oct | **x16 card LAST in the chain** (Q3) | TG +10-12%, PP -2% | last stage runs output + draft |
+| 8 | 17 Oct | **CKPT_TAIL_ONLY=1** (server-context.cpp) | Q3 16K PP 1040 -> 1140 | server split last ub+4 tokens off every prompt for a checkpoint -> lone unpipelined batch |
+| 9 | 17 Oct | NVMe->PCIe x4 converter replaces one x1 riser | Q3 +9% PP / +16% TG; Q4 TG +15% | TG gain = latency (CPU port, no DMI hop) |
+| 10 | 17 Oct | **MTP draft must sit on the LAST card** | Q4 3-card 21.8 -> 46.8 TG @32K q8; 2-card 16 -> 33 TG | draft on first card = hidden state crosses the whole chain every step |
+| 11 | 17 Oct | **MTP_SHARE_OUTPUT=1** (my patch) | frees 515 MB on the draft card -> MTP fits at 131K | draft output.weight is byte-identical to the target's (md5 270c2f03c058, Q3 and Q4) |
+| 12 | 17 Oct | **`-ub` as the memory knob** | compute buffer = ubatch x context scratch | ub1024@131K 1195 MB/card, ub512 598, ub1024@32K 427 |
+| 13 | 17 Oct | KV q8 instead of q4 at 131K (paid for with ub512) | K4 945.7 PP / 45.63 TG vs q4 K2 1001 / 40.3 | acceptance q4 0.75 -> q8 0.85-0.95 -> f16 0.97 |
+
+## 3. Memory model (calculate BEFORE placing anything)
+
+Ornith Q4 (40 layers, qwen35moe, 10 full-attention layers = every 4th: 3,7,...,39; rest recurrent):
+- layer weights ~456 MB (experts 416 + attention ~26-28 + other 5 + ssm 9); Q3 smaller.
+- output.weight 515 MB (Q8_0) on the LAST card; token_embd 515 MB stays on CPU.
+- KV per attention layer at 131K: **q4 72 MB, q8 136 MB, f16 256 MB** (KV elems/token/layer = 2 kv-heads x 256 x 2).
+  Whole model at 131K: q4 0.72 GB, q8 1.36 GB, f16 2.56 GB.
+- recurrent state ~34-50 MB/card.
+- **compute buffer per card ~= 1195 MB x (ub/1024) x (ctx/131072)** (measured; same on every card).
+- draft (shisa12k): layer 455 MB + own output 515 MB (0 with MTP_SHARE_OUTPUT) + KV (1 attn layer: f16 256 @131K) + compute ~340 MB.
+  `--cpu-moe-draft` removes 432 MB of draft experts but costs PP (draft experts streamed during the prompt).
+- `-ts` maps over n_layer+1 = 41 slots: layer il goes to the first device with il/41 < cumulative share.
+  Prod `1.05,1,0.85` = x16 0-14, riser 15-28, converter 29-39 + output.
+- Calibration (prod Q4 no MTP): measured 8053 / 7866 / 6945 MiB; verbose buffer list matched within ~100-200 MB.
+- Get exact buffers with `-lv 4` (sched_reserve / load_tensors / llama_kv_cache lines). Default log level hides them.
+
+**Tight fit:** K2 ran with ~160 MB free on the converter at full speed; K5 with x16 at 8167/8176 ran clean. Margin did NOT
+cost speed in these runs (ub768 for headroom was 3% slower). A real spill looks like PP collapsing (3x lower) + GTT growth.
+
+## 4. Full 17 Oct result table (16K prompt; Q4 131K unless noted; 512-token answers unless "1536")
+
+| arm | layout | KV | MTP | PP | TG | acc |
+|---|---|---|---|---|---|---|
+| prod (old) | x16,riser,conv 1.05/1/0.85 ub1024 | q4 | - | 1107.6 | 34.47 | - |
+| A ckpt off | same + --ctx-checkpoints 0 | q4 | - | 1115.0 | 34.51 | - |
+| C | draft conv, --cpu-moe-draft, draft KV q4 | q4 | conv | 819.3 | 36.38 | 0.73 |
+| C2 | same, draft KV q8 | q4 | conv | 826.8 | 36.62 | 0.74 |
+| F (32K ctx) | draft conv, GPU draft experts | q4 | conv | 1002.3 | 39.8 | 0.72 |
+| G | 2 expert layers (20,33) to CPU for room | q4 | conv | 411.4 | 37.29 | 0.81 |
+| K | shared output, --cpu-moe-draft | q4 | conv | 834.5 | 40.34 | 0.90 |
+| K2 | shared output, GPU draft experts | q4 | conv | 1001.3 | 40.30 | 0.75 |
+| K3 | K2 + ub768 | q4 | conv | 973.1 | 39.33 | 0.71 |
+| K4 | shared, **ub512, q8 KV** | q8 | conv | 958.6 | 43.45 | 0.85 |
+| K5 | shared, ub384, f16 KV | f16 | conv | 929.7 | 46.54 | 0.97 |
+| L prod 1536 | old prod | q4 | - | 1107.6 | 34.50 | - |
+| **L K4 1536** | **PROMOTED** | q8 | conv | **945.7** | **45.63** | 0.95 |
+| L K5 1536 | | f16 | conv | 926.3 | 46.30 | 0.95 |
+| Q3 prod 1536 | Q3 102K f16 x16 last | f16 | x16 | 1247.5 | 45.45 | 0.86 |
+| **Q3 share 131K** | **PROMOTED** | f16 | x16 | **1247.2** | **46.24** | 0.89 |
+
+2-card Q4 131K (x16 + converter, `--n-cpu-moe 16`, ub2048, q4 KV):
+| layout | PP | TG |
+|---|---|---|
+| x16 first, no MTP | 394 | 27.4 |
+| x16 first, draft on x16 (first card) | 349 | 16.1 |
+| conv first, no MTP (E1) | 299 | 27.1 |
+| conv first, draft x16 = last (E2) | 280 | 33.4 |
+| x16 first, draft conv = last (E3) | 313 | 32.8 |
+| E3 + q8 KV + ncm19 (H1) | 308 | 30.5 |
+| H1 + ts 2.6,1 (H2) | spill -> 123 PP | aborted |
+Single card Q3 (x16, ncmoe 28, MTP, 32K): 386 PP / 23.5 TG.
+
+## 5. Rules of thumb (Gorast + measured)
+
+1. KV: **f16 > q8 > q4** - use the best that fits; q4 also lowers MTP acceptance on 3 cards (~0.72 vs 0.85-0.97).
+2. MTP draft on the **LAST card**, ideally the fastest; with `MTP_SHARE_OUTPUT=1` and `-fit off`.
+3. Buy VRAM with `-ub` (compute buffer scales linearly) before moving experts to CPU.
+4. Experts on CPU in a GPU-only pipeline = PP collapse (streamed every prompt). In CPU+GPU setups they are the price of fitting.
+5. Expert streaming (op offload) goes through the FIRST `-dev` device - put the x16 card first when experts live in RAM.
+6. Measure TG with >= 1536-token answers (512 understates: tg_3s still climbing at 400 tokens).
+7. Compare full-turn time (prompt + answer), not PP or TG alone.
+
+## 6. Dead levers (measured, do not retry without a new reason)
+
+ngram spec as default (task-dependent), threads 12 vs 14, huge pages, p-min, b/ub 4096, ik_llama (10x slower on qwen35moe Vulkan),
+DRY sampler (doesn't stop loops), RPC draft (-10..16%), KV on CPU (-46% TG), draft on CPU (-39%), MTP depth >1,
+`--ctx-checkpoints 0` (= noise, loses reuse), expert cache PR 27861 on single-card Q4 (no gain; needs >=16 slots),
+REF timing (+1-3%), TurboPrefill (never active), userptr host import (TG -16%), x16 last at 131K Q4 with MTP (doesn't fit),
+2 CPU expert layers to make MTP room (PP 411).
+
+## 7. Traps (each cost runs)
+
+- The progress line "1506 tok/s" is submit time; ~4 s pipeline drain follows. Use `prompt eval time`.
+- Server with `-b 32768` prints no progress until the whole prompt is done -> watchdog must use elapsed time.
+- `pkill -f` / `pgrep -f` with a pattern in the same ssh command line kills your own shell. Use PIDs or script files.
+- Nested quotes through ssh mangle `\n` and quotes in patches -> always edit via a script file, compile before running.
+- `-fit on` dry-runs the draft alone -> with MTP_SHARE_OUTPUT it asserts. Use `-fit off`.
+- A delayed `kill -9 $(pgrep llama-server)` in a watchdog can kill the NEXT test's server - kill only the PID you judged.
+- Watchdog must only judge a log written after the current server started.
+- Vulkan ids != drm card ids; check bus ids. VRAM sysfs readings per card: `/sys/class/drm/cardN/device/mem_info_vram_used`.
+- A riser card at 7866 MiB with 1.6 GB GTT is NORMAL in production (not a spill).
+- After any GPU reset: HBM pin / REF drop -> `systemctl restart gpu-mempin` + verify.
+- MTP correctness: compare answers with and without the draft on known-answer prompts before trusting speed.
+
+## 8. Open levers (next)
+
+- Q3 has ~700 MB free per card at 131K -> try ub 1536/2048 or more layers on x16.
+- Pipeline drain (~4 s at the end of a 16K prompt) - pipeline code, not config.
+- Long-context check (90K) of both new production configs.
+- 2-card K4-style: shared output + draft on last + q8/f16 KV with n-cpu-moe re-solved by the memory model.
+- Vulkan flash-attention scratch: compute buffer scales with full context even for short prompts (reserve smaller, grow on demand?).
+
+
+==================== STRATA_LEVERS_REPORT.md ====================
+
+# Strata (Flash-Next) on GORAST — approaches, levers, results
+
+**Read this before any Strata / Flash-Next work.** Maintained by Claude; last update 17 Oct 2026 18:40.
+Companion: `LLAMA_LEVERS_REPORT.md`.
+
+## 0. What Strata is here
+
+Strata (github.com/Niko1221/Strata) is an MoE engine for NVIDIA/RDNA; gfx900 is unsupported upstream, we run a ported build
+(ROCm 6.3.4). Model: Qwen3.8-Flash-Next (125B total / ~6B active, 48 layers, 512 experts + shared, PLE n-gram table 28.8 GB).
+Production quant IQ3_S. Design: the x16 card (05 = HIP 0) runs ALL layers; experts live in a RAM mirror; the GPU keeps an expert
+cache; the CPU computes cache misses in parallel and the results are summed.
+
+## 1. PRODUCTION NOW
+
+- `~/strata-flashnext-prod.sh` -> serve.server :8299 (via llama-swap entry "Flash-Next", drops page cache first).
+- Config `~/strata-flashnext-iq3s-prod.json` (+ `--spec-split`, env `STRATA_IQ256_GATHER=1`; backup `.bak-20261017-presplit`).
+- Binary `/opt/strata/strata-claude-20261017`, cfg `gpu [0]` + env `HIP_VISIBLE_DEVICES=0,1,2`
+  (`gpu [0,1,2]` makes serve add --layer-split, which the RAM mirror refuses).
+- Speed: 32K **381.5 PP / ~25.9 TG**; 12K 385 PP / 26.0 TG; follow-up first token 1.12 s; ~25 TG on math/code.
+- Quality: brainbench raw 12/12 (Ornith 12/12), harness 10/10 (Ornith 9/10; Flash-Next solved N5 with its own Schreier-Sims).
+
+## 2. Timeline of approaches and results
+
+| date | approach | result | verdict |
+|---|---|---|---|
+| 5 Oct | llama.cpp 3-card, experts on CPU (F0-F6 plan) | XEON2 1-card baseline 52 PP / 5.2 TG | RAM-bound |
+| 8 Oct | Strata layer-split config | 7.5K 75-83 PP / ~18 TG | superseded |
+| 13 Oct | llama.cpp op-offload streaming, **x16 first** (`-dev Vulkan1,Vulkan0,Vulkan2 -ts 38,5,5 --n-cpu-moe 38 -b 8192 -ub 3072`) | 7.5K 147-170 PP / 7.5 TG | prefill 1.8x Strata, decode 2.4x worse |
+| 13 Oct | Strata S2: main GPU all layers + risers as remote expert caches (`--expert-cache auto --expert-cache-per-layer --expert-cache-device1/2 auto --remote-expert-opt --prefill auto --pool-workers 13 --spec 2`) | 7.5K 236-238 PP / 18.2 TG, 90% hits | big step |
+| 13 Oct | RAM arena (drop --mmap-experts), + `--ple-io ram` | 259.5 PP / 16.9 TG; arena+PLE-in-RAM **WEDGED the box** | NEVER combine; arena unsafe |
+| 16 Oct | AS binary + static RAM mirror + TP3 | 32K 246.8 / 25.1 | base for my work |
+| 16 Oct | prefill chunk = main lever (fixed --prefill halves until it fits 918 cache slots) | 2048: 154.6, 3072: 200.3, 4096: 234.5 | bigger chunk = faster |
+| 16 Oct R1 | chunk 8192 via compact MoE (CHUNK_BISECT, ALIAS_SCRATCH, COMPACT_MOE, STAGER_UNPIN, STAGER_THREADS=8) TP1 | 32K 272.1 / 26.3 | +16% |
+| 16 Oct R3 | stager CPU0 pin (+10%), TP=0 (helper over x1 made primary wait), STRATA_GX FP16 packed-FMA expert GEMM | 32K **331.0**, 64K 325 | +41% |
+| 16 Oct R4 | + STRATA_BF16_F16 (rocBLAS bf16 2-3x slower than fp16 on gfx900) | 32K **381.5**, 64K 374.3, KL 1.34e-4 | +63%, PRODUCTION |
+| 17 Oct | `--spec-split` (overlap CPU and GPU work) | +9-12% | kept |
+| 17 Oct | `STRATA_IQ256_GATHER=1` | +1.6% | kept (zero cost) |
+| 17 Oct | adaptive expert swapping (`--adapt-every`) | costs more than it gains | dropped |
+| 17 Oct | static codex expert profile | 5-25% main-card hits | small |
+| 17 Oct | NVMe->PCIe converter (x4 instead of x1 riser) | no change (385 / 26.0) | Strata decode is CPU-expert-bound; prompt path uses x16 |
+
+## 3. Where decode time goes (the wall)
+
+Decode window ~70-82 ms/token: **CPU expert work ~52 ms** (~2.75 misses/layer, AVX2 IQ decode ~0.55 ms/layer, compute-bound on 14
+cores); GPU idles ~24 ms waiting for misses. Dense decode GEMVs ~235 GB/s (fine).
+Measured no-gain: pool-workers 20 (=), 27 (21.5, worse), STRATA_MIRROR_THP huge pages (=), --spec 2 (25.1) / 4 (25.0) vs 3 (best).
+Short turns: window path ~25 ms/token (23% cache hit, misses over x1 risers); `--short-read 64` right (160 worse).
+
+## 4. Same lesson, different engines (what I realised)
+
+1. **Expert streaming goes through ONE card - make it the x16 card.** llama.cpp op offload uses the first `-dev` device (x1 first: 18 PP,
+   x16 first: 78-170); Strata's main GPU = x16. The 2-card Ornith Q4 run repeated it: converter first 299 PP vs x16 first 394.
+2. **When experts are on the CPU, decode is CPU-bound** - Strata decode (52 of ~75 ms), single-card Ornith (GX build = +1-3% only),
+   llama.cpp Flash-Next streaming (7.5 TG). Faster links do not help decode (converter: Strata unchanged).
+3. **A profile bucket can be another device's wait.** Speeding one Strata kernel just moved time into "combine"; in llama.cpp the
+   "1506 tok/s" progress number hid a 4 s pipeline drain.
+4. **Chunk/ubatch size is the prefill lever in both** (Strata 2048 -> 8192 chunks; llama.cpp ub 512 -> 1024 + b 32768), and in both
+   it is bounded by VRAM scratch (Strata: cache slots; llama.cpp: compute buffer = ub x ctx).
+5. **Pinned / userptr host memory on ROCm/RADV gfx900 is dangerous**: Strata RAM arena + PLE-in-RAM wedged the box; llama.cpp userptr
+   import cost 16% TG. Driver-allocated staging is the safe path.
+6. **Tensor parallel over x1 links loses** (Strata TP helper made the primary wait; llama.cpp layer pipeline wins).
+7. **gfx900 has no dot4 / fast bf16** - FP16 packed FMA paths win in both (STRATA_GX / STRATA_BF16_F16; GGML_VK_GX).
+
+## 5. Safety rules (Strata on gfx900)
+
+- Run every Strata test under `~/strata_fault_guard.sh` (patterns: IH ring overflow, restore_userptr_worker, qcm fence, unrecoverable,
+  ring timeout, gpu reset, evict queues); it exits after firing - restart before each run.
+- Never: RAM arena + `--ple-io ram`; pinning the 46 GiB mirror for a PCIe path (wedge risk).
+- `GPU_PINNED_MIN_XFER_SIZE` must be set explicitly to 4096 (1000000 / 65536 -> HIP sees 0 devices).
+- Drop page cache before Flash-Next start (TTM pool can hold 21 GB after many llama runs -> RAM check refuses).
+- Safe reboot: `/usr/local/sbin/gorast_safe_reboot.sh`; verify boot time + undervolt after.
+- Long-prompt hang (13 Oct, task 6 at token 15360, DeltaNet layer 8) - diagnose with STRATA_PF_STEP_SYNC=1 before 40K+ prompts.
+
+## 6. Open levers (next)
+
+- Expert placement from real agent workloads (Storj fleet session through the harness, log expert hits, re-train profile; verify
+  the profile saves early - `--expert-profile-save-every 1`).
+- Bigger prompt-read windows for short turns (code change).
+- CPU miss kernel (AVX2 IQ decode) is THE decode wall - kernel work or faster RAM (MR9A platform) would move TG.
+- MTP for Flash-Next with its native module - correctness gate first.
