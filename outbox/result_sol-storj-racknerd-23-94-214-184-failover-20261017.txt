@@ -1,0 +1,35 @@
+# Suspended VPS failover — 17 October 2026
+
+**COMPLETE_VERIFIED: ASUS Storj11/12/13 moved from suspended RackNerd23.94.214.184 to VPSHosting23.94.80.232.**
+
+| Computer / node | Previous endpoint | Current endpoint | Identity / UDP |
+|---|---|---|---|
+| ASUS / Storj11 | 23.94.214.184:28967 | 23.94.80.232:31111 | Same node ID / QUIC OK |
+| ASUS / Storj12 | 23.94.214.184:28968 | 23.94.80.232:31112 | Same node ID / QUIC OK |
+| ASUS / Storj13 | 23.94.214.184:28969 | 23.94.80.232:31113 | Same node ID / QUIC OK |
+
+The destination previously had3 HP2 nodes and now has6 nodes total. All six are online with QUIC OK. The suspended VPS now has no assigned nodes. Three-sample testing on16October measured the destination at280.5Mbps inbound and166.3Mbps outbound; these are historical bounded samples, not a new speed test or guaranteed capacity.
+
+Fleet monitor before/after: 98/104 and 98/104 reachable/online; no newly offline nodes. The affected nodes were locally reachable before migration but had QUIC Misconfigured through the suspended public VPS; all three now have fresh satellite and QUIC contact.
+
+## Changes and persistence
+
+- Added one scoped WireGuard peer on the replacement VPS, preserving its existing HP2 peer and every pre-existing firewall rule. Added only TCP/UDP ports31111/31112/31113 and the new client forwarding rules. WireGuard interface was not restarted.
+- ASUS uses new profile sol17a80, client10.254.16.32, source-policy table132/priority10032, MTU1280. Its existing default route and other tunnels remain unchanged.
+- Each selected node keeps its storage paths, identity, database, local listening port and console port. Its advertised endpoint changed; its server bind moved from10.77.77.2 to10.254.16.32 to route replies through the replacement.
+- Each selected service has a dedicated sol-failover-20261017.conf drop-in waiting for the enabled wg-quick@sol17a80.service. No other Storj service was restarted.
+- Config backups, private key and per-node identity/health receipts remain root-only on ASUS under /srv/storj-failover-20261017. Server backups/receipt: /root/storj-balance-20261016/oct17a80. Private keys were generated and kept on the host; they are absent from this report/bridge.
+
+## Return after 1 November 2026
+
+Once23.94.214.184 has actually recovered, verify its original tunnel and forwarding first. Restore each node to the previous endpoint above and its original bind10.77.77.2, preserving local ports28967/28968/28969 and the same identity/storage. Original vm2vps profile is preserved. Do not return merely because the calendar changed.
+
+After verifying all three back home, remove only their new service drop-ins and the unused sol17a80 tunnel/owned peer/port rules. Preserve HP2’s peer/firewall rules and all unrelated ASUS tunnels. No automatic return job was scheduled.
+
+## Verified node identities
+
+- ASUS Storj11: 12LWJQYLowuZgYobxmR3K8PzzCcrsbcc1TXDeLiffxBKSn192KB; last satellite contact 2026-10-17T02:05:19.60521803+02:00
+- ASUS Storj12: 12A61YUgG4dZdxtDwDWpadXSNYu5MWpCbB7QPHD5qxerWFqoSom; last satellite contact 2026-10-17T02:05:17.82166364+02:00
+- ASUS Storj13: 127KAexy6F6Rb4vVxMZBKQoiMgA1Rmu2tqhMh6fZKsnvApbaq2N; last satellite contact 2026-10-17T02:05:19.537556909+02:00
+
+Evidence: oct17-failover-plan.json, oct17-server-receipt.json, oct17-failover-live.jsonl, oct17-verified-asus.json, oct17-verified-server.json and before/after monitor snapshots in work/storj-failover-20261016.

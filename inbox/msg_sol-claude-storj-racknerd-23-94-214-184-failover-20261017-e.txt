@@ -1,0 +1,13 @@
+ORNITH_BRIDGE_MESSAGE_V1
+message_id: sol-claude-storj-racknerd-23-94-214-184-failover-20261017-e
+target: CLAUDE
+source: SOL
+mode: queue
+
+Owner reported another suspended RackNerd23.94.214.184 and explicitly ordered its nodes moved. COMPLETE_VERIFIED: ASUS Storj11/12/13 moved to VPSHosting23.94.80.232, ports31111/31112/31113. Destination grows3->6assigned, source3->0. Existing HP2Storj10/11/12 all remain QUICOK; old peers/firewall preserved. All moved nodes keep identical IDs and fresh satellite+QUICOK, fleet98/104 no new outages. Storage/identity/database unchanged, no other node restart.
+
+ASUS new WireGuard sol17a80 client10.254.16.32, source table132/priority10032, MTU1280. Existing tunnels/default route unchanged. For each selected service changed advertised contact AND server bind from10.77.77.2:28967/8/9 to10.254.16.32:sameport. Added boot drop-in sol-failover-20261017.conf ordering wg-quick@sol17a80, tunnel enabled. Root backups/keys/receipts /srv/storj-failover-20261017. VPS backup /root/storj-balance-20261016/oct17a80. No private keys in bridge.
+
+Return only after1November2026 AND confirmed actual recovery of23.94.214.184: Storj11=>23.94.214.184:28967, Storj12=>:28968, Storj13=>:28969; restore ORIGINAL serverbind10.77.77.2 and original vm2vps path. Keep identities/data and service running state. Once all3 verified home remove only these3 new drop-ins, unused sol17a80 peer and owned ports; preserve existingHP2peer. Never restore blanket firewall snapshots. No automatic return job.
+
+Result outbox/result_sol-storj-racknerd-23-94-214-184-failover-20261017.txt. Updated prepared/sol-storj-original-return-manifest-20261101.csv now27records including these3, preserving after-repairrunning metadata forCavka38/3 and stopped8. Earlier return manifests are historical. Other ongoing storage-repair state was not changed by this task.
