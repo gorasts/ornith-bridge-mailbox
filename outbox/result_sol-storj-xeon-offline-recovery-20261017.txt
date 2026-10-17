@@ -1,0 +1,44 @@
+# Fleet offline-node investigation — 17 October 2026
+
+Updated 2026-10-17T12:34:43.710788+00:00. Monitor: 99/104 online. Node91 additionally verified directly against its original native node ID and QUIC OK.
+
+Two new failures were on XEON storage, not a demonstrated VPS-routing fault. Drive91 and drive71 mounts disappeared at 01:56:26 UTC; partitions reappeared ten seconds later. The triggering actor or transport event is not proven. Empty host mount directories caused identity-not-found restart loops. Both containers were stopped while repairing their disks; no identities, VPS endpoints or port mappings were changed.
+
+## Drive91 recovered
+
+Original UUID A08A60BE8A609318 and original identity certificate were verified. NTFS MFT mirror record3 differed from the primary. Before repair, boot/MFT/MFTMirr metadata and the complete 64MiB journal were backed up on the separate root filesystem under /root/sol-storj-mount-recovery-20261017/ntfs91. Journal backup SHA256 dd30d9e07e89c1749cd420e998190ab9e31d4b43d27b5862887320ba2a2b8b0f.
+
+ntfsfix repaired the mirror mismatch; independent ntfsfix -n returned0. The ntfs3 driver still rejected the normal mount. A normal ntfs-3g mount succeeded without force options. Only this UUID's fstab driver was changed from ntfs3 to ntfs-3g, preserving its options and saving the original fstab in the backup directory. The unchanged storj-node91 container is running with restart=unless-stopped, original native identity, QUIC OK and fresh satellite contact. No new kernel errors were observed during recovery. Basic NTFS repair is not a full filesystem surface/index validation.
+
+## Drive71 repair state
+
+Original UUID d40b4196-e4e8-450e-9107-e10dafbf596a and identity were readable initially. Ext4 reported orphan-file block169 checksum failure; read-only e2fsck also found two invalid extents and bitmap discrepancies. Initial undo-file-based e2fsck failed with 'Undo file corrupt'; its generic alternate-superblock suggestion was NOT acted upon. A separate 1,674,215,424-byte metadata image was then saved with e2image -Q on the root filesystem. Standard e2fsck -p -f is the finite repair attempt, followed by read-only verification only if the repair exits0/1. It is not a recurring job. Repair exited1 (corrected errors), and the independent full read-only check exited0. The original disk was remounted normally. storj-node71 is now running with restart=unless-stopped, its original native identity and QUIC OK. No new kernel errors were observed during recovery.
+
+Last observed worker state: {"backup_rc": 0, "completed": 1792240338.9244838, "metadata_bytes": 1674215424, "phase": "VERIFIED_CLEAN", "pid": 2778948, "repair_rc": 1, "started": 1792240111.40849, "verify_rc": 0}
+Last repair messages: MMP interval is 10 seconds and total wait time is 42 seconds. Please wait...
+71: recovering journal
+71: Clearing orphaned inode 109055974 (uid=0, gid=0, mode=0100600, size=0)
+71: Illegal inode 1792239055 in orphaned inode list.
+71: Group 12368 inode bitmap does not match checksum.
+FIXED.
+71: Orphan file (inode 12) block 169 is not clean.
+CLEARED.
+71: 2639/244195328 files (21.4% non-contiguous), 128615415/976754176 blocks
+
+Root evidence: /root/sol-storj-mount-recovery-20261017/fsrepair71-metadata. Local evidence: work/storj-failover-20261016/xeon71-metadata-repair-status.json. Both XEON recoveries have completed direct native node-ID and QUIC checks; raw successful receipts are retained in xeon-mount-recovery-live.jsonl and on the host. Mount attempts allow the existing MMP waiting period; no MMP bypass or forced mount was used.
+
+## Remaining offline nodes
+
+| Computer | Drive | Known problem |
+|---|---:|---|
+| BOX2 | 93 | Storage I/O failure / expected label unavailable |
+| CAVKA | 99 | Drive missing |
+| CAVKA | 8 | USB resets interrupted filesystem repair; checker exited, node stopped |
+| DENT | 90 | Drive/E: missing |
+| ASUS | 88 | NTFS directory errors unresolved; stopped and unmounted |
+
+ASUS61 remains online following the owner's replug. CAVKA38 and3 remain recovered. Previously migrated VPS routing is preserved. No production model/GPU work, healthy node restart, reboot or hardware-setting change was performed.
+
+Filesystem metadata-backup tool reference: [e2image manual](https://man7.org/linux/man-pages/man8/e2image.8.html). Measurements and outcomes above come from actual host logs, not the reference.
+
+Drive71 successful receipt: {"health": {"lastPinged": "2026-10-17T12:33:57.33813971Z", "nodeID": "1jzyVjRzTTQtnxDHCwsnB7SuDx6XMBNdtJeJV5tMbxDw3zonbJ", "quicStatus": "OK", "startedAt": "2026-10-17T12:33:53.234553306Z"}, "identity_sha256": "c5c419ad626e1ad830eb0434409ef0e98be123a9f11eeb907189f38e6c791f98", "new_kernel_errors": [], "node": "storj-node71", "state": "COMPLETE_VERIFIED"}
