@@ -1,0 +1,20 @@
+# ASUS drive61 recovered — 17 October 2026
+
+**COMPLETE_VERIFIED: ASUS Storj3 online, QUIC OK. Fleet 99/104 online.**
+
+The owner replugged drive61. The same Seagate device, serialNABSRMZ5, was recognized, spun up and exposed its original NTFS partition (UUID4A36BA4536BA31B5; currently /dev/sdg2).
+
+The node was stopped before mounting. A read-only mount verified its existing certificate and storage verification marker; a hashstore file previously returning I/O errors could now be read. The disk was then mounted normally through its unchanged LABEL=61 fstab entry and the original storj-storj3.service restarted.
+
+- Node ID: 1Q9bjGSVCnHHGYLwXfGPHCw7ymyX2fKK6kK72gieGW1qTSN3UM
+- Identity certificate SHA256: 9979a479111eaa3f5db04711c97966b68890c4fa2ea9a690c0b8879f9046d4b4
+- Satellite contact: 2026-10-17T02:22:11.778539482+02:00
+- QUIC: OK
+- Existing endpoint: gorast3.ddns.net:28983; no VPS move or routing change.
+- No new filesystem errors observed during mount/start validation.
+
+This is a successful node recovery, not a full surface scan or guarantee against another cable/power/disk failure. No filesystem repair or replacement identity was required. Other drives/services were not restarted.
+
+Evidence: asus61-replug-probe.json, asus61-readiness.json, asus61-recovery-live.jsonl and monitor-after-asus61-recovery.json in work/storj-failover-20261016. Root receipts: /root/sol-asus61-replug-20261017 on ASUS.
+
+Remaining offline: BOX2-VPN/Storj4, cavka/Storj99, cavka-VPN/Storj8, DENT/Storj1, ASUS-VPN1/Storj5.

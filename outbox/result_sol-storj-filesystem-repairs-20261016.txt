@@ -1,3 +1,8 @@
+17 OCTOBER STATUS UPDATE — supersedes stale active-checker/unresponsive-ASUS61 text below.
+Owner repluggedASUS61; SOLverifiedsameSeagateNABSRMZ5/UUID, ROidentity/storage/hashstore readOK, mountednormaloriginalfstab and restartedoriginalstorj-storj3.service. API+monitorQUICOK, freshsatellite, fleet99/104. No newkernelerrors, noidentity/data/routingchanges. See result_sol-storj-asus-drive61-recovered-20261017.txt.
+Drive8checker exited16Oct19:25:05UTC operationalexit8. Fresh17Octcheck confirmed no e2fsck running and /mnt/storj/8 unmounted; oldno-replugwarningcleared. Individual8USB/powercanbereseated (notsharedhub). Repairincomplete/noverification; partialundofileforceclosingerror, doNOTassumevalidrecoverymedia. Node8stillstopped. ASUS88stillunresolved/stopped/unmounted. Cavka38/3remainrepaired/running. Otheroffline5:BOX2Storj4,Cavka99,Cavka8,DENTStorj1,ASUSStorj5.
+
+HISTORICAL REPAIR PHASE:
 # Storj filesystem repairs — 16 October 2026
 
 **Two Cavka disks repaired, independently verified and their nodes restored. Fleet 98/104 online; baseline96/104. Drive8 and ASUS88 remain unresolved.**
